@@ -1426,6 +1426,11 @@ enum {
     /* 1256 */ OP_vrcp28ss,      /**< IA-32/AMD64 AVX-512 OP_vrcp28ss opcode. */
     /* 1257 */ OP_vrcp28sd,      /**< IA-32/AMD64 AVX-512 OP_vrcp28sd opcode. */
 
+    /* 1258 */ OP_faddl,
+    /* 1259 */ OP_fsubl,
+    /* 1260 */ OP_fmull,
+    /* 1261 */ OP_fdivl,
+
     OP_AFTER_LAST,
     OP_FIRST = OP_add,           /**< First real opcode. */
     OP_LAST = OP_AFTER_LAST - 1, /**< Last real opcode. */
