@@ -1225,7 +1225,11 @@ instr_is_floating_ex(instr_t *instr, dr_fp_type_t *type OUT)
     case OP_vfnmsub213ss:
     case OP_vfnmsub213sd:
     case OP_vfnmsub231ss:
-    case OP_vfnmsub231sd: {
+    case OP_vfnmsub231sd: 
+    case OP_faddl:
+    case OP_fsubl:
+    case OP_fmull:
+    case OP_fdivl:  {
         if (type != NULL)
             *type = DR_FP_MATH;
         return true;

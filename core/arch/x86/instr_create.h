@@ -2781,11 +2781,15 @@
  *    in which case the destination \p f must be #DR_REG_ST0.
  */
 #define INSTR_CREATE_fadd(dc, f, s) instr_create_1dst_2src((dc), OP_fadd, (f), (s), (f))
+#define INSTR_CREATE_faddl(dc, f, s) instr_create_1dst_2src((dc), OP_faddl, (f), (s), (f))
 #define INSTR_CREATE_fmul(dc, f, s) instr_create_1dst_2src((dc), OP_fmul, (f), (s), (f))
+#define INSTR_CREATE_fmull(dc, f, s) instr_create_1dst_2src((dc), OP_fmull, (f), (s), (f))
 #define INSTR_CREATE_fdiv(dc, f, s) instr_create_1dst_2src((dc), OP_fdiv, (f), (s), (f))
 #define INSTR_CREATE_fdivr(dc, f, s) instr_create_1dst_2src((dc), OP_fdivr, (f), (s), (f))
+#define INSTR_CREATE_fdivl(dc, f, s) instr_create_1dst_2src((dc), OP_fdivl, (f), (s), (f))
 #define INSTR_CREATE_fsub(dc, f, s) instr_create_1dst_2src((dc), OP_fsub, (f), (s), (f))
 #define INSTR_CREATE_fsubr(dc, f, s) instr_create_1dst_2src((dc), OP_fsubr, (f), (s), (f))
+#define INSTR_CREATE_fsubl(dc, f, s) instr_create_1dst_2src((dc), OP_fsubl, (f), (s), (f))
 /* @} */ /* end doxygen group */
 /** @name Floating-point with explicit destination and implicit source */
 /* @{ */ /* doxygen start group; w/ DISTRIBUTE_GROUP_DOC=YES, one comment suffices. */
