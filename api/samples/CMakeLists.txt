@@ -245,6 +245,9 @@ add_sample_client(inline      "inline.c"        "drmgr;drcontainers")
 add_sample_client(inscount    "inscount.cpp"    "drmgr;droption")
 add_sample_client(opcodes     "opcodes.c"       "drmgr;drreg;drx")
 add_sample_client(stl_test    "stl_test.cpp"    "")
+
+add_sample_client(interflop    "interflop.cpp"  "drmgr")
+
 # add utils.h for installation  # NON-PUBLIC
 set(srcs ${srcs} "utils.h")     # NON-PUBLIC
 
