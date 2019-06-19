@@ -14,6 +14,19 @@
 # define DISPLAY_STRING(msg) dr_printf("%s\n", msg)
 #endif
 
+#ifndef MAX_INSTR_OPND_COUNT
+
+// Generally floating operations needs three operands (2src + 1 dst) and FMA needs 4 (3src + 1dst)
+#define MAX_INSTR_OPND_COUNT 4
+#endif
+
+#ifndef MAX_OPND_SIZE_BYTES
+
+// operand size is maximum 512 bits (AVX512 instructions) = 64 bytes 
+#define MAX_OPND_SIZE_BYTES 64 
+#endif
+
+
 #define INT2OPND(x) (opnd_create_immed_int((x), OPSZ_PTR))
 
 #define INTERFLOP_BUFFER_SIZE (MAX_INSTR_OPND_COUNT*MAX_OPND_SIZE_BYTES)
@@ -196,10 +209,7 @@ static void push_instr_to_doublebuffer(void *drcontext, instrlist_t *ilist,
 
             op = instr_get_src(instr, i);
 
-            if(is_double)
-                opDoF = opnd_create_rel_addr(dbuffer+i, OPSZ_8);
-            else
-                opDoF = opnd_create_rel_addr(dbuffer+i, OPSZ_4);
+           opDoF = opnd_create_rel_addr(dbuffer+i, is_double? OPSZ_8: OPSZ_4);
 
             dr_print_opnd(drcontext, STDERR, op, "\nOP :");
             if(opnd_is_reg(op))
@@ -208,8 +218,7 @@ static void push_instr_to_doublebuffer(void *drcontext, instrlist_t *ilist,
                 if(reg_is_simd(reg)){ //SIMD scalar
                 
                     //dr_printf("simd");
-                    mov = INSTR_CREATE_movsd(drcontext, opnd_create_rel_addr(dbuffer+i, OPSZ_8), op);
-                    translate_insert(mov, ilist, instr);
+                    translate_insert(INSTR_CREATE_movsd(drcontext,opDoF, op), ilist, instr);
                 }else if(reg_is_mmx(reg)) //Intel MMX
                 {
                     //dr_printf("mmx");
@@ -261,9 +270,9 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
             || instr_get_opcode(instr)==OP_addsd)
         {
             dr_print_instr(drcontext, STDERR, instr, "Found : ");
-            push_instr_to_doublebuffer(drcontext, bb, instr);
+            push_instr_to_doublebuffer(drcontext, bb, instr,true);
             dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_add, false, 0);
-            push_result_to_register(drcontext, bb, instr, true);
+            push_result_to_register(drcontext, bb, instr, true,true);
             
         }
 
