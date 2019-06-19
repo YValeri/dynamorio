@@ -79,10 +79,8 @@ static inline void translate_insert(instr_t* newinstr, instrlist_t* ilist, instr
     instrlist_preinsert(ilist,instr, newinstr);
 }
 
-/**
- * Push the floating operation result already computed and stored in the global variable resultbuffer 
- */
-static void push_result_to_register(void* drcontext,instrlist_t *ilist, instr_t* instr, bool removeInstr)
+static void push_result_to_register(void* drcontext,instrlist_t *ilist, instr_t* instr, 
+        bool removeInstr, bool is_double)
 {
     if(instr && ilist && drcontext)
     {
@@ -98,75 +96,73 @@ static void push_result_to_register(void* drcontext,instrlist_t *ilist, instr_t*
         int num_dst = instr_num_dsts(instr);
         if(num_dst > 0)
         {
-            opnd_t op = instr_get_dst(instr, 0);
+            opnd_t op, opDoF, op64, opST0;
+            reg_t reg;
+
+            op = instr_get_dst(instr, 0);
+
+            opDoF = opnd_create_rel_addr(resultBuffer, is_double? OPSZ_8: OPSZ_4);
+
+            opST0 = opnd_create_reg(DR_REG_ST0);
+            op64 = opnd_create_reg(DR_REG_START_64);
+
+#ifdef SHOW_RESULTS
             dr_print_opnd(drcontext, STDERR, op, "DST : ");
-            instr_t* mov = NULL;
+#endif
             if(opnd_is_reg(op))
             {
-                reg_t reg = opnd_get_reg(op);
-                if(reg_is_simd(reg)) //SIMD scalar
-                {
-                    //dr_printf("simd");
-                    mov = INSTR_CREATE_movsd(drcontext, op,opnd_create_rel_addr(resultBuffer, OPSZ_8));
-                    translate_insert(mov, ilist, instr);
-                }else if(reg_is_fp(reg)) //x87 FPU
-                {
-                    //dr_printf("fp");
-                    if(reg != DR_REG_ST0) //Not top of the stack, we need to swap the register 
-                    {
-                        mov = INSTR_CREATE_fxch(drcontext, op);
-                        translate_insert(mov, ilist, instr);
+                reg = opnd_get_reg(op);
+                if(reg_is_simd(reg)){ //SIMD scalar
+                
+                    //dr_printf("simd\n\n\n");
+                    translate_insert(INSTR_CREATE_movsd(drcontext, op, opDoF), ilist, instr);
+
+                }else if(reg_is_fp(reg)){ //x87 FPU
+                
+                    //dr_printf("fp\n\n\n");
+                    if(reg != DR_REG_ST0){ //Not top of the stack, we need to swap the register 
+                        translate_insert(INSTR_CREATE_fxch(drcontext, op), ilist, instr);
                     }
+                    
                     //Pops the first
-                    mov = INSTR_CREATE_fstp(drcontext, opnd_create_reg(DR_REG_ST0));
-                    translate_insert(mov, ilist, instr);
+                    translate_insert(INSTR_CREATE_fstp(drcontext, opST0), ilist, instr);
                     //load the value
-                    mov = INSTR_CREATE_fld(drcontext, opnd_create_rel_addr(resultBuffer, OPSZ_8));
-                    translate_insert(mov, ilist, instr);
+                    translate_insert(INSTR_CREATE_fld(drcontext, opDoF), ilist, instr);
 
-                    if(reg != DR_REG_ST0) //Not top of the stack, we need to swap the register 
-                    {
-                        mov = INSTR_CREATE_fxch(drcontext, op);
-                        translate_insert(mov, ilist, instr);
+                    if(reg != DR_REG_ST0){ //Not top of the stack, we need to swap the register 
+                        translate_insert(INSTR_CREATE_fxch(drcontext, op), ilist, instr);
                     }
 
-                }else if(reg_is_mmx(reg)) //Intel MMX
-                {
-                    //dr_printf("mmx");
-                    mov = INSTR_CREATE_movq(drcontext, op, opnd_create_rel_addr(resultBuffer, OPSZ_8));
-                    translate_insert(mov, ilist, instr);
-                }else //General purpose register
-                {
-                    //dr_printf("gpr");
-                    mov = INSTR_CREATE_mov_ld(drcontext, op, opnd_create_rel_addr(resultBuffer, OPSZ_8));
-                    translate_insert(mov, ilist, instr);
+                }else if(reg_is_mmx(reg)){ //Intel MMX
+                
+                    //dr_printf("mmx\n\n\n");
+                    translate_insert(INSTR_CREATE_movq(drcontext, op, opDoF), ilist, instr);
+                }else{ //General purpose register
+                
+                    //dr_printf("gpr\n\n\n");
+                    translate_insert(INSTR_CREATE_mov_ld(drcontext, op, opDoF), ilist, instr);
                 }
                 //TODO complete if necessary
-            }else if(opnd_is_immed(op)) // Immediate value
-            {
+            }else if(opnd_is_immed(op)){ // Immediate value
+            
                 //dr_printf("immed");
-                mov = INSTR_CREATE_mov_imm(drcontext, op, opnd_create_rel_addr(resultBuffer, OPSZ_8));
-                translate_insert(mov, ilist, instr);
-            }else if(opnd_is_memory_reference(op))
-            {
-                if(opnd_is_base_disp(op)) //Register value + displacement
-                {
+                translate_insert(INSTR_CREATE_mov_imm(drcontext, op, opDoF), ilist, instr);
+            }else if(opnd_is_memory_reference(op)){
+            
+                if(opnd_is_base_disp(op)){ //Register value + displacement
+                
                     //dr_printf("base_disp");
                     //This case needs special care because it's a memory address not accessible directly
                     //We can't mov from adress to adress so we'll copy the content in a register, 
                     //then copy the register to memory
-                    instr_t* push = INSTR_CREATE_push(drcontext, opnd_create_reg(DR_REG_START_64));
-                    translate_insert(push, ilist, instr);
+                    translate_insert(INSTR_CREATE_push(drcontext, op64), ilist, instr);
 
-                    mov = INSTR_CREATE_movq(drcontext, opnd_create_reg(DR_REG_START_64), opnd_create_rel_addr(resultBuffer, OPSZ_8));
-                    translate_insert(mov, ilist, instr);
-                    mov = INSTR_CREATE_movq(drcontext, op, opnd_create_reg(DR_REG_START_64));
-                    translate_insert(mov, ilist, instr);
+                    translate_insert(INSTR_CREATE_movq(drcontext, op64, opDoF), ilist, instr);
+                    translate_insert(INSTR_CREATE_movq(drcontext, op, op64), ilist, instr);
 
-                    instr_t* pop = INSTR_CREATE_pop(drcontext, opnd_create_reg(DR_REG_START_64));
-                    translate_insert(pop, ilist, instr);
-                }else // Absolute/relative adress : direct access
-                {
+                    translate_insert(INSTR_CREATE_pop(drcontext, op64), ilist, instr);
+                }else{ // Absolute/relative adress : direct access
+                
                     //dr_printf("abs/rel");
                     *(double*)opnd_get_addr(op) = *(resultBuffer);
                 }
@@ -187,65 +183,64 @@ static void interflop_add()
     dr_printf("res : %lf\n",*(resultBuffer));
 }
 
-/**
- * Function called prior to the operation to retrive operands values into global buffers
- */
-static void push_instr_to_doublebuffer(void *drcontext, instrlist_t *ilist, instr_t* instr)
+static void push_instr_to_doublebuffer(void *drcontext, instrlist_t *ilist, 
+            instr_t* instr, bool is_double)
 {
     if(instr && ilist && drcontext)
     {
         int num_src = instr_num_srcs(instr);
         int i=0;
+        opnd_t op, opDoF, op64;
         for(; i<num_src; i++)
         {
-            opnd_t op = instr_get_src(instr, i);
+
+            op = instr_get_src(instr, i);
+
+            if(is_double)
+                opDoF = opnd_create_rel_addr(dbuffer+i, OPSZ_8);
+            else
+                opDoF = opnd_create_rel_addr(dbuffer+i, OPSZ_4);
+
             dr_print_opnd(drcontext, STDERR, op, "\nOP :");
-            instr_t* mov = NULL;
             if(opnd_is_reg(op))
             {
                 reg_t reg = opnd_get_reg(op);
-                if(reg_is_simd(reg)) //SIMD scalar
-                {
+                if(reg_is_simd(reg)){ //SIMD scalar
+                
                     //dr_printf("simd");
                     mov = INSTR_CREATE_movsd(drcontext, opnd_create_rel_addr(dbuffer+i, OPSZ_8), op);
                     translate_insert(mov, ilist, instr);
                 }else if(reg_is_mmx(reg)) //Intel MMX
                 {
                     //dr_printf("mmx");
-                    mov = INSTR_CREATE_movq(drcontext, opnd_create_rel_addr(dbuffer+i, OPSZ_8), op);
-                    translate_insert(mov, ilist, instr);
-                }else //General purpose register
-                {
+                    translate_insert(INSTR_CREATE_movq(drcontext, opDoF, op), ilist, instr);
+                }else{ //General purpose register
+                
                     //dr_printf("gpr");
-                    mov = INSTR_CREATE_movq(drcontext, opnd_create_rel_addr(dbuffer+i, OPSZ_8),op);
-                    translate_insert(mov, ilist, instr);
+                    translate_insert(INSTR_CREATE_movq(drcontext, opDoF, op), ilist, instr);
                 }
                 //TODO complete if necessary
-            }else if(opnd_is_immed(op)) // Immediate value
-            {
+            }else if(opnd_is_immed(op)){ // Immediate value
+            
                 //dr_printf("immed");
-                mov = INSTR_CREATE_mov_imm(drcontext, opnd_create_rel_addr(dbuffer+i, OPSZ_8), op);
-                translate_insert(mov, ilist, instr);
-            }else if(opnd_is_memory_reference(op))
-            {
-                if(opnd_is_base_disp(op)) //Register value + displacement
-                {
+                translate_insert(INSTR_CREATE_mov_imm(drcontext, opDoF, op), ilist, instr);
+            }else if(opnd_is_memory_reference(op)){
+            
+                if(opnd_is_base_disp(op)){ //Register value + displacement
+                
+                    op64 = opnd_create_reg(DR_REG_START_64);
                     //dr_printf("base_disp");
                     //This case needs special care because it's a memory address not accessible directly
                     //We can't mov from adress to adress so we'll copy the content in a register, 
                     //then copy the register to memory
-                    instr_t* push = INSTR_CREATE_push(drcontext, opnd_create_reg(DR_REG_START_64));
-                    translate_insert(push, ilist, instr);
+                    translate_insert(INSTR_CREATE_push(drcontext, op64), ilist, instr);
 
-                    mov = INSTR_CREATE_movq(drcontext, opnd_create_reg(DR_REG_START_64),op);
-                    translate_insert(mov, ilist, instr);
-                    mov = INSTR_CREATE_movq(drcontext, opnd_create_rel_addr(dbuffer+i, OPSZ_8), opnd_create_reg(DR_REG_START_64));
-                    translate_insert(mov, ilist, instr);
+                    translate_insert(INSTR_CREATE_movq(drcontext, op64, op), ilist, instr);
+                    translate_insert(INSTR_CREATE_movq(drcontext, opDoF, op64), ilist, instr);
 
-                    instr_t* pop = INSTR_CREATE_pop(drcontext, opnd_create_reg(DR_REG_START_64));
-                    translate_insert(pop, ilist, instr);
-                }else // Absolute/relative adress : direct access
-                {
+                    translate_insert(INSTR_CREATE_pop(drcontext, op64), ilist, instr);
+                }else{ // Absolute/relative adress : direct access
+                
                     //dr_printf("abs/rel");
                     *(dbuffer+i) = *(double*)opnd_get_addr(op);
                 }
@@ -262,7 +257,8 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
     for(instr = instrlist_first(bb); instr != NULL; instr = next_instr)
     {
         next_instr = instr_get_next(instr);
-        if(instr_get_opcode(instr) == OP_fadd || instr_get_opcode(instr)==OP_faddp || instr_get_opcode(instr)==OP_addsd)
+        if(instr_get_opcode(instr) == OP_fadd || instr_get_opcode(instr)==OP_faddp
+            || instr_get_opcode(instr)==OP_addsd)
         {
             dr_print_instr(drcontext, STDERR, instr, "Found : ");
             push_instr_to_doublebuffer(drcontext, bb, instr);
