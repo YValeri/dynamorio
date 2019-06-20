@@ -88,6 +88,7 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 static void event_exit(void)
 {
     drmgr_exit();
+    drreg_exit();
     free(*dbuffer_ind);
     free(*resultBuffer_ind);
 }
