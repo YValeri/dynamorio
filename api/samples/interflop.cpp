@@ -5,6 +5,7 @@
 #include "dr_api.h"
 #include "dr_ir_opcodes.h"
 #include "dr_ir_opnd.h"
+#include "drreg.h"
 #include "drmgr.h"
 
 //Define the display function
@@ -61,6 +62,14 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 
     // Init DynamoRIO MGR extension ()
     drmgr_init();
+
+    drreg_options_t drreg_options;
+    drreg_options.conservative = true;
+    drreg_options.num_spill_slots = 1;
+    drreg_options.struct_size = sizeof(drreg_options_t);
+    drreg_options.do_not_sum_slots=false;
+    drreg_options.error_callback=NULL;
+    drreg_init(&drreg_options);
     
     // Define the functions to be called before exiting this client program
     dr_register_exit_event(event_exit);
@@ -74,6 +83,7 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 static void event_exit(void)
 {
     drmgr_exit();
+    drreg_exit();
     free(dbuffer);
     free(resultBuffer);
 }
@@ -117,17 +127,17 @@ static void push_result_to_register(void* drcontext,instrlist_t *ilist, instr_t*
             opDoF = opnd_create_rel_addr(resultBuffer, is_double? OPSZ_8: OPSZ_4);
 
             opST0 = opnd_create_reg(DR_REG_ST0);
-            op64 = opnd_create_reg(DR_REG_START_64);
+            //op64 = opnd_create_reg(DR_REG_START_64);
 
-#ifdef SHOW_RESULTS
+//#ifdef SHOW_RESULTS
             dr_print_opnd(drcontext, STDERR, op, "DST : ");
-#endif
+//#endif
             if(opnd_is_reg(op))
             {
                 reg = opnd_get_reg(op);
                 if(reg_is_simd(reg)){ //SIMD scalar
                 
-                    //dr_printf("simd\n\n\n");
+                    dr_printf("simd\n");
                     translate_insert(INSTR_CREATE_movsd(drcontext, op, opDoF), ilist, instr);
 
                 }else if(reg_is_fp(reg)){ //x87 FPU
@@ -152,33 +162,33 @@ static void push_result_to_register(void* drcontext,instrlist_t *ilist, instr_t*
                     translate_insert(INSTR_CREATE_movq(drcontext, op, opDoF), ilist, instr);
                 }else{ //General purpose register
                 
-                    //dr_printf("gpr\n\n\n");
+                    dr_printf("gpr\n");
                     translate_insert(INSTR_CREATE_mov_ld(drcontext, op, opDoF), ilist, instr);
                 }
                 //TODO complete if necessary
             }else if(opnd_is_immed(op)){ // Immediate value
             
-                //dr_printf("immed");
+                dr_printf("immed\n");
                 translate_insert(INSTR_CREATE_mov_imm(drcontext, op, opDoF), ilist, instr);
             }else if(opnd_is_memory_reference(op)){
-            
-                if(opnd_is_base_disp(op)){ //Register value + displacement
+                reg_id_t reserved_reg;
+                dr_printf("memref\n");
+                drreg_reserve_register(drcontext, ilist, instr, NULL, &reserved_reg);
+                op64 = opnd_create_reg(reserved_reg);
                 
-                    //dr_printf("base_disp");
-                    //This case needs special care because it's a memory address not accessible directly
-                    //We can't mov from adress to adress so we'll copy the content in a register, 
-                    //then copy the register to memory
-                    translate_insert(INSTR_CREATE_push(drcontext, op64), ilist, instr);
-
-                    translate_insert(INSTR_CREATE_movq(drcontext, op64, opDoF), ilist, instr);
-                    translate_insert(INSTR_CREATE_movq(drcontext, op, op64), ilist, instr);
-
-                    translate_insert(INSTR_CREATE_pop(drcontext, op64), ilist, instr);
-                }else{ // Absolute/relative adress : direct access
+                if(opnd_is_rel_addr(op))
+                    dr_printf("reladdr\n");
+                if(opnd_is_base_disp(op))
+                    dr_printf("Basdisp\n");
+                if(opnd_is_abs_addr(op))
+                    dr_printf("absaddr\n");
+                if(opnd_is_pc(op))
+                    dr_printf("pc\n");
                 
-                    //dr_printf("abs/rel");
-                    *(double*)opnd_get_addr(op) = *(resultBuffer);
-                }
+                translate_insert(INSTR_CREATE_movq(drcontext, op64, opDoF), ilist, instr);
+                translate_insert(INSTR_CREATE_movq(drcontext, op, op64), ilist, instr);
+
+                drreg_unreserve_register(drcontext, ilist, instr, reserved_reg);
             }
         }
         
@@ -217,42 +227,48 @@ static void push_instr_to_doublebuffer(void *drcontext, instrlist_t *ilist,
                 reg_t reg = opnd_get_reg(op);
                 if(reg_is_simd(reg)){ //SIMD scalar
                 
-                    //dr_printf("simd");
+                    dr_printf("simd\n");
                     translate_insert(INSTR_CREATE_movsd(drcontext,opDoF, op), ilist, instr);
                 }else if(reg_is_mmx(reg)) //Intel MMX
                 {
-                    //dr_printf("mmx");
+                    dr_printf("mmx\n");
                     translate_insert(INSTR_CREATE_movq(drcontext, opDoF, op), ilist, instr);
                 }else{ //General purpose register
                 
-                    //dr_printf("gpr");
+                    dr_printf("gpr\n");
                     translate_insert(INSTR_CREATE_movq(drcontext, opDoF, op), ilist, instr);
                 }
                 //TODO complete if necessary
             }else if(opnd_is_immed(op)){ // Immediate value
             
-                //dr_printf("immed");
+                dr_printf("immed\n");
                 translate_insert(INSTR_CREATE_mov_imm(drcontext, opDoF, op), ilist, instr);
             }else if(opnd_is_memory_reference(op)){
-            
-                if(opnd_is_base_disp(op)){ //Register value + displacement
-                
-                    op64 = opnd_create_reg(DR_REG_START_64);
-                    //dr_printf("base_disp");
-                    //This case needs special care because it's a memory address not accessible directly
-                    //We can't mov from adress to adress so we'll copy the content in a register, 
-                    //then copy the register to memory
-                    translate_insert(INSTR_CREATE_push(drcontext, op64), ilist, instr);
+                dr_printf("memref\n");
+                reg_id_t reserved_reg;
+                drreg_reserve_register(drcontext, ilist, instr, NULL, &reserved_reg);
+                dr_printf("%s\n", get_register_name(reserved_reg));
+                op64 = opnd_create_reg(reserved_reg);
+                if(opnd_is_rel_addr(op))
+                    dr_printf("reladdr\n");
+                if(opnd_is_base_disp(op))
+                    dr_printf("Basdisp\n");
+                if(opnd_is_abs_addr(op))
+                    dr_printf("absaddr\n");
+                if(opnd_is_pc(op))
+                    dr_printf("pc\n");
+                //dr_printf("base_disp");
+                //This case needs special care because it's a memory address not accessible directly
+                //We can't mov from adress to adress so we'll copy the content in a register, 
+                //then copy the register to memory
 
-                    translate_insert(INSTR_CREATE_movq(drcontext, op64, op), ilist, instr);
-                    translate_insert(INSTR_CREATE_movq(drcontext, opDoF, op64), ilist, instr);
+                //translate_insert(INSTR_CREATE_movq(drcontext, op64, ), ilist, instr);
 
-                    translate_insert(INSTR_CREATE_pop(drcontext, op64), ilist, instr);
-                }else{ // Absolute/relative adress : direct access
-                
-                    //dr_printf("abs/rel");
-                    *(dbuffer+i) = *(double*)opnd_get_addr(op);
-                }
+                translate_insert(INSTR_CREATE_movq(drcontext, op64, op), ilist, instr);
+                translate_insert(INSTR_CREATE_movq(drcontext, opDoF, op64), ilist, instr);
+
+                //translate_insert(INSTR_CREATE_pop(drcontext, op64), ilist, instr);
+                drreg_unreserve_register(drcontext, ilist, instr, reserved_reg);
             }
         }
         
