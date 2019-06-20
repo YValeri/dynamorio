@@ -38,10 +38,12 @@ static void event_exit(void);
     // Global variables 
 
 // Buffer to contain double precision floating operands copied from registers  
-static double* dbuffer;
+static double *dbuffer;
+static double **dbuffer_ind;
 
 // Buffer to contain double precision flaoting result to be copied back into a register 
-static double* resultBuffer;
+static double *resultBuffer;
+static double **resultBuffer_ind;
 
 //Function to treat each block of instructions 
 static dr_emit_flags_t event_basic_block(   void *drcontext,        //Context
@@ -57,7 +59,10 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 {
     // Memory allocation for global variables
     dbuffer = (double*)malloc(INTERFLOP_BUFFER_SIZE);
+    dbuffer_ind = &dbuffer;
+    
     resultBuffer = (double*)malloc(64);
+    resultBuffer_ind = &resultBuffer;
 
     // Init DynamoRIO MGR extension ()
     drmgr_init();
@@ -74,8 +79,8 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 static void event_exit(void)
 {
     drmgr_exit();
-    free(dbuffer);
-    free(resultBuffer);
+    free(*dbuffer_ind);
+    free(*resultBuffer_ind);
 }
 
 
@@ -114,7 +119,7 @@ static void push_result_to_register(void* drcontext,instrlist_t *ilist, instr_t*
 
             op = instr_get_dst(instr, 0);
 
-            opDoF = opnd_create_rel_addr(resultBuffer, is_double? OPSZ_8: OPSZ_4);
+            opDoF = opnd_create_rel_addr(*resultBuffer_ind, is_double? OPSZ_8: OPSZ_4);
 
             opST0 = opnd_create_reg(DR_REG_ST0);
             op64 = opnd_create_reg(DR_REG_START_64);
@@ -125,34 +130,14 @@ static void push_result_to_register(void* drcontext,instrlist_t *ilist, instr_t*
             if(opnd_is_reg(op))
             {
                 reg = opnd_get_reg(op);
-                if(reg_is_simd(reg)){ //SIMD scalar
-                
-                    //dr_printf("simd\n\n\n");
+                if(reg_is_simd(reg)){ 
+                    //SIMD scalar
                     translate_insert(INSTR_CREATE_movsd(drcontext, op, opDoF), ilist, instr);
-
-                }else if(reg_is_fp(reg)){ //x87 FPU
-                
-                    //dr_printf("fp\n\n\n");
-                    if(reg != DR_REG_ST0){ //Not top of the stack, we need to swap the register 
-                        translate_insert(INSTR_CREATE_fxch(drcontext, op), ilist, instr);
-                    }
-                    
-                    //Pops the first
-                    translate_insert(INSTR_CREATE_fstp(drcontext, opST0), ilist, instr);
-                    //load the value
-                    translate_insert(INSTR_CREATE_fld(drcontext, opDoF), ilist, instr);
-
-                    if(reg != DR_REG_ST0){ //Not top of the stack, we need to swap the register 
-                        translate_insert(INSTR_CREATE_fxch(drcontext, op), ilist, instr);
-                    }
-
-                }else if(reg_is_mmx(reg)){ //Intel MMX
-                
-                    //dr_printf("mmx\n\n\n");
+                }else if(reg_is_mmx(reg)){ 
+                    //Intel MMX
                     translate_insert(INSTR_CREATE_movq(drcontext, op, opDoF), ilist, instr);
-                }else{ //General purpose register
-                
-                    //dr_printf("gpr\n\n\n");
+                }else{ 
+                    //General purpose register
                     translate_insert(INSTR_CREATE_mov_ld(drcontext, op, opDoF), ilist, instr);
                 }
                 //TODO complete if necessary
@@ -177,23 +162,21 @@ static void push_result_to_register(void* drcontext,instrlist_t *ilist, instr_t*
                 }else{ // Absolute/relative adress : direct access
                 
                     //dr_printf("abs/rel");
-                    *(double*)opnd_get_addr(op) = *(resultBuffer);
+                    *(double*)opnd_get_addr(op) = **resultBuffer_ind;
                 }
             }
         }
-        
         instrlist_remove(ilist, instr);
         instr_destroy(drcontext, instr);
-
     }
 }
 
 
 static void interflop_add()
 {
-    dr_printf("buffer : %lf\t%lf\n",*(dbuffer), *(dbuffer+1));
-    *resultBuffer = *(dbuffer)+*(dbuffer+1);
-    dr_printf("res : %lf\n",*(resultBuffer));
+    dr_printf("buffer : %lf\t%lf\n",**dbuffer_ind, *(*dbuffer_ind+1));
+    **resultBuffer_ind = **dbuffer_ind+*(*dbuffer_ind+1);
+    dr_printf("res : %lf\n",**resultBuffer_ind);
 }
 
 static void push_instr_to_doublebuffer(void *drcontext, instrlist_t *ilist, 
@@ -209,31 +192,28 @@ static void push_instr_to_doublebuffer(void *drcontext, instrlist_t *ilist,
 
             op = instr_get_src(instr, i);
 
-           opDoF = opnd_create_rel_addr(dbuffer+i, is_double? OPSZ_8: OPSZ_4);
+           opDoF = opnd_create_rel_addr(*dbuffer_ind+i, is_double? OPSZ_8: OPSZ_4);
 
             dr_print_opnd(drcontext, STDERR, op, "\nOP :");
-            if(opnd_is_reg(op))
+            if(opnd_is_reg(op)) // Register
             {
                 reg_t reg = opnd_get_reg(op);
-                if(reg_is_simd(reg)){ //SIMD scalar
-                
-                    //dr_printf("simd");
+                if(reg_is_simd(reg))
+                { 
+                    // SIMD scalar
                     translate_insert(INSTR_CREATE_movsd(drcontext,opDoF, op), ilist, instr);
-                }else if(reg_is_mmx(reg)) //Intel MMX
-                {
-                    //dr_printf("mmx");
+                } else if(reg_is_mmx(reg)) {
+                    // Intel MMX
                     translate_insert(INSTR_CREATE_movq(drcontext, opDoF, op), ilist, instr);
-                }else{ //General purpose register
-                
-                    //dr_printf("gpr");
+                } else { 
+                    // General purpose register
                     translate_insert(INSTR_CREATE_movq(drcontext, opDoF, op), ilist, instr);
                 }
                 //TODO complete if necessary
-            }else if(opnd_is_immed(op)){ // Immediate value
-            
-                //dr_printf("immed");
+
+            } else if(opnd_is_immed(op)) { // Immediate value
                 translate_insert(INSTR_CREATE_mov_imm(drcontext, opDoF, op), ilist, instr);
-            }else if(opnd_is_memory_reference(op)){
+            } else if(opnd_is_memory_reference(op)){
             
                 if(opnd_is_base_disp(op)){ //Register value + displacement
                 
@@ -251,7 +231,7 @@ static void push_instr_to_doublebuffer(void *drcontext, instrlist_t *ilist,
                 }else{ // Absolute/relative adress : direct access
                 
                     //dr_printf("abs/rel");
-                    *(dbuffer+i) = *(double*)opnd_get_addr(op);
+                    *(*dbuffer_ind+i) = *(double*)opnd_get_addr(op);
                 }
             }
         }
@@ -273,7 +253,6 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
             push_instr_to_doublebuffer(drcontext, bb, instr,true);
             dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_add, false, 0);
             push_result_to_register(drcontext, bb, instr, true,true);
-            
         }
 
     }
