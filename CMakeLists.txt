@@ -745,7 +745,7 @@ if (UNIX)
     set(ld_entry_flag "--entry")
   endif ()
   # there's no cmake warning control so we hardcode it
-  set(WARN "-Wall -Werror -Wwrite-strings")
+  set(WARN "-Wall -Wwrite-strings")
   if (NOT CMAKE_COMPILER_IS_CLANG)
     # Old gcc's ignore unknown -W flags, but -Wall -Werror causes clang to
     # complain that it doesn't recognize it.
