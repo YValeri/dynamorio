@@ -56,6 +56,8 @@ static dr_emit_flags_t event_basic_block(   void *drcontext,        //Context
                                             bool for_trace,         //TODO
                                             bool translating);      //TODO
 
+static dr_emit_flags_t runtime(void *drcontext, void *tag, instrlist_t *bb, bool for_trace, bool translating, void **user_data);
+
 // Main function to setup the dynamoRIO client
 DR_EXPORT void dr_client_main(  client_id_t id, // client ID
                                 int argc,   
@@ -68,12 +70,17 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
     resultBuffer = (double*)malloc(64);
     resultBuffer_ind = &resultBuffer;
 
+    dr_printf("\ndbuffer_ind : %p\n&dbuffer_ind : %p\n", dbuffer_ind , &dbuffer_ind);
+    dr_printf("dbuffer : %p\n&dbuffer : %p\n\n", dbuffer , &dbuffer);
+
+    dr_printf("resultBuffer_ind : %p\n&resultBuffer_ind : %p\n", resultBuffer_ind , &resultBuffer_ind);
+    dr_printf("resultBuffer : %p\n&resultBuffer : %p\n\n", resultBuffer , &resultBuffer);
     // Init DynamoRIO MGR extension ()
     drmgr_init();
 
     drreg_options_t drreg_options;
     drreg_options.conservative = true;
-    drreg_options.num_spill_slots = 1;
+    drreg_options.num_spill_slots = 2;
     drreg_options.struct_size = sizeof(drreg_options_t);
     drreg_options.do_not_sum_slots=false;
     drreg_options.error_callback=NULL;
@@ -84,16 +91,20 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 
     // Define the function to executed to treat each instructions block
     drmgr_register_bb_app2app_event(event_basic_block, NULL);
+    drmgr_register_bb_instrumentation_event(runtime,NULL,NULL);
 
 }
 
 
+
 static void event_exit(void)
 {
+    drreg_exit();
     drmgr_exit();
     drreg_exit();
     free(*dbuffer_ind);
     free(*resultBuffer_ind);
+    dr_printf("ENDDDDDDDDDDDDDD\n");
 }
 
 
@@ -123,34 +134,44 @@ static void push_result_to_register(void* drcontext,instrlist_t *ilist, instr_t*
             instrlist_preinsert(ilist,instr, copy);
         }
         
-
+        reg_id_t reserved_reg;
         int num_dst = instr_num_dsts(instr);
         if(num_dst > 0)
         {
-            opnd_t op, opDoF, op64, opST0;
+            opnd_t op, opDoF, op64, op_result_addr;
             reg_t reg;
 
             op = instr_get_dst(instr, 0);
+            op_result_addr = opnd_create_rel_addr(*resultBuffer_ind , OPSZ_PTR);
 
-            opDoF = opnd_create_rel_addr(*resultBuffer_ind, is_double? OPSZ_8: OPSZ_4);
+            drreg_reserve_register(drcontext, ilist, instr, NULL, &reserved_reg);
+            op64 = opnd_create_reg(reserved_reg);
 
-            opST0 = opnd_create_reg(DR_REG_ST0);
-            //op64 = opnd_create_reg(DR_REG_START_64);
+            translate_insert(INSTR_CREATE_movq(drcontext, op64 , op_result_addr),ilist , instr);
+
+            //opDoF = opnd_create_rel_addr(*resultBuffer_ind, is_double? OPSZ_8: OPSZ_4);
+            opDoF = opnd_create_base_disp(opnd_get_reg(op64) , DR_REG_NULL , 0 , 0 , is_double ? OPSZ_8 : OPSZ_4);
+
 
 //#ifdef SHOW_RESULTS
             dr_print_opnd(drcontext, STDERR, op, "DST : ");
+            dr_print_opnd(drcontext, STDERR, opDoF, "RESULT : ");
 //#endif
             if(opnd_is_reg(op))
             {
                 reg = opnd_get_reg(op);
                 if(reg_is_simd(reg)){ 
                     //SIMD scalar
+                    dr_printf("SIMD scalar\n");
                     translate_insert(INSTR_CREATE_movsd(drcontext, op, opDoF), ilist, instr);
+                    dr_printf("SIMD scalar after\n");
                 }else if(reg_is_mmx(reg)){ 
                     //Intel MMX
+                    dr_printf("MMX\n");
                     translate_insert(INSTR_CREATE_movq(drcontext, op, opDoF), ilist, instr);
                 }else{ 
                     //General purpose register
+                    dr_printf("GPR\n");
                     translate_insert(INSTR_CREATE_mov_ld(drcontext, op, opDoF), ilist, instr);
                 }
                 //TODO complete if necessary
@@ -176,9 +197,11 @@ static void push_result_to_register(void* drcontext,instrlist_t *ilist, instr_t*
                 translate_insert(INSTR_CREATE_movq(drcontext, op64, opDoF), ilist, instr);
                 translate_insert(INSTR_CREATE_movq(drcontext, op, op64), ilist, instr);
 
-                drreg_unreserve_register(drcontext, ilist, instr, reserved_reg);
+                
             }
+            drreg_unreserve_register(drcontext, ilist, instr, reserved_reg);
         }
+        
         instrlist_remove(ilist, instr);
         instr_destroy(drcontext, instr);
     }
@@ -213,6 +236,7 @@ static void interflop_sub()
 
 static void interflop_add()
 {
+    dr_printf("ADDDDDDDDDDDDDDDDD\n");
     dr_printf("buffer : %lf\t%lf\n",**dbuffer_ind, *(*dbuffer_ind+1));
     
     //**resultBuffer_ind = **dbuffer_ind+*(*dbuffer_ind+1);
@@ -226,24 +250,42 @@ static void push_instr_to_doublebuffer(void *drcontext, instrlist_t *ilist,
     if(instr && ilist && drcontext)
     {
         int num_src = instr_num_srcs(instr);
-        int i=0;
-        opnd_t op, opDoF, op64;
-        for(; i<num_src; i++)
-        {
-
+        
+        opnd_t op, opDoF, op64, op_dbuffer_addr,op_dbuffer/*,opnd_temp*/;
+        for(int i=0; i<num_src; i++) {
             op = instr_get_src(instr, i);
+            dr_print_opnd(drcontext , STDOUT , op , "OP : ");
 
-            //BUG : Wrong buffer type if float
-            opDoF = opnd_create_rel_addr(*dbuffer_ind+i, is_double? OPSZ_8: OPSZ_4);
+            op_dbuffer_addr = opnd_create_rel_addr(*dbuffer_ind , OPSZ_PTR);
+            //dr_print_opnd(drcontext , STDOUT , op_dbuffer_addr , "OPND ADDRESS BUFFER : ");
 
-            dr_print_opnd(drcontext, STDERR, op, "\nOP :");
+            reg_id_t reserved_reg;
+            drreg_reserve_register(drcontext, ilist, instr, NULL, &reserved_reg);
+            op64 = opnd_create_reg(reserved_reg);
+
+            // Move buffer address in reserved register
+            translate_insert(INSTR_CREATE_movq(drcontext, op64 , op_dbuffer_addr),ilist , instr);
+
+            dr_print_opnd(drcontext , STDOUT , op64 , "OPND OP64 : ");
+            
+            /*
+            opnd_temp = opnd_create_rel_addr(&buffer_address_reg , OPSZ_PTR);
+            translate_insert(INSTR_CREATE_movq(drcontext,opnd_temp, op64), ilist, instr);
+            */
+
+            opDoF = opnd_create_base_disp(opnd_get_reg(op64) , DR_REG_NULL , 0 , i*(is_double ? sizeof(double) : sizeof(float)) , is_double ? OPSZ_8 : OPSZ_4);
+
+            dr_print_opnd(drcontext, STDOUT, op, "\nOP :");
             if(opnd_is_reg(op)) // Register
             {
                 reg_t reg = opnd_get_reg(op);
                 if(reg_is_simd(reg))
                 { 
-                    // SIMD scalar
+                    // SIMD scalar 
+                    //translate_insert(INSTR_CREATE_movsd(drcontext,opDoF, op), ilist, instr);
                     translate_insert(INSTR_CREATE_movsd(drcontext,opDoF, op), ilist, instr);
+                    dr_print_opnd(drcontext , STDOUT , opDoF , "OPDOF : ");
+                    
                 } else if(reg_is_mmx(reg)) {
                     // Intel MMX
                     translate_insert(INSTR_CREATE_movq(drcontext, opDoF, op), ilist, instr);
@@ -256,11 +298,15 @@ static void push_instr_to_doublebuffer(void *drcontext, instrlist_t *ilist,
             } else if(opnd_is_immed(op)) { // Immediate value
                 translate_insert(INSTR_CREATE_mov_imm(drcontext, opDoF, op), ilist, instr);
             }else if(opnd_is_memory_reference(op)){
-                dr_printf("memref\n");
-                reg_id_t reserved_reg;
-                drreg_reserve_register(drcontext, ilist, instr, NULL, &reserved_reg);
-                dr_printf("%s\n", get_register_name(reserved_reg));
-                op64 = opnd_create_reg(reserved_reg);
+                //dr_printf("memref\n");
+                //dr_printf("%s\n", get_register_name(reserved_reg));
+                
+                reg_id_t temp_reg;
+                drreg_reserve_register(drcontext, ilist, instr, NULL, &temp_reg);
+                opnd_t op_temp_reg = opnd_create_reg(temp_reg);
+                dr_print_opnd(drcontext , STDOUT , op_temp_reg , "TEMP_REG : ");
+
+                /*
                 if(opnd_is_rel_addr(op))
                     dr_printf("reladdr\n");
                 if(opnd_is_base_disp(op))
@@ -269,19 +315,23 @@ static void push_instr_to_doublebuffer(void *drcontext, instrlist_t *ilist,
                     dr_printf("absaddr\n");
                 if(opnd_is_pc(op))
                     dr_printf("pc\n");
+                */
+
                 //dr_printf("base_disp");
                 //This case needs special care because it's a memory address not accessible directly
                 //We can't mov from adress to adress so we'll copy the content in a register, 
                 //then copy the register to memory
 
                 //translate_insert(INSTR_CREATE_movq(drcontext, op64, ), ilist, instr);
-
-                translate_insert(INSTR_CREATE_movq(drcontext, op64, op), ilist, instr);
-                translate_insert(INSTR_CREATE_movq(drcontext, opDoF, op64), ilist, instr);
+                dr_print_opnd(drcontext , STDOUT , opDoF , "OPDOF : ");
+                translate_insert(INSTR_CREATE_movq(drcontext, op_temp_reg, op), ilist, instr);
+                translate_insert(INSTR_CREATE_movq(drcontext, opDoF, op_temp_reg), ilist, instr);
 
                 //translate_insert(INSTR_CREATE_pop(drcontext, op64), ilist, instr);
-                drreg_unreserve_register(drcontext, ilist, instr, reserved_reg);
+                drreg_unreserve_register(drcontext, ilist, instr, temp_reg);
+                
             }
+            drreg_unreserve_register(drcontext, ilist, instr, reserved_reg);
         }
         
     }
@@ -321,6 +371,18 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
         }
 
     }
-    
+    return DR_EMIT_DEFAULT;
+}
+
+static dr_emit_flags_t runtime(void *drcontext, void *tag, instrlist_t *bb, bool for_trace, bool translating, void **user_data) {
+    instr_t *instr, *next_instr;
+    for(instr = instrlist_first(bb); instr != NULL; instr = next_instr)
+    {
+        next_instr = instr_get_next(instr);
+        //dr_printf("BUFFER ADDRESS IN REGISTER : %p\tREAL BUFFER ADDRESS : %p\n",buffer_address_reg,*dbuffer_ind);
+        //dr_print_instr(drcontext, STDERR, instr, "RUNTIME Found : ");
+        
+
+    }
     return DR_EMIT_DEFAULT;
 }
