@@ -98,6 +98,7 @@ static void event_exit(void)
 {
     drreg_exit();
     drmgr_exit();
+    drreg_exit();
     free(*dbuffer_ind);
     free(*resultBuffer_ind);
     dr_printf("ENDDDDDDDDDDDDDD\n");
