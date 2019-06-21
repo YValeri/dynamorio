@@ -1,0 +1,115 @@
+#ifndef INTERFLOP_OPERATION_HEADER
+#define INTERFLOP_OPERATION_HEADER
+
+#include "dr_api.h"
+#include "dr_ir_opcodes.h"
+
+#define IFP_OP_OTHER       0b00000000000
+#define IFP_OP_DOUBLE      0b00000000001
+#define IFP_OP_FLOAT       0b00000000010
+#define IFP_OP_PACKED      0b00000000100
+#define IFP_OP_SCALAR      0b00000001000
+#define IFP_OP_ADD         0b00000010000
+#define IFP_OP_SUB         0b00000100000
+#define IFP_OP_MUL         0b00001000000
+#define IFP_OP_DIV         0b00010000000
+#define IFP_OP_128         0b00100000000
+#define IFP_OP_256         0b01000000000
+#define IFP_OP_512         0b10000000000
+
+// For operations that are unsupported for the moment
+#define IFP_OP_UNSUPPORTED IFP_OP_OTHER
+
+enum OPERATION_CATEGORY{
+    IFP_OTHER=IFP_OP_OTHER, 
+    IFP_UNSUPPORTED=IFP_OP_UNSUPPORTED,
+    //Float
+    IFP_ADDS = IFP_OP_FLOAT | IFP_OP_SCALAR | IFP_OP_ADD, 
+    IFP_SUBS = IFP_OP_FLOAT | IFP_OP_SCALAR | IFP_OP_SUB, 
+    IFP_MULS = IFP_OP_FLOAT | IFP_OP_SCALAR | IFP_OP_MUL, 
+    IFP_DIVS = IFP_OP_FLOAT | IFP_OP_SCALAR | IFP_OP_DIV,
+    //Double 
+    IFP_ADDD = IFP_OP_DOUBLE | IFP_OP_SCALAR | IFP_OP_ADD, 
+    IFP_SUBD = IFP_OP_DOUBLE | IFP_OP_SCALAR | IFP_OP_SUB, 
+    IFP_MULD = IFP_OP_DOUBLE | IFP_OP_SCALAR | IFP_OP_MUL, 
+    IFP_DIVD = IFP_OP_DOUBLE | IFP_OP_SCALAR | IFP_OP_DIV,
+    //Packed float 128 bits
+    IFP_PADDS_128 = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_ADD | IFP_OP_128, 
+    IFP_PSUBS_128 = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_SUB | IFP_OP_128, 
+    IFP_PMULS_128 = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_MUL | IFP_OP_128, 
+    IFP_PDIVS_128 = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_DIV | IFP_OP_128,
+    //Packed double 128 bits
+    IFP_PADDD_128 = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_ADD | IFP_OP_128, 
+    IFP_PSUBD_128 = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_SUB | IFP_OP_128, 
+    IFP_PMULD_128 = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_MUL | IFP_OP_128, 
+    IFP_PDIVD_128 = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_DIV | IFP_OP_128,
+    //Packed float 256 bits
+    IFP_PADDS_256 = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_ADD | IFP_OP_256, 
+    IFP_PSUBS_256 = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_SUB | IFP_OP_256, 
+    IFP_PMULS_256 = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_MUL | IFP_OP_256, 
+    IFP_PDIVS_256 = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_DIV | IFP_OP_256,
+    //Packed double 256 bits
+    IFP_PADDD_256 = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_ADD | IFP_OP_256, 
+    IFP_PSUBD_256 = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_SUB | IFP_OP_256, 
+    IFP_PMULD_256 = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_MUL | IFP_OP_256, 
+    IFP_PDIVD_256 = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_DIV | IFP_OP_256,
+    //Packed float 512 bits
+    IFP_PADDS_512 = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_ADD | IFP_OP_512, 
+    IFP_PSUBS_512 = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_SUB | IFP_OP_512, 
+    IFP_PMULS_512 = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_MUL | IFP_OP_512, 
+    IFP_PDIVS_512 = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_DIV | IFP_OP_512,
+    //Packed double 512 bits
+    IFP_PADDD_512 = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_ADD | IFP_OP_512, 
+    IFP_PSUBD_512 = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_SUB | IFP_OP_512, 
+    IFP_PMULD_512 = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_MUL | IFP_OP_512, 
+    IFP_PDIVD_512 = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_DIV | IFP_OP_512
+};
+
+enum OPERATION_CATEGORY ifp_get_operation_category(instr_t* instr);
+
+inline bool ifp_is_double(enum OPERATION_CATEGORY oc)
+{
+    return oc & IFP_OP_DOUBLE;
+}
+inline bool ifp_is_float(enum OPERATION_CATEGORY oc)
+{
+    return oc & IFP_OP_FLOAT;
+}
+inline bool ifp_is_packed(enum OPERATION_CATEGORY oc)
+{
+    return oc & IFP_OP_PACKED;
+}
+inline bool ifp_is_scalar(enum OPERATION_CATEGORY oc)
+{
+    return oc & IFP_OP_SCALAR;
+}
+inline bool ifp_is_add(enum OPERATION_CATEGORY oc)
+{
+    return oc & IFP_OP_ADD;
+}
+inline bool ifp_is_sub(enum OPERATION_CATEGORY oc)
+{
+    return oc & IFP_OP_SUB;
+}
+inline bool ifp_is_mul(enum OPERATION_CATEGORY oc)
+{
+    return oc & IFP_OP_MUL;
+}
+inline bool ifp_is_div(enum OPERATION_CATEGORY oc)
+{
+    return oc & IFP_OP_DIV;
+}
+inline bool ifp_is_128(enum OPERATION_CATEGORY oc)
+{
+    return oc & IFP_OP_128;
+}
+inline bool ifp_is_256(enum OPERATION_CATEGORY oc)
+{
+    return oc & IFP_OP_256;
+}
+inline bool ifp_is_512(enum OPERATION_CATEGORY oc)
+{
+    return oc & IFP_OP_512;
+}
+
+#endif // INTERFLOP_OPERATION_HEADER

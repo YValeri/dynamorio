@@ -7,6 +7,9 @@
 #include "dr_ir_opnd.h"
 #include "drreg.h"
 #include "drmgr.h"
+#include "interflop/interflop_operations.hpp"
+#include "interflop/interflop_compute.hpp"
+//#include "interflop/backend/interflop.h"
 
 //Define the display function
 #ifdef WINDOWS
@@ -42,7 +45,7 @@ static void event_exit(void);
 static double *dbuffer;
 static double **dbuffer_ind;
 
-// Buffer to contain double precision flaoting result to be copied back into a register 
+// Buffer to contain double precision floating result to be copied back into a register 
 static double *resultBuffer;
 static double **resultBuffer_ind;
 
@@ -181,11 +184,39 @@ static void push_result_to_register(void* drcontext,instrlist_t *ilist, instr_t*
     }
 }
 
+static void interflop_mul()
+{
+    dr_printf("buffer : %lf\t%lf\n",**dbuffer_ind, *(*dbuffer_ind+1));
+    
+    //**resultBuffer_ind = **dbuffer_ind+*(*dbuffer_ind+1);
+    ifp_compute_mul(*dbuffer_ind, *resultBuffer_ind);
+    dr_printf("res : %lf\n",**resultBuffer_ind);
+}
+
+static void interflop_div()
+{
+    dr_printf("buffer : %lf\t%lf\n",**dbuffer_ind, *(*dbuffer_ind+1));
+    
+    //**resultBuffer_ind = **dbuffer_ind+*(*dbuffer_ind+1);
+    ifp_compute_div(*dbuffer_ind, *resultBuffer_ind);
+    dr_printf("res : %lf\n",**resultBuffer_ind);
+}
+
+static void interflop_sub()
+{
+    dr_printf("buffer : %lf\t%lf\n",**dbuffer_ind, *(*dbuffer_ind+1));
+    
+    //**resultBuffer_ind = **dbuffer_ind+*(*dbuffer_ind+1);
+    ifp_compute_sub(*dbuffer_ind, *resultBuffer_ind);
+    dr_printf("res : %lf\n",**resultBuffer_ind);
+}
 
 static void interflop_add()
 {
     dr_printf("buffer : %lf\t%lf\n",**dbuffer_ind, *(*dbuffer_ind+1));
-    **resultBuffer_ind = **dbuffer_ind+*(*dbuffer_ind+1);
+    
+    //**resultBuffer_ind = **dbuffer_ind+*(*dbuffer_ind+1);
+    ifp_compute_add(*dbuffer_ind, *resultBuffer_ind);
     dr_printf("res : %lf\n",**resultBuffer_ind);
 }
 
@@ -202,7 +233,8 @@ static void push_instr_to_doublebuffer(void *drcontext, instrlist_t *ilist,
 
             op = instr_get_src(instr, i);
 
-           opDoF = opnd_create_rel_addr(*dbuffer_ind+i, is_double? OPSZ_8: OPSZ_4);
+            //BUG : Wrong buffer type if float
+            opDoF = opnd_create_rel_addr(*dbuffer_ind+i, is_double? OPSZ_8: OPSZ_4);
 
             dr_print_opnd(drcontext, STDERR, op, "\nOP :");
             if(opnd_is_reg(op)) // Register
@@ -259,16 +291,33 @@ static void push_instr_to_doublebuffer(void *drcontext, instrlist_t *ilist,
 static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t *bb, bool for_trace, bool translating)
 {
     instr_t *instr, *next_instr;
+    OPERATION_CATEGORY oc;
     for(instr = instrlist_first(bb); instr != NULL; instr = next_instr)
     {
         next_instr = instr_get_next(instr);
-        if(instr_get_opcode(instr) == OP_fadd || instr_get_opcode(instr)==OP_faddp
-            || instr_get_opcode(instr)==OP_addsd)
+        oc = ifp_get_operation_category(instr);
+        if(oc)
         {
             dr_print_instr(drcontext, STDERR, instr, "Found : ");
-            push_instr_to_doublebuffer(drcontext, bb, instr,true);
-            dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_add, false, 0);
-            push_result_to_register(drcontext, bb, instr, true,true);
+            if(ifp_is_scalar(oc))
+            {
+                push_instr_to_doublebuffer(drcontext, bb, instr,ifp_is_double(oc));
+                if(ifp_is_add(oc))
+                {
+                    dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_add, false, 0);
+                }else if(ifp_is_sub(oc))
+                {
+                    dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_sub, false, 0);
+                }else if(ifp_is_mul(oc))
+                {
+                    dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_mul, false, 0);
+                }else if(ifp_is_div(oc))
+                {
+                    dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_div, false, 0);
+                }
+                
+                push_result_to_register(drcontext, bb, instr, true,ifp_is_double(oc));
+            }
         }
 
     }
