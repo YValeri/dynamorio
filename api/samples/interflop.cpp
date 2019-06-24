@@ -8,6 +8,8 @@
 #include "drreg.h"
 #include "drmgr.h"
 
+#include <string.h>
+
 //Define the display function
 #ifdef WINDOWS
 # define DISPLAY_STRING(msg) dr_messagebox(msg)
@@ -45,6 +47,8 @@ static double **dbuffer_ind;
 // Buffer to contain double precision flaoting result to be copied back into a register 
 static double *resultBuffer;
 static double **resultBuffer_ind;
+
+instr_t *instrrrr;
 
 //Function to treat each block of instructions 
 static dr_emit_flags_t event_basic_block(   void *drcontext,        //Context
@@ -98,7 +102,6 @@ static void event_exit(void)
 {
     drreg_exit();
     drmgr_exit();
-    drreg_exit();
     free(*dbuffer_ind);
     free(*resultBuffer_ind);
     dr_printf("ENDDDDDDDDDDDDDD\n");
@@ -204,14 +207,55 @@ static void push_result_to_register(void* drcontext,instrlist_t *ilist, instr_t*
     }
 }
 
-//double *buffer_address_reg;
+template <typename T>
+void get_value_from_opnd(void *drcontext , dr_mcontext_t mcontext , opnd_t src , T *res) {
+    if(!opnd_is_null(src)) {
+        if(opnd_is_reg(src)) {
+           reg_get_value_ex(opnd_get_reg(src) , &mcontext , (byte*)res);
+        }
+        else if(opnd_is_base_disp(src)) {
+            reg_id_t base = opnd_get_base(src);
+            int disp = opnd_get_disp(src);
+            unsigned long *addr;
 
+            reg_get_value_ex(base , &mcontext , (byte*)&addr);
+            memcpy((void*)res , ((byte*)addr)+disp , sizeof(T));
+        }
+        else if(opnd_is_abs_addr(src)) {
+            //TODO
+        }
+        //TO COMPLETE
+    }
+}
+
+template <typename T>
+void get_all_src(void *drcontext , dr_mcontext_t mcontext , instr_t *instr, T *res, uint nb_src) {
+    for(int i = 0 ; i < nb_src ; i++) {
+        get_value_from_opnd<T>(drcontext , mcontext , instr_get_src(instr , i) , &res[i]);
+    }
+}
+
+
+
+template <typename T>
 static void interflop_add()
-{
-    dr_printf("ADDDDDDDDDDDDDDDDD\n");
-    dr_printf("buffer : %lf\t%lf\n",**dbuffer_ind, *(*dbuffer_ind+1));
-    **resultBuffer_ind = **dbuffer_ind+*(*dbuffer_ind+1);
-    dr_printf("res : %lf\n",**resultBuffer_ind);
+{   
+    dr_mcontext_t mcontext;
+    mcontext.size = sizeof(mcontext);
+    mcontext.flags = DR_MC_ALL;
+
+    void *drcontext = dr_get_current_drcontext();
+    dr_get_mcontext(drcontext , &mcontext);
+
+    T *src = (T*)malloc(2*sizeof(T));
+
+    get_all_src<T>(drcontext , mcontext , instrrrr , src , 2);
+
+    for(int i = 0 ; i < 2 ; i++) {
+        dr_printf("Value : %.2f\n",src[i]);
+    }
+
+    free(src);
 }
 
 static void push_instr_to_doublebuffer(void *drcontext, instrlist_t *ilist, 
@@ -298,12 +342,10 @@ static void push_instr_to_doublebuffer(void *drcontext, instrlist_t *ilist,
                 translate_insert(INSTR_CREATE_movq(drcontext, opDoF, op_temp_reg), ilist, instr);
 
                 //translate_insert(INSTR_CREATE_pop(drcontext, op64), ilist, instr);
-                drreg_unreserve_register(drcontext, ilist, instr, temp_reg);
-                
+                drreg_unreserve_register(drcontext, ilist, instr, temp_reg); 
             }
             drreg_unreserve_register(drcontext, ilist, instr, reserved_reg);
-        }
-        
+        }  
     }
 }
 
@@ -317,10 +359,13 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
         if(instr_get_opcode(instr) == OP_fadd || instr_get_opcode(instr)==OP_faddp
             || instr_get_opcode(instr)==OP_addsd)
         {
-            dr_print_instr(drcontext, STDERR, instr, "Found : ");
-            push_instr_to_doublebuffer(drcontext, bb, instr,true);
-            dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_add, false, 0);
-            push_result_to_register(drcontext, bb, instr, true,true);
+            dr_print_instr(drcontext, STDOUT, instr, "Found : ");
+            instrrrr = instr;
+            //push_instr_to_doublebuffer(drcontext, bb, instr,true);
+            dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_add<double>, true, 0);
+            instrlist_remove(bb, instr);
+            //instr_destroy(drcontext, instr);
+            //push_result_to_register(drcontext, bb, instr, true,true);
         }
 
     }
@@ -334,7 +379,6 @@ static dr_emit_flags_t runtime(void *drcontext, void *tag, instrlist_t *bb, bool
         next_instr = instr_get_next(instr);
         //dr_printf("BUFFER ADDRESS IN REGISTER : %p\tREAL BUFFER ADDRESS : %p\n",buffer_address_reg,*dbuffer_ind);
         //dr_print_instr(drcontext, STDERR, instr, "RUNTIME Found : ");
-        
 
     }
     return DR_EMIT_DEFAULT;
