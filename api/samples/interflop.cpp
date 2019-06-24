@@ -83,10 +83,14 @@ void get_value_from_opnd(void *drcontext , dr_mcontext_t mcontext , opnd_t src ,
             reg_get_value_ex(base , &mcontext , (byte*)&addr);
             memcpy((void*)res , ((byte*)addr)+disp , sizeof(T));
         }
-        else if(opnd_is_abs_addr(src)) {
-            //TODO
+        else if(opnd_is_abs_addr(src) || opnd_is_rel_addr(src)) {
+            memcpy((void*)res , opnd_get_addr(src) , sizeof(T));
         }
-        //TO COMPLETE
+        else if(opnd_is_immed(src)) {
+            // Possible only with float
+            *res = opnd_get_immed_float(src);
+        }
+
     }
 }
 
@@ -165,7 +169,7 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
             {
                 if(ifp_is_add(oc))
                 {
-                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_add<double> : (void*)interflop_add<float>, true, 1, OPND_CREATE_INTPTR(instr_get_app_pc(instr)));
+                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_add<double> : (void*)interflop_add<float>, false, 1, OPND_CREATE_INTPTR(instr_get_app_pc(instr)));
                 }else if(ifp_is_sub(oc))
                 {
                     dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_sub<double> : (void*)interflop_sub<float>, false, 0);
