@@ -48,8 +48,6 @@ static double **dbuffer_ind;
 static double *resultBuffer;
 static double **resultBuffer_ind;
 
-instr_t *instrrrr;
-
 //Function to treat each block of instructions 
 static dr_emit_flags_t event_basic_block(   void *drcontext,        //Context
                                             void *tag,              // Unique identifier of the block
@@ -130,7 +128,8 @@ void get_value_from_opnd(void *drcontext , dr_mcontext_t mcontext , opnd_t src ,
 }
 
 template <typename T>
-void get_all_src(void *drcontext , dr_mcontext_t mcontext , instr_t *instr, T *res, uint nb_src) {
+void get_all_src(void *drcontext , dr_mcontext_t mcontext , instr_t *instr, T *res) {
+    int nb_src = instr_num_srcs(instr);
     for(int i = 0 ; i < nb_src ; i++) {
         get_value_from_opnd<T>(drcontext , mcontext , instr_get_src(instr , i) , &res[i]);
     }
@@ -139,7 +138,7 @@ void get_all_src(void *drcontext , dr_mcontext_t mcontext , instr_t *instr, T *r
 
 
 template <typename T>
-static void interflop_add()
+static void interflop_add(app_pc apppc)
 {   
     dr_mcontext_t mcontext;
     mcontext.size = sizeof(mcontext);
@@ -148,19 +147,26 @@ static void interflop_add()
     void *drcontext = dr_get_current_drcontext();
     dr_get_mcontext(drcontext , &mcontext);
 
-    T *src = (T*)malloc(2*sizeof(T));
+    instr_t instr;
+    instr_init(drcontext, &instr);
 
-    get_all_src<T>(drcontext , mcontext , instrrrr , src , 2);
+    decode(drcontext , apppc , &instr);
 
-    T res = src[0]*src[1];
+
+    T *src = (T*)malloc(instr_num_srcs(&instr)*sizeof(T));
+
+    get_all_src<T>(drcontext , mcontext , &instr , src);
+
+    T res = src[0]+src[1];
    
-    reg_id_t dst = opnd_get_reg(instr_get_dst(instrrrr,0));
+    reg_id_t dst = opnd_get_reg(instr_get_dst(&instr,0));
     
     reg_set_value_ex(dst , &mcontext , (byte*)&res);
 
     dr_set_mcontext(drcontext , &mcontext);
 
     free(src);
+    instr_free(drcontext , &instr);
 }
 
 
@@ -174,9 +180,9 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
             || instr_get_opcode(instr)==OP_addsd)
         {
             dr_print_instr(drcontext, STDOUT, instr, "Found : ");
-            instrrrr = instr;
+
             //push_instr_to_doublebuffer(drcontext, bb, instr,true);
-            dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_add<double>, true, 0);
+            dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_add<double>, true, 1 , OPND_CREATE_INTPTR(instr_get_app_pc(instr)));
             instrlist_remove(bb, instr);
             //instr_destroy(drcontext, instr);
             //push_result_to_register(drcontext, bb, instr, true,true);
