@@ -7,6 +7,9 @@
 #include "dr_ir_opnd.h"
 #include "drreg.h"
 #include "drmgr.h"
+#include "interflop/interflop_operations.hpp"
+#include "interflop/interflop_compute.hpp"
+//#include "interflop/backend/interflop.h"
 
 #include <string.h>
 
@@ -44,7 +47,7 @@ static void event_exit(void);
 static double *dbuffer;
 static double **dbuffer_ind;
 
-// Buffer to contain double precision flaoting result to be copied back into a register 
+// Buffer to contain double precision floating result to be copied back into a register 
 static double *resultBuffer;
 static double **resultBuffer_ind;
 
@@ -100,11 +103,11 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 
 static void event_exit(void)
 {
-    drreg_exit();
+    //drreg_exit();
     drmgr_exit();
     free(*dbuffer_ind);
     free(*resultBuffer_ind);
-    dr_printf("ENDDDDDDDDDDDDDD\n");
+    //dr_printf("ENDDDDDDDDDDDDDD\n");
 }
 
 
@@ -137,22 +140,50 @@ void get_all_src(void *drcontext , dr_mcontext_t mcontext , instr_t *instr, T *r
 }
 
 
+template <typename T>
+static void interflop_mul()
+{
+    dr_printf("buffer : %lf\t%lf\n",**dbuffer_ind, *(*dbuffer_ind+1));
+    ifp_compute_mul((T*)*dbuffer_ind, (T*)*resultBuffer_ind);
+    dr_printf("res : %lf\n",**resultBuffer_ind);
+}
 
 template <typename T>
-static void interflop_add()
+static void interflop_div()
+{
+    dr_printf("buffer : %lf\t%lf\n",**dbuffer_ind, *(*dbuffer_ind+1));
+    ifp_compute_div((T*)*dbuffer_ind, (T*)*resultBuffer_ind);
+    dr_printf("res : %lf\n",**resultBuffer_ind);
+}
+
+template <typename T>
+static void interflop_sub()
+{
+    dr_printf("buffer : %lf\t%lf\n",**dbuffer_ind, *(*dbuffer_ind+1));
+    ifp_compute_sub((T*)*dbuffer_ind, (T*)*resultBuffer_ind);
+    dr_printf("res : %lf\n",**resultBuffer_ind);
+}
+
+template <typename T>
+static void interflop_add(opnd_t src1, opnd_t src2,opnd_t dst1)
 {   
+    
     dr_mcontext_t mcontext;
     mcontext.size = sizeof(mcontext);
     mcontext.flags = DR_MC_ALL;
-
+    dr_printf("test");
     void *drcontext = dr_get_current_drcontext();
+    dr_print_opnd(drcontext, STDERR, src1, "src1 :");
+    dr_print_opnd(drcontext, STDERR, src2, "src2 :");
+    dr_print_opnd(drcontext, STDERR, dst1, "dst :");
     dr_get_mcontext(drcontext , &mcontext);
 
     T *src = (T*)malloc(2*sizeof(T));
 
     get_all_src<T>(drcontext , mcontext , instrrrr , src , 2);
 
-    T res = src[0]*src[1];
+    T res = src[0]+src[1];
+    dr_printf("src1 : %lf, src2 : %lf, res : %lf\n", src[0], src[1], res);
    
     reg_id_t dst = opnd_get_reg(instr_get_dst(instrrrr,0));
     
@@ -167,19 +198,34 @@ static void interflop_add()
 static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t *bb, bool for_trace, bool translating)
 {
     instr_t *instr, *next_instr;
+    OPERATION_CATEGORY oc;
     for(instr = instrlist_first(bb); instr != NULL; instr = next_instr)
     {
         next_instr = instr_get_next(instr);
-        if(instr_get_opcode(instr) == OP_fadd || instr_get_opcode(instr)==OP_faddp
-            || instr_get_opcode(instr)==OP_addsd)
+        oc = ifp_get_operation_category(instr);
+        if(oc)
         {
-            dr_print_instr(drcontext, STDOUT, instr, "Found : ");
             instrrrr = instr;
-            //push_instr_to_doublebuffer(drcontext, bb, instr,true);
-            dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_add<double>, true, 0);
-            instrlist_remove(bb, instr);
-            //instr_destroy(drcontext, instr);
-            //push_result_to_register(drcontext, bb, instr, true,true);
+            dr_print_instr(drcontext, STDERR, instr, "Found : ");
+            if(ifp_is_scalar(oc))
+            {
+                if(ifp_is_add(oc))
+                {
+                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_add<double> : (void*)interflop_add<float>, true, 3, instr_get_src(instr, 0), instr_get_src(instr, 1), instr_get_dst(instr, 0));
+                }else if(ifp_is_sub(oc))
+                {
+                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_sub<double> : (void*)interflop_sub<float>, false, 0);
+                }else if(ifp_is_mul(oc))
+                {
+                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_mul<double> : (void*)interflop_mul<float>, false, 0);
+                }else if(ifp_is_div(oc))
+                {
+                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_div<double> : (void*)interflop_div<float>, false, 0);
+                }
+                
+                instrlist_remove(bb, instr);
+                //instr_destroy(drcontext, instr);
+            }
         }
 
     }
