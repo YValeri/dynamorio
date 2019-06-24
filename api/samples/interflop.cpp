@@ -9,16 +9,8 @@
 #include "drmgr.h"
 #include "interflop/interflop_operations.hpp"
 #include "interflop/interflop_compute.hpp"
-//#include "interflop/backend/interflop.h"
 
 #include <string.h>
-
-//Define the display function
-#ifdef WINDOWS
-# define DISPLAY_STRING(msg) dr_messagebox(msg)
-#else
-# define DISPLAY_STRING(msg) dr_printf("%s\n", msg)
-#endif
 
 #ifndef MAX_INSTR_OPND_COUNT
 
@@ -32,24 +24,10 @@
 #define MAX_OPND_SIZE_BYTES 64 
 #endif
 
-
-#define INT2OPND(x) (opnd_create_immed_int((x), OPSZ_PTR))
-
 #define INTERFLOP_BUFFER_SIZE (MAX_INSTR_OPND_COUNT*MAX_OPND_SIZE_BYTES)
 
 
 static void event_exit(void);
-
-
-    // Global variables 
-
-// Buffer to contain double precision floating operands copied from registers  
-static double *dbuffer;
-static double **dbuffer_ind;
-
-// Buffer to contain double precision floating result to be copied back into a register 
-static double *resultBuffer;
-static double **resultBuffer_ind;
 
 //Function to treat each block of instructions 
 static dr_emit_flags_t event_basic_block(   void *drcontext,        //Context
@@ -58,25 +36,11 @@ static dr_emit_flags_t event_basic_block(   void *drcontext,        //Context
                                             bool for_trace,         //TODO
                                             bool translating);      //TODO
 
-static dr_emit_flags_t runtime(void *drcontext, void *tag, instrlist_t *bb, bool for_trace, bool translating, void **user_data);
-
 // Main function to setup the dynamoRIO client
 DR_EXPORT void dr_client_main(  client_id_t id, // client ID
                                 int argc,   
                                 const char *argv[])
 {
-    // Memory allocation for global variables
-    dbuffer = (double*)malloc(INTERFLOP_BUFFER_SIZE);
-    dbuffer_ind = &dbuffer;
-    
-    resultBuffer = (double*)malloc(64);
-    resultBuffer_ind = &resultBuffer;
-
-    dr_printf("\ndbuffer_ind : %p\n&dbuffer_ind : %p\n", dbuffer_ind , &dbuffer_ind);
-    dr_printf("dbuffer : %p\n&dbuffer : %p\n\n", dbuffer , &dbuffer);
-
-    dr_printf("resultBuffer_ind : %p\n&resultBuffer_ind : %p\n", resultBuffer_ind , &resultBuffer_ind);
-    dr_printf("resultBuffer : %p\n&resultBuffer : %p\n\n", resultBuffer , &resultBuffer);
     // Init DynamoRIO MGR extension ()
     drmgr_init();
 
@@ -93,7 +57,6 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 
     // Define the function to executed to treat each instructions block
     drmgr_register_bb_app2app_event(event_basic_block, NULL);
-    drmgr_register_bb_instrumentation_event(runtime,NULL,NULL);
 
 }
 
@@ -101,11 +64,8 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 
 static void event_exit(void)
 {
-    //drreg_exit();
+    drreg_exit();
     drmgr_exit();
-    free(*dbuffer_ind);
-    free(*resultBuffer_ind);
-    //dr_printf("ENDDDDDDDDDDDDDD\n");
 }
 
 
@@ -142,25 +102,19 @@ void get_all_src(void *drcontext , dr_mcontext_t mcontext , instr_t *instr, T *r
 template <typename T>
 static void interflop_mul()
 {
-    dr_printf("buffer : %lf\t%lf\n",**dbuffer_ind, *(*dbuffer_ind+1));
-    ifp_compute_mul((T*)*dbuffer_ind, (T*)*resultBuffer_ind);
-    dr_printf("res : %lf\n",**resultBuffer_ind);
+    
 }
 
 template <typename T>
 static void interflop_div()
 {
-    dr_printf("buffer : %lf\t%lf\n",**dbuffer_ind, *(*dbuffer_ind+1));
-    ifp_compute_div((T*)*dbuffer_ind, (T*)*resultBuffer_ind);
-    dr_printf("res : %lf\n",**resultBuffer_ind);
+    
 }
 
 template <typename T>
 static void interflop_sub()
 {
-    dr_printf("buffer : %lf\t%lf\n",**dbuffer_ind, *(*dbuffer_ind+1));
-    ifp_compute_sub((T*)*dbuffer_ind, (T*)*resultBuffer_ind);
-    dr_printf("res : %lf\n",**resultBuffer_ind);
+
 }
 
 template <typename T>
@@ -224,21 +178,9 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                 }
                 
                 instrlist_remove(bb, instr);
-                //instr_destroy(drcontext, instr);
+                instr_destroy(drcontext, instr);
             }
         }
-
-    }
-    return DR_EMIT_DEFAULT;
-}
-
-static dr_emit_flags_t runtime(void *drcontext, void *tag, instrlist_t *bb, bool for_trace, bool translating, void **user_data) {
-    instr_t *instr, *next_instr;
-    for(instr = instrlist_first(bb); instr != NULL; instr = next_instr)
-    {
-        next_instr = instr_get_next(instr);
-        //dr_printf("BUFFER ADDRESS IN REGISTER : %p\tREAL BUFFER ADDRESS : %p\n",buffer_address_reg,*dbuffer_ind);
-        //dr_print_instr(drcontext, STDERR, instr, "RUNTIME Found : ");
 
     }
     return DR_EMIT_DEFAULT;
