@@ -99,12 +99,12 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 
 static void event_exit(void)
 {
-    drreg_exit();
+    //drreg_exit();
     drmgr_exit();
     drreg_exit();
     free(*dbuffer_ind);
     free(*resultBuffer_ind);
-    dr_printf("ENDDDDDDDDDDDDDD\n");
+    //dr_printf("ENDDDDDDDDDDDDDD\n");
 }
 
 
@@ -207,40 +207,35 @@ static void push_result_to_register(void* drcontext,instrlist_t *ilist, instr_t*
     }
 }
 
+template <typename T>
 static void interflop_mul()
 {
     dr_printf("buffer : %lf\t%lf\n",**dbuffer_ind, *(*dbuffer_ind+1));
-    
-    //**resultBuffer_ind = **dbuffer_ind+*(*dbuffer_ind+1);
-    ifp_compute_mul(*dbuffer_ind, *resultBuffer_ind);
+    ifp_compute_mul((T*)*dbuffer_ind, (T*)*resultBuffer_ind);
     dr_printf("res : %lf\n",**resultBuffer_ind);
 }
 
+template <typename T>
 static void interflop_div()
 {
     dr_printf("buffer : %lf\t%lf\n",**dbuffer_ind, *(*dbuffer_ind+1));
-    
-    //**resultBuffer_ind = **dbuffer_ind+*(*dbuffer_ind+1);
-    ifp_compute_div(*dbuffer_ind, *resultBuffer_ind);
+    ifp_compute_div((T*)*dbuffer_ind, (T*)*resultBuffer_ind);
     dr_printf("res : %lf\n",**resultBuffer_ind);
 }
 
+template <typename T>
 static void interflop_sub()
 {
     dr_printf("buffer : %lf\t%lf\n",**dbuffer_ind, *(*dbuffer_ind+1));
-    
-    //**resultBuffer_ind = **dbuffer_ind+*(*dbuffer_ind+1);
-    ifp_compute_sub(*dbuffer_ind, *resultBuffer_ind);
+    ifp_compute_sub((T*)*dbuffer_ind, (T*)*resultBuffer_ind);
     dr_printf("res : %lf\n",**resultBuffer_ind);
 }
 
+template <typename T>
 static void interflop_add()
 {
-    dr_printf("ADDDDDDDDDDDDDDDDD\n");
     dr_printf("buffer : %lf\t%lf\n",**dbuffer_ind, *(*dbuffer_ind+1));
-    
-    //**resultBuffer_ind = **dbuffer_ind+*(*dbuffer_ind+1);
-    ifp_compute_add(*dbuffer_ind, *resultBuffer_ind);
+    ifp_compute_add((T*)*dbuffer_ind, (T*)*resultBuffer_ind);
     dr_printf("res : %lf\n",**resultBuffer_ind);
 }
 
@@ -354,16 +349,16 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                 push_instr_to_doublebuffer(drcontext, bb, instr,ifp_is_double(oc));
                 if(ifp_is_add(oc))
                 {
-                    dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_add, false, 0);
+                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_add<double> : (void*)interflop_add<float>, false, 0);
                 }else if(ifp_is_sub(oc))
                 {
-                    dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_sub, false, 0);
+                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_sub<double> : (void*)interflop_sub<float>, false, 0);
                 }else if(ifp_is_mul(oc))
                 {
-                    dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_mul, false, 0);
+                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_mul<double> : (void*)interflop_mul<float>, false, 0);
                 }else if(ifp_is_div(oc))
                 {
-                    dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_div, false, 0);
+                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_div<double> : (void*)interflop_div<float>, false, 0);
                 }
                 
                 push_result_to_register(drcontext, bb, instr, true,ifp_is_double(oc));
@@ -381,7 +376,6 @@ static dr_emit_flags_t runtime(void *drcontext, void *tag, instrlist_t *bb, bool
         next_instr = instr_get_next(instr);
         //dr_printf("BUFFER ADDRESS IN REGISTER : %p\tREAL BUFFER ADDRESS : %p\n",buffer_address_reg,*dbuffer_ind);
         //dr_print_instr(drcontext, STDERR, instr, "RUNTIME Found : ");
-        
 
     }
     return DR_EMIT_DEFAULT;
