@@ -51,8 +51,6 @@ static double **dbuffer_ind;
 static double *resultBuffer;
 static double **resultBuffer_ind;
 
-instr_t *instrrrr;
-
 //Function to treat each block of instructions 
 static dr_emit_flags_t event_basic_block(   void *drcontext,        //Context
                                             void *tag,              // Unique identifier of the block
@@ -133,7 +131,8 @@ void get_value_from_opnd(void *drcontext , dr_mcontext_t mcontext , opnd_t src ,
 }
 
 template <typename T>
-void get_all_src(void *drcontext , dr_mcontext_t mcontext , instr_t *instr, T *res, uint nb_src) {
+void get_all_src(void *drcontext , dr_mcontext_t mcontext , instr_t *instr, T *res) {
+    int nb_src = instr_num_srcs(instr);
     for(int i = 0 ; i < nb_src ; i++) {
         get_value_from_opnd<T>(drcontext , mcontext , instr_get_src(instr , i) , &res[i]);
     }
@@ -165,33 +164,35 @@ static void interflop_sub()
 }
 
 template <typename T>
-static void interflop_add(opnd_t src1, opnd_t src2,opnd_t dst1)
+static void interflop_add(app_pc apppc)
 {   
     
     dr_mcontext_t mcontext;
     mcontext.size = sizeof(mcontext);
     mcontext.flags = DR_MC_ALL;
-    dr_printf("test");
     void *drcontext = dr_get_current_drcontext();
-    dr_print_opnd(drcontext, STDERR, src1, "src1 :");
-    dr_print_opnd(drcontext, STDERR, src2, "src2 :");
-    dr_print_opnd(drcontext, STDERR, dst1, "dst :");
     dr_get_mcontext(drcontext , &mcontext);
 
-    T *src = (T*)malloc(2*sizeof(T));
+    instr_t instr;
+    instr_init(drcontext, &instr);
 
-    get_all_src<T>(drcontext , mcontext , instrrrr , src , 2);
+    decode(drcontext , apppc , &instr);
+
+
+    T *src = (T*)malloc(instr_num_srcs(&instr)*sizeof(T));
+
+    get_all_src<T>(drcontext , mcontext , &instr , src);
 
     T res = src[0]+src[1];
-    dr_printf("src1 : %lf, src2 : %lf, res : %lf\n", src[0], src[1], res);
    
-    reg_id_t dst = opnd_get_reg(instr_get_dst(instrrrr,0));
+    reg_id_t dst = opnd_get_reg(instr_get_dst(&instr,0));
     
     reg_set_value_ex(dst , &mcontext , (byte*)&res);
 
     dr_set_mcontext(drcontext , &mcontext);
 
     free(src);
+    instr_free(drcontext , &instr);
 }
 
 
@@ -205,13 +206,12 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
         oc = ifp_get_operation_category(instr);
         if(oc)
         {
-            instrrrr = instr;
             dr_print_instr(drcontext, STDERR, instr, "Found : ");
             if(ifp_is_scalar(oc))
             {
                 if(ifp_is_add(oc))
                 {
-                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_add<double> : (void*)interflop_add<float>, true, 3, instr_get_src(instr, 0), instr_get_src(instr, 1), instr_get_dst(instr, 0));
+                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_add<double> : (void*)interflop_add<float>, true, 1, OPND_CREATE_INTPTR(instr_get_app_pc(instr)));
                 }else if(ifp_is_sub(oc))
                 {
                     dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_sub<double> : (void*)interflop_sub<float>, false, 0);
