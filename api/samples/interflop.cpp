@@ -251,9 +251,13 @@ static void interflop_add()
 
     get_all_src<T>(drcontext , mcontext , instrrrr , src , 2);
 
-    for(int i = 0 ; i < 2 ; i++) {
-        dr_printf("Value : %.2f\n",src[i]);
-    }
+    T res = src[0]*src[1];
+   
+    reg_id_t dst = opnd_get_reg(instr_get_dst(instrrrr,0));
+    
+    reg_set_value_ex(dst , &mcontext , (byte*)&res);
+
+    dr_set_mcontext(drcontext , &mcontext);
 
     free(src);
 }
