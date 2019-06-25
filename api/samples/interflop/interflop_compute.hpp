@@ -20,10 +20,14 @@ void get_value_from_opnd(void *drcontext , dr_mcontext_t mcontext , opnd_t src ,
             reg_get_value_ex(base , &mcontext , (byte*)&addr);
             memcpy((void*)res , ((byte*)addr)+disp , sizeof(T));
         }
-        else if(opnd_is_abs_addr(src)) {
-            //TODO
+        else if(opnd_is_abs_addr(src) || opnd_is_rel_addr(src)) {
+            memcpy((void*)res , opnd_get_addr(src) , sizeof(T));
         }
-        //TO COMPLETE
+        else if(opnd_is_immed(src)) {
+            // Possible only with float
+            *(T*)res = opnd_get_immed_float(src);
+        }
+
     }
 }
 
@@ -31,13 +35,9 @@ static inline void get_instr_and_context(app_pc pc, void* drcontext, OUT instr_t
 {
     mcontext->size = sizeof(*mcontext);
     mcontext->flags = DR_MC_ALL;
-    dr_printf("test\n");
     dr_get_mcontext(drcontext , mcontext);
-    dr_printf("test\n");
     instr_init(drcontext, instr);
-    dr_printf("test\n");
     decode(drcontext , pc , instr);
-    dr_printf("test\n");
 }
 
 static inline void push_result_and_free(instr_t * instr, byte* value, void* drcontext, dr_mcontext_t* mcontext)
@@ -51,51 +51,54 @@ static inline void push_result_and_free(instr_t * instr, byte* value, void* drco
 
 template <typename T>
 void interflop_mul(app_pc apppc)
-{
+{   
     instr_t instr;
     dr_mcontext_t mcontext;
     void *drcontext = dr_get_current_drcontext();
     get_instr_and_context(apppc, drcontext, &instr, &mcontext);
 
-    T src0, src1, res;
-    get_value_from_opnd<T>(drcontext, mcontext, instr_get_src(&instr, 0), &src0);
-    get_value_from_opnd<T>(drcontext, mcontext, instr_get_src(&instr, 1), &src1);
+    T src0[64/sizeof(T)];
+    T src1[64/sizeof(T)];
+    get_value_from_opnd<T>(drcontext, mcontext, instr_get_src(&instr, 0), src0);
+    get_value_from_opnd<T>(drcontext, mcontext, instr_get_src(&instr, 1), src1);
 
-    res = Interflop::Op<T>::mul(src1, src0);
+    T res = Interflop::Op<T>::mul(*src1, *src0);
 
     push_result_and_free(&instr, (byte*)&res, drcontext, &mcontext);
 }
 
 template <typename T>
 void interflop_div(app_pc apppc)
-{
+{   
     instr_t instr;
     dr_mcontext_t mcontext;
     void *drcontext = dr_get_current_drcontext();
     get_instr_and_context(apppc, drcontext, &instr, &mcontext);
 
-    T src0, src1, res;
-    get_value_from_opnd<T>(drcontext, mcontext, instr_get_src(&instr, 0), &src0);
-    get_value_from_opnd<T>(drcontext, mcontext, instr_get_src(&instr, 1), &src1);
+    T src0[64/sizeof(T)];
+    T src1[64/sizeof(T)];
+    get_value_from_opnd<T>(drcontext, mcontext, instr_get_src(&instr, 0), src0);
+    get_value_from_opnd<T>(drcontext, mcontext, instr_get_src(&instr, 1), src1);
 
-    res = Interflop::Op<T>::div(src1, src0);
+    T res = Interflop::Op<T>::div(*src1, *src0);
 
     push_result_and_free(&instr, (byte*)&res, drcontext, &mcontext);
 }
 
 template <typename T>
 void interflop_sub(app_pc apppc)
-{
+{   
     instr_t instr;
     dr_mcontext_t mcontext;
     void *drcontext = dr_get_current_drcontext();
     get_instr_and_context(apppc, drcontext, &instr, &mcontext);
 
-    T src0, src1, res;
-    get_value_from_opnd<T>(drcontext, mcontext, instr_get_src(&instr, 0), &src0);
-    get_value_from_opnd<T>(drcontext, mcontext, instr_get_src(&instr, 1), &src1);
+    T src0[64/sizeof(T)];
+    T src1[64/sizeof(T)];
+    get_value_from_opnd<T>(drcontext, mcontext, instr_get_src(&instr, 0), src0);
+    get_value_from_opnd<T>(drcontext, mcontext, instr_get_src(&instr, 1), src1);
 
-    res = Interflop::Op<T>::sub(src1, src0);
+    T res = Interflop::Op<T>::sub(*src1, *src0);
 
     push_result_and_free(&instr, (byte*)&res, drcontext, &mcontext);
 }
@@ -108,14 +111,14 @@ void interflop_add(app_pc apppc)
     void *drcontext = dr_get_current_drcontext();
     get_instr_and_context(apppc, drcontext, &instr, &mcontext);
 
-    T src0, src1, res;
-    get_value_from_opnd<T>(drcontext, mcontext, instr_get_src(&instr, 0), &src0);
-    get_value_from_opnd<T>(drcontext, mcontext, instr_get_src(&instr, 1), &src1);
+    T src0[64/sizeof(T)];
+    T src1[64/sizeof(T)];
+    get_value_from_opnd<T>(drcontext, mcontext, instr_get_src(&instr, 0), src0);
+    get_value_from_opnd<T>(drcontext, mcontext, instr_get_src(&instr, 1), src1);
 
-    res = src1+src0;//Interflop::Op<T>::add(src1, src0);
+    T res = Interflop::Op<T>::add(*src1, *src0);
 
     push_result_and_free(&instr, (byte*)&res, drcontext, &mcontext);
-    
 }
 
 //TODO

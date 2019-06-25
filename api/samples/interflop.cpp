@@ -71,6 +71,7 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
 {
     instr_t *instr, *next_instr;
     OPERATION_CATEGORY oc;
+    
     for(instr = instrlist_first(bb); instr != NULL; instr = next_instr)
     {
         next_instr = instr_get_next(instr);
@@ -79,7 +80,7 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
         {
             dr_print_instr(drcontext, STDERR, instr, "Found : ");
             if(ifp_is_scalar(oc))
-            {
+            {                
                 if(ifp_is_add(oc))
                 {
                     dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_add<double> : (void*)interflop_add<float>, false, 1, OPND_CREATE_INTPTR(instr_get_app_pc(instr)));
