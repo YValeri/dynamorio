@@ -77,12 +77,9 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
         if(oc)
         {
             dr_print_instr(drcontext, STDERR, instr, "Found : ");
-            if(ifp_is_scalar(oc))
-            {
-                dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_operation<double> : (void*)interflop_operation<float>, false, 2, OPND_CREATE_INTPTR(instr_get_app_pc(instr)) , opnd_create_immed_int(oc & IFP_OP_MASK , OPSZ_4));
-                instrlist_remove(bb, instr);
-                instr_destroy(drcontext, instr);
-            }
+            dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_operation<double> : (void*)interflop_operation<float>, false, 2, OPND_CREATE_INTPTR(instr_get_app_pc(instr)) , opnd_create_immed_int(oc & IFP_OP_MASK , OPSZ_4));
+            instrlist_remove(bb, instr);
+            instr_destroy(drcontext, instr);
         }
 
     }

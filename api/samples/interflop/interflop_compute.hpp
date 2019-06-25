@@ -2,13 +2,14 @@
 #define INTERFLOP_COMPUTE_HEADER
 
 #include "./backend/interflop/backend.hxx"
+#include "interflop_operations.hpp"
 #include "dr_api.h"
 #include "dr_ir_opnd.h"
 #include <string.h>
 
 
 template <typename T>
-void get_value_from_opnd(void *drcontext , dr_mcontext_t mcontext , opnd_t src , T *res) {
+void get_value_from_opnd(void *drcontext , dr_mcontext_t mcontext , opnd_t src , T *res, int size_mask) {
     if(!opnd_is_null(src)) {
         if(opnd_is_reg(src)) {
            reg_get_value_ex(opnd_get_reg(src) , &mcontext , (byte*)res);
@@ -19,10 +20,36 @@ void get_value_from_opnd(void *drcontext , dr_mcontext_t mcontext , opnd_t src ,
             unsigned long *addr;
 
             reg_get_value_ex(base , &mcontext , (byte*)&addr);
-            memcpy((void*)res , ((byte*)addr)+disp , sizeof(T));
+            switch(size_mask)
+            {
+                case IFP_OP_512:
+                    memcpy((void*)res , ((byte*)addr)+disp , 64);
+                break;
+                case IFP_OP_256:
+                    memcpy((void*)res , ((byte*)addr)+disp , 32);
+                break;
+                case IFP_OP_128:
+                    memcpy((void*)res , ((byte*)addr)+disp , 16);
+                break;
+                    memcpy((void*)res , ((byte*)addr)+disp , sizeof(T));
+            }
+            
         }
         else if(opnd_is_abs_addr(src) || opnd_is_rel_addr(src)) {
-            memcpy((void*)res , opnd_get_addr(src) , sizeof(T));
+            switch(size_mask)
+            {
+                case IFP_OP_512:
+                    memcpy((void*)res , opnd_get_addr(src) , 64);
+                break;
+                case IFP_OP_256:
+                    memcpy((void*)res , opnd_get_addr(src) , 32);
+                break;
+                case IFP_OP_128:
+                    memcpy((void*)res , opnd_get_addr(src) , 16);
+                break;
+                    memcpy((void*)res , opnd_get_addr(src) , sizeof(T));
+            }
+            //memcpy((void*)res , opnd_get_addr(src) , sizeof(T));
         }
         else if(opnd_is_immed(src)) {
             // Possible only with float
@@ -50,69 +77,6 @@ static inline void push_result_and_free(instr_t * instr, byte* value, void* drco
 }
 
 template <typename T>
-void interflop_operation(app_pc apppc , int operation)
-{  
-    instr_t instr;
-    dr_mcontext_t mcontext;
-    void *drcontext = dr_get_current_drcontext();
-    get_instr_and_context(apppc, drcontext, &instr, &mcontext);
-
-    T src0[64/sizeof(T)];
-    T src1[64/sizeof(T)];
-    get_value_from_opnd<T>(drcontext, mcontext, instr_get_src(&instr, 0), src0);
-    get_value_from_opnd<T>(drcontext, mcontext, instr_get_src(&instr, 1), src1);
-
-    T res;
-
-    switch(operation) {
-        case IFP_OP_ADD:
-            res = Interflop::Op<T>::add(*src1, *src0);
-            break;
-
-        case IFP_OP_SUB:
-             res = Interflop::Op<T>::sub(*src1, *src0);
-            break;
-
-        case IFP_OP_MUL:
-             res = Interflop::Op<T>::mul(*src1, *src0);
-            break;
-
-        case IFP_OP_DIV:
-             res = Interflop::Op<T>::div(*src1, *src0);
-            break;
-    }
-
-    push_result_and_free(&instr, (byte*)&res, drcontext, &mcontext);
-}
-
-
-//TODO
-template <typename T>
-void ifp_compute_add(T* operand_buffer, T* result_buffer, unsigned char nbOfPrimitive)
-{
-    for(unsigned char i=0; i<nbOfPrimitive; ++i)
-        *(result_buffer+i) = Interflop::Op<T>::add(*(operand_buffer+nbOfPrimitive+i), *operand_buffer+i);
-}
-
-template <typename T>
-void ifp_compute_sub(T* operand_buffer, T* result_buffer, unsigned char nbOfPrimitive)
-{
-    for(unsigned char i=0; i<nbOfPrimitive; ++i)
-        *(result_buffer+i) = Interflop::Op<T>::sub(*(operand_buffer+nbOfPrimitive+i), *operand_buffer+i);
-}
-
-template <typename T>
-void ifp_compute_mul(T* operand_buffer, T* result_buffer, unsigned char nbOfPrimitive)
-{
-    for(unsigned char i=0; i<nbOfPrimitive; ++i)
-        *(result_buffer+i) = Interflop::Op<T>::mul(*(operand_buffer+nbOfPrimitive+i), *operand_buffer+i);
-}
-
-template <typename T>
-void ifp_compute_div(T* operand_buffer, T* result_buffer, unsigned char nbOfPrimitive)
-{
-    for(unsigned char i=0; i<nbOfPrimitive; ++i)
-        *(result_buffer+i) = Interflop::Op<T>::div(*(operand_buffer+nbOfPrimitive+i), *operand_buffer+i);
-}
+void interflop_operation(app_pc apppc , int operation);
 
 #endif 
