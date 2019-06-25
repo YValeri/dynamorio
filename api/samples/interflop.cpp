@@ -10,8 +10,6 @@
 #include "interflop/interflop_operations.hpp"
 #include "interflop/interflop_compute.hpp"
 
-#include <string.h>
-
 #ifndef MAX_INSTR_OPND_COUNT
 
 // Generally floating operations needs three operands (2src + 1 dst) and FMA needs 4 (3src + 1dst)
@@ -69,87 +67,6 @@ static void event_exit(void)
 }
 
 
-template <typename T>
-void get_value_from_opnd(void *drcontext , dr_mcontext_t mcontext , opnd_t src , T *res) {
-    if(!opnd_is_null(src)) {
-        if(opnd_is_reg(src)) {
-           reg_get_value_ex(opnd_get_reg(src) , &mcontext , (byte*)res);
-        }
-        else if(opnd_is_base_disp(src)) {
-            reg_id_t base = opnd_get_base(src);
-            int disp = opnd_get_disp(src);
-            unsigned long *addr;
-
-            reg_get_value_ex(base , &mcontext , (byte*)&addr);
-            memcpy((void*)res , ((byte*)addr)+disp , sizeof(T));
-        }
-        else if(opnd_is_abs_addr(src)) {
-            //TODO
-        }
-        //TO COMPLETE
-    }
-}
-
-template <typename T>
-void get_all_src(void *drcontext , dr_mcontext_t mcontext , instr_t *instr, T *res) {
-    int nb_src = instr_num_srcs(instr);
-    for(int i = 0 ; i < nb_src ; i++) {
-        get_value_from_opnd<T>(drcontext , mcontext , instr_get_src(instr , i) , &res[i]);
-    }
-}
-
-
-template <typename T>
-static void interflop_mul()
-{
-    
-}
-
-template <typename T>
-static void interflop_div()
-{
-    
-}
-
-template <typename T>
-static void interflop_sub()
-{
-
-}
-
-template <typename T>
-static void interflop_add(app_pc apppc)
-{   
-    
-    dr_mcontext_t mcontext;
-    mcontext.size = sizeof(mcontext);
-    mcontext.flags = DR_MC_ALL;
-    void *drcontext = dr_get_current_drcontext();
-    dr_get_mcontext(drcontext , &mcontext);
-
-    instr_t instr;
-    instr_init(drcontext, &instr);
-
-    decode(drcontext , apppc , &instr);
-
-
-    T *src = (T*)malloc(instr_num_srcs(&instr)*sizeof(T));
-
-    get_all_src<T>(drcontext , mcontext , &instr , src);
-
-    T res = src[0]+src[1];
-   
-    reg_id_t dst = opnd_get_reg(instr_get_dst(&instr,0));
-    
-    reg_set_value_ex(dst , &mcontext , (byte*)&res);
-
-    dr_set_mcontext(drcontext , &mcontext);
-
-    free(src);
-    instr_free(drcontext , &instr);
-}
-
-
 static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t *bb, bool for_trace, bool translating)
 {
     instr_t *instr, *next_instr;
@@ -165,16 +82,16 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
             {
                 if(ifp_is_add(oc))
                 {
-                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_add<double> : (void*)interflop_add<float>, true, 1, OPND_CREATE_INTPTR(instr_get_app_pc(instr)));
+                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_add<double> : (void*)interflop_add<float>, false, 1, OPND_CREATE_INTPTR(instr_get_app_pc(instr)));
                 }else if(ifp_is_sub(oc))
                 {
-                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_sub<double> : (void*)interflop_sub<float>, false, 0);
+                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_sub<double> : (void*)interflop_sub<float>, false, 1, OPND_CREATE_INTPTR(instr_get_app_pc(instr)));
                 }else if(ifp_is_mul(oc))
                 {
-                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_mul<double> : (void*)interflop_mul<float>, false, 0);
+                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_mul<double> : (void*)interflop_mul<float>, false, 1, OPND_CREATE_INTPTR(instr_get_app_pc(instr)));
                 }else if(ifp_is_div(oc))
                 {
-                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_div<double> : (void*)interflop_div<float>, false, 0);
+                    dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_div<double> : (void*)interflop_div<float>, false, 1, OPND_CREATE_INTPTR(instr_get_app_pc(instr)));
                 }
                 
                 instrlist_remove(bb, instr);
