@@ -73,7 +73,7 @@ template <typename T>
 void get_value_from_opnd(void *drcontext , dr_mcontext_t mcontext , opnd_t src , T *res) {
     if(!opnd_is_null(src)) {
         if(opnd_is_reg(src)) {
-           reg_get_value_ex(opnd_get_reg(src) , &mcontext , (byte*)res);
+            reg_get_value_ex(opnd_get_reg(src) , &mcontext , (byte*)res);
         }
         else if(opnd_is_base_disp(src)) {
             reg_id_t base = opnd_get_base(src);
@@ -158,7 +158,7 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
 {
     instr_t *instr, *next_instr;
     OPERATION_CATEGORY oc;
-    
+
     for(instr = instrlist_first(bb); instr != NULL; instr = next_instr)
     {
         next_instr = instr_get_next(instr);
