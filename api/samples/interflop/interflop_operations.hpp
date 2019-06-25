@@ -17,6 +17,8 @@
 #define IFP_OP_256         0b01000000000
 #define IFP_OP_512         0b10000000000
 
+#define IFP_OP_MASK        0b11111110000
+
 // For operations that are unsupported for the moment
 #define IFP_OP_UNSUPPORTED IFP_OP_OTHER
 
