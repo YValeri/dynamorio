@@ -18,6 +18,8 @@
 #define IFP_OP_512         0b10000000000
 
 #define IFP_OP_MASK        0b11111110000
+#define IFP_OP_TYPE_MASK   0b00011110000
+#define IFP_SIMD_TYPE_MASK 0b11100000000
 
 // For operations that are unsupported for the moment
 #define IFP_OP_UNSUPPORTED IFP_OP_OTHER
