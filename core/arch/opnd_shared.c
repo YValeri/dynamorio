@@ -1858,6 +1858,9 @@ reg_set_value_ex_priv(reg_id_t reg, priv_mcontext_t *mc, byte *val_buf)
 
     return true;
 #else
+
+    dr_zmm_t *simd = (dr_zmm_t *)((byte *)mc + SIMD_OFFSET);
+    
     if (reg_is_gpr(reg)) {
         reg_t *value = (reg_t *)val_buf;
         reg_set_value_priv(reg, mc, *value);
