@@ -24,6 +24,13 @@
 // For operations that are unsupported for the moment
 #define IFP_OP_UNSUPPORTED IFP_OP_OTHER
 
+enum SIMD_CATEGORY{
+    IFP_SCALAR,
+    IFP_128,
+    IFP_256,
+    IFP_512
+};
+
 enum OPERATION_CATEGORY{
     IFP_OTHER=IFP_OP_OTHER, 
     IFP_UNSUPPORTED=IFP_OP_UNSUPPORTED,

@@ -41,14 +41,6 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 {
     // Init DynamoRIO MGR extension ()
     drmgr_init();
-
-    drreg_options_t drreg_options;
-    drreg_options.conservative = true;
-    drreg_options.num_spill_slots = 2;
-    drreg_options.struct_size = sizeof(drreg_options_t);
-    drreg_options.do_not_sum_slots=false;
-    drreg_options.error_callback=NULL;
-    drreg_init(&drreg_options);
     
     // Define the functions to be called before exiting this client program
     dr_register_exit_event(event_exit);
@@ -60,7 +52,6 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 
 static void event_exit(void)
 {
-    drreg_exit();
     drmgr_exit();
 }
 

@@ -5,6 +5,132 @@
 #include "dr_ir_opnd.h"
 #include <string.h>
 
+template <typename T>
+void get_value_from_opnd(void *drcontext , dr_mcontext_t mcontext , opnd_t src , T *res, int size_mask) {
+    if(!opnd_is_null(src)) {
+        if(opnd_is_reg(src)) {
+           reg_get_value_ex(opnd_get_reg(src) , &mcontext , (byte*)res);
+        }
+        else if(opnd_is_base_disp(src)) {
+            reg_id_t base = opnd_get_base(src);
+            int disp = opnd_get_disp(src);
+            unsigned long *addr;
+
+            reg_get_value_ex(base , &mcontext , (byte*)&addr);
+            switch(size_mask)
+            {
+                case IFP_OP_512:
+                    memcpy((void*)res , ((byte*)addr)+disp , 64);
+                break;
+                case IFP_OP_256:
+                    memcpy((void*)res , ((byte*)addr)+disp , 32);
+                break;
+                case IFP_OP_128:
+                    memcpy((void*)res , ((byte*)addr)+disp , 16);
+                break;
+                    memcpy((void*)res , ((byte*)addr)+disp , sizeof(T));
+            }
+            
+        }
+        else if(opnd_is_abs_addr(src) || opnd_is_rel_addr(src)) {
+            switch(size_mask)
+            {
+                case IFP_OP_512:
+                    memcpy((void*)res , opnd_get_addr(src) , 64);
+                break;
+                case IFP_OP_256:
+                    memcpy((void*)res , opnd_get_addr(src) , 32);
+                break;
+                case IFP_OP_128:
+                    memcpy((void*)res , opnd_get_addr(src) , 16);
+                break;
+                    memcpy((void*)res , opnd_get_addr(src) , sizeof(T));
+            }
+            //memcpy((void*)res , opnd_get_addr(src) , sizeof(T));
+        }
+        else if(opnd_is_immed(src)) {
+            // Possible only with float
+            *res = opnd_get_immed_float(src);
+        }
+
+    }
+}
+
+template<typename FTYPE, FTYPE (*FN)(FTYPE, FTYPE), int SIMD_TYPE>
+static inline void execute(FTYPE* src0, FTYPE* src1, FTYPE* res)
+{
+    constexpr unsigned int maxiter = SIMD_TYPE == 0 ? 1 : (SIMD_TYPE == IFP_OP_128 ? 4 : SIMD_TYPE == IFP_OP_256 ? 8 : 16)/((sizeof(FTYPE))/sizeof(float));
+    for(int i=0; i<maxiter; i++)
+    {
+        res[i] = FN(src1[i], src0[i]);
+    }
+}
+
+void initContext(dr_mcontext_flags_t flags, void* drcontext, OUT dr_mcontext_t* mcontext)
+{
+    mcontext->size = sizeof(*mcontext);
+    mcontext->flags = flags;
+    dr_get_mcontext(drcontext , mcontext);
+}
+
+template<typename FTYPE, FTYPE (*FN)(FTYPE, FTYPE), int SIMD_TYPE>
+void interflop_opt_operation(const reg_id_t reg_src0, const reg_id_t reg_src1, const reg_id_t reg_dst, const dr_mcontext_flags_t flags)
+{
+    dr_mcontext_t mcontext;
+    void* drcontext = dr_get_current_drcontext();
+    initContext(flags, drcontext, &mcontext);
+
+    constexpr size_t size = sizeof(dr_zmm_t)/sizeof(FTYPE);
+    FTYPE src0[size], src1[size], res[size];
+    reg_get_value_ex(reg_src0, &mcontext, (byte*)src0);
+    reg_get_value_ex(reg_src1, &mcontext, (byte*)src1);
+
+    execute<FTYPE, FN, SIMD_TYPE>(src0, src1, res);
+
+    reg_set_value_ex(reg_dst, &mcontext, res);
+    dr_set_mcontext(drcontext , &mcontext);
+}
+
+template<typename FTYPE, FTYPE (*FN)(FTYPE, FTYPE), int SIMD_TYPE>
+void interflop_opt_operation(reg_id_t base, long disp, reg_id_t reg_src1, reg_id_t reg_dst, const dr_mcontext_flags_t flags)
+{
+    dr_mcontext_t mcontext;
+    void* drcontext = dr_get_current_drcontext();
+    initContext(flags, drcontext, &mcontext);
+
+    constexpr size_t size = sizeof(dr_zmm_t)/sizeof(FTYPE);
+    FTYPE src0[size], src1[size], res[size];
+    byte *addr;
+    reg_get_value_ex(base , &mcontext , addr);
+    constexpr size_t copysize = SIMD_TYPE == 0 ? sizeof(FTYPE) : SIMD_TYPE == IFP_OP_128 ? 16 : SIMD_TYPE == IFP_OP_256 ? 32 : 64;
+    memcpy(src0, addr+disp, copysize);
+    reg_get_value_ex(reg_src1, &mcontext, (byte*)src1);
+
+    execute<FTYPE, FN, SIMD_TYPE>(src0, src1, res);
+
+    reg_set_value_ex(reg_dst, &mcontext, res);
+    dr_set_mcontext(drcontext , &mcontext);
+}
+
+template<typename FTYPE, FTYPE (*FN)(FTYPE, FTYPE), int SIMD_TYPE>
+void interflop_opt_operation(void* addr, reg_id_t reg_src1, reg_id_t reg_dst, const dr_mcontext_flags_t flags)
+{
+    dr_mcontext_t mcontext;
+    void* drcontext = dr_get_current_drcontext();
+    initContext(flags, drcontext, &mcontext);
+
+    constexpr size_t size = sizeof(dr_zmm_t)/sizeof(FTYPE);
+    FTYPE src0[size], src1[size], res[size];
+    constexpr size_t copysize = SIMD_TYPE == 0 ? sizeof(FTYPE) : SIMD_TYPE == IFP_OP_128 ? 16 : SIMD_TYPE == IFP_OP_256 ? 32 : 64;
+    memcpy(src0, addr, copysize);
+    reg_get_value_ex(reg_src1, &mcontext, (byte*)src1);
+
+    execute<FTYPE, FN, SIMD_TYPE>(src0, src1, res);
+
+    reg_set_value_ex(reg_dst, &mcontext, res);
+    dr_set_mcontext(drcontext , &mcontext);
+}
+
 template<>
 void interflop_operation<double>(app_pc apppc , int operation)
 {  
@@ -12,7 +138,6 @@ void interflop_operation<double>(app_pc apppc , int operation)
     dr_mcontext_t mcontext;
     void *drcontext = dr_get_current_drcontext();
     get_instr_and_context(apppc, drcontext, &instr, &mcontext);
-
     double src0[8];
     double src1[8];
     get_value_from_opnd<double>(drcontext, mcontext, instr_get_src(&instr, 0), src0, operation & IFP_SIMD_TYPE_MASK);
@@ -23,7 +148,7 @@ void interflop_operation<double>(app_pc apppc , int operation)
         case IFP_OP_ADD:
             switch(operation & IFP_SIMD_TYPE_MASK)
             {
-                case IFP_OP_512:
+               case IFP_OP_512:
                 //dr_printf("512\n");
                 res[7] = Interflop::Op<double>::add(src1[7], src0[7]);
                 res[6] = Interflop::Op<double>::add(src1[6], src0[6]);
