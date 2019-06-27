@@ -262,42 +262,50 @@ static double _mca_dunr(double a, mpfr_unr mpfr_op) {
 
 static void _interflop_add_float(float a, float b, float* c, void* context) {
 	//return a + b
+	//*c = a+b;
 	*c = _mca_sbin(a, b,(mpfr_bin)MP_ADD);
 }
 
 static void _interflop_sub_float(float a, float b, float* c, void* context) {
 	//return a - b
+	//*c = a-b;
 	*c = _mca_sbin(a, b, (mpfr_bin)MP_SUB);
 }
 
 static void _interflop_mul_float(float a, float b, float* c, void* context) {
 	//return a * b
+	//*c = a*b;
 	*c = _mca_sbin(a, b, (mpfr_bin)MP_MUL);
 }
 
 static void _interflop_div_float(float a, float b, float* c, void* context) {
 	//return a / b
+	//*c = a/b;
 	*c = _mca_sbin(a, b, (mpfr_bin)MP_DIV);
 }
 
 
 static void _interflop_add_double(double a, double b, double* c, void* context) {
 	//return a + b
+	//*c = a+b;
 	*c = _mca_dbin(a, b, (mpfr_bin)MP_ADD);
 }
 
 static void _interflop_sub_double(double a, double b, double* c, void* context) {
 	//return a - b
+	//*c = a-b;
 	*c = _mca_dbin(a, b, (mpfr_bin)MP_SUB);
 }
 
 static void _interflop_mul_double(double a, double b, double* c, void* context) {
 	//return a * b
+	//*c = a*b;
 	*c = _mca_dbin(a, b, (mpfr_bin)MP_MUL);
 }
 
 static void _interflop_div_double(double a, double b, double* c, void* context) {
 	//return a / b
+	//*c = a/b;
 	*c = _mca_dbin(a, b, (mpfr_bin)MP_DIV);
 }
 
