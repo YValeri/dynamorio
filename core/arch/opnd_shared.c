@@ -1790,7 +1790,31 @@ reg_get_value_ex(reg_id_t reg, dr_mcontext_t *mc, OUT byte *val)
         *(reg_t *)val = regval;
     }
 #else
-    CLIENT_ASSERT(false, "NYI i#1551");
+    //CLIENT_ASSERT(false, "NYI i#1551");
+    if (DR_REG_Q0 <= reg && reg <= DR_REG_Q31) {
+        if (!TEST(DR_MC_MULTIMEDIA, mc->flags) || mc->size != sizeof(dr_mcontext_t))
+            return false;
+        memcpy(val, &mc->simd[reg - DR_REG_Q0], 128);
+    } else if (DR_REG_D0 <= reg && reg <= DR_REG_D31) {
+        if (!TEST(DR_MC_MULTIMEDIA, mc->flags) || mc->size != sizeof(dr_mcontext_t))
+            return false;
+        memcpy(val, &mc->simd[reg - DR_REG_D0], 64);
+    } else if (DR_REG_S0 <= reg && reg <= DR_REG_S31) {
+        if (!TEST(DR_MC_MULTIMEDIA, mc->flags) || mc->size != sizeof(dr_mcontext_t))
+            return false;
+        memcpy(val, &mc->simd[reg - DR_REG_S0], 32);
+    } else if (DR_REG_H0 <= reg && reg <= DR_REG_H31) {
+        if (!TEST(DR_MC_MULTIMEDIA, mc->flags) || mc->size != sizeof(dr_mcontext_t))
+            return false;
+        memcpy(val, &mc->simd[reg - DR_REG_H0], 16);
+    } else if (DR_REG_B0 <= reg && reg <= DR_REG_B31) {
+        if (!TEST(DR_MC_MULTIMEDIA, mc->flags) || mc->size != sizeof(dr_mcontext_t))
+            return false;
+        memcpy(val, &mc->simd[reg - DR_REG_B0], 8);
+    } else {
+        reg_t regval = reg_get_value(reg, mc);
+        *(reg_t *)val = regval;
+    }
 #endif
     return true;
 }
@@ -1834,8 +1858,26 @@ reg_set_value_ex_priv(reg_id_t reg, priv_mcontext_t *mc, byte *val_buf)
 
     return true;
 #else
-    CLIENT_ASSERT(false, "NYI  i#1551, i#3504");
-    return false;
+
+    dr_ymm_t *simd = (dr_ymm_t *)((byte *)mc + SIMD_OFFSET);
+
+    if (reg_is_gpr(reg)) {
+        reg_t *value = (reg_t *)val_buf;
+        reg_set_value_priv(reg, mc, *value);
+    } else if (DR_REG_Q0 <= reg && reg <= DR_REG_Q31) {
+        memcpy(&(simd[reg - DR_REG_Q0]), val_buf, 128);
+    } else if (DR_REG_D0 <= reg && reg <= DR_REG_D31) {
+        memcpy(&(simd[reg - DR_REG_D0]), val_buf, 64);
+    } else if (DR_REG_S0 <= reg && reg <= DR_REG_S31) {
+        memcpy(&(simd[reg - DR_REG_S0]), val_buf, 32);
+    } else if (DR_REG_H0 <= reg && reg <= DR_REG_H31) {
+        memcpy(&(simd[reg - DR_REG_H0]), val_buf, 16);
+    } else if (DR_REG_B0 <= reg && reg <= DR_REG_B31) {
+        memcpy(&(simd[reg - DR_REG_B0]), val_buf, 8);
+    } else {
+        CLIENT_ASSERT(false, "NYI i#3504");
+        return false;
+    }
 #endif
 }
 
