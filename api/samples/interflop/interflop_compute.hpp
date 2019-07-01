@@ -1,12 +1,13 @@
 #ifndef INTERFLOP_COMPUTE_HEADER
 #define INTERFLOP_COMPUTE_HEADER
 
+#include "../backend_verrou/interflop_verrou.h"
 #include "./backend/interflop/backend.hxx"
 #include "interflop_operations.hpp"
 #include "dr_api.h"
 #include "dr_ir_opnd.h"
 #include <string.h>
-
+#include <iostream>
 
 template <typename T>
 void get_value_from_opnd(void *drcontext , dr_mcontext_t mcontext , opnd_t src , T *res, int size_mask) {
@@ -95,6 +96,35 @@ void initContext(dr_mcontext_flags_t flags, void* drcontext, OUT dr_mcontext_t* 
     dr_get_mcontext(drcontext , mcontext);
 }
 
+/* ************************************************************************************************************************************ */
+/* ************************************************************************************************************************************ */
+// VERROU FUNCTIONS
+
+template<typename T>
+void interflop_verrou_op(T a, T b, T* res, void* context);
+
+
+
+template<typename T>
+void interflop_verrou_add(T a, T b, T* res, void* context);
+
+template<>
+void interflop_verrou_add<double>(double a, double b, double* res, void* context) {
+    interflop_verrou_add_double(a,b,res,context);
+}
+
+
+template<>
+void interflop_verrou_add<float>(float a, float b, float* res, void* context) {
+    interflop_verrou_add_float(a,b,res,context);
+}
+
+/* ************************************************************************************************************************************ */
+/* ************************************************************************************************************************************ */
+
+
+
+
 template<typename FTYPE, FTYPE (*FN)(FTYPE, FTYPE), int SIMD_TYPE>
 void interflop_operation_reg(const reg_id_t reg_src0, const reg_id_t reg_src1, const reg_id_t reg_dst, const dr_mcontext_flags_t flags)
 {
@@ -107,7 +137,7 @@ void interflop_operation_reg(const reg_id_t reg_src0, const reg_id_t reg_src1, c
     reg_get_value_ex(reg_src0, &mcontext, (byte*)src0);
     reg_get_value_ex(reg_src1, &mcontext, (byte*)src1);
 
-    execute<FTYPE, FN, SIMD_TYPE>(src0, src1, res);
+    execute<FTYPE, FN, SIMD_TYPE>(src0, src1, res); 
 
     reg_set_value_ex(reg_dst, &mcontext, (byte*)res);
     dr_set_mcontext(drcontext , &mcontext);

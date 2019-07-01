@@ -48,6 +48,8 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
     // Define the function to executed to treat each instructions block
     drmgr_register_bb_app2app_event(event_basic_block, NULL);
 
+    interflop_verrou_configure(VR_RANDOM , nullptr);
+
 }
 
 static void event_exit(void)
