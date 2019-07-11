@@ -7,8 +7,11 @@
 #include "dr_ir_opnd.h"
 #include "drreg.h"
 #include "drmgr.h"
+#include "drsyms.h"
 #include "interflop/interflop_operations.hpp"
 #include "interflop/interflop_compute.hpp"
+#include <vector>
+#include <string>
 
 #ifndef MAX_INSTR_OPND_COUNT
 
@@ -41,6 +44,7 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 {
     // Init DynamoRIO MGR extension ()
     drmgr_init();
+    drsym_init(0);
     
     // Define the functions to be called before exiting this client program
     dr_register_exit_event(event_exit);
@@ -49,12 +53,13 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
     drmgr_register_bb_app2app_event(event_basic_block, NULL);
 
     interflop_verrou_configure(VR_RANDOM , nullptr);
-
+    
 }
 
 static void event_exit(void)
 {
     drmgr_exit();
+    drsym_exit();
 }
 
 template<typename FTYPE, FTYPE (*FN)(FTYPE, FTYPE), int SIMD_TYPE>
@@ -185,13 +190,56 @@ inline bool insert_corresponding_call(void* drcontext, instrlist_t *bb, instr_t*
     return false;
 }
 
+std::vector<std::string> modules;
+
+bool symcb (const char *name, size_t modoffs, void *data)
+{
+    dr_printf("Sym : %s\n", name);
+    return name != NULL;
+}
 
 static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t *bb, bool for_trace, bool translating)
 {
-    instr_t *instr, *next_instr;
+    //instr_t *instr, *next_instr;
     OPERATION_CATEGORY oc;
+    instr_t * instr = instrlist_first_app(bb);
+    app_pc pc = instr_get_app_pc(instr);
+    module_data_t* mod = dr_lookup_module(pc);
+    drsym_info_t sym;
+    char name[256];
+    std::string str(dr_module_preferred_name(mod));
+    bool test=true;
+    for(int i=0; i<modules.size(); i++)
+    {
+        if(modules.at(i)==str)
+        {
+            test=false; break;
+        }
+    }
+    if(test)
+    {
+        modules.push_back(str);
+        //dr_printf("%s\n", mod->full_path);
+        dr_printf("%s\n", str.data());
+        //drsym_enumerate_symbols(mod->full_path,symcb, mod->handle, DRSYM_DEMANGLE_FULL);
+    }
+    sym.struct_size=sizeof(sym);
+    sym.name = name;
+    sym.name_size=256;
+    sym.file=NULL;
+    sym.file_size=0;
+    drsym_error_t symres=drsym_lookup_address(mod->full_path, pc-mod->start, &sym, DRSYM_DEFAULT_FLAGS);
+    if (symres == DRSYM_SUCCESS || symres == DRSYM_ERROR_LINE_NOT_AVAILABLE) {
+        const char *modname = dr_module_preferred_name(mod);
+        if (modname == NULL)
+            modname = "<noname>";
+        dr_printf("%s\n", sym.name);
+    } else
+        dr_printf("fail: %d\n", symres);
+    dr_free_module_data(mod);
+    
 
-    for(instr = instrlist_first(bb); instr != NULL; instr = next_instr)
+    /*for(instr = instrlist_first(bb); instr != NULL; instr = next_instr)
     {
         next_instr = instr_get_next(instr);
         oc = ifp_get_operation_category(instr);
@@ -212,6 +260,6 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
             
         }
 
-    }
+    }*/
     return DR_EMIT_DEFAULT;
 }
