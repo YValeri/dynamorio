@@ -2549,3 +2549,28 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
     }
     return DR_EMIT_DEFAULT;
 }
+
+/*template <typename FTYPE, typename Tfunctor>
+struct hh;
+
+template <typename Tfunctor>
+struct hh<float, Tfunctor> {
+
+    static void interface_interflop(Tfunctor FN)
+    {
+        float temp_A;
+        float temp_B;
+
+        asm volatile("\tmovss %%xmm2, %0\n" : "=m" (temp_A));
+        dr_printf("temp_A = %.30f\n", temp_A);
+
+        asm volatile("\tmovss %%xmm7, %0\n" : "=m" (temp_B));
+        dr_printf("temp_B = %.30f\n", temp_B);
+
+        float temp_C = FN(temp_A, temp_B);
+        dr_printf("temp_C = %.30f\n", temp_C);
+
+        asm volatile("\tmovss %0, %%xmm2\n" : : "m" (temp_C));
+    }
+
+};*/

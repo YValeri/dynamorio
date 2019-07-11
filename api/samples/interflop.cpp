@@ -7,8 +7,12 @@
 #include "dr_ir_opnd.h"
 #include "drreg.h"
 #include "drmgr.h"
+#include "stdint.h"
+#include "interflop/move_modifications.hpp"
+#include "interflop/call_modifications.hpp"
 #include "interflop/interflop_operations.hpp"
 #include "interflop/interflop_compute.hpp"
+#include "interflop/backend/interflop.h"
 
 #ifndef MAX_INSTR_OPND_COUNT
 
@@ -27,12 +31,16 @@
 
 static void event_exit(void);
 
+static int tls_index;
+
+//static void *testcontext;
+
 //Function to treat each block of instructions 
 static dr_emit_flags_t event_basic_block(   void *drcontext,        //Context
                                             void *tag,              // Unique identifier of the block
                                             instrlist_t *bb,        // Linked list of the instructions 
-                                            bool for_trace,         //TODO
-                                            bool translating);      //TODO
+                                            bool for_trace,        
+                                            bool translating);      
 
 // Main function to setup the dynamoRIO client
 DR_EXPORT void dr_client_main(  client_id_t id, // client ID
@@ -41,6 +49,8 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 {
     // Init DynamoRIO MGR extension ()
     drmgr_init();
+
+    tls_index = drmgr_register_tls_field();
     
     // Define the functions to be called before exiting this client program
     dr_register_exit_event(event_exit);
@@ -48,13 +58,215 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
     // Define the function to executed to treat each instructions block
     drmgr_register_bb_app2app_event(event_basic_block, NULL);
 
-    interflop_verrou_configure(VR_RANDOM , nullptr);
-
 }
 
 static void event_exit(void)
 {
+    drmgr_unregister_tls_field(tls_index);
+
     drmgr_exit();
+    drreg_exit();
+}
+
+
+template<typename FTYPE, FTYPE (*FN)(FTYPE, FTYPE), int SIMD_TYPE>
+struct machin;
+
+template <int SIMD_TYPE, float (*FN)(float, float)>
+struct machin<float, FN, SIMD_TYPE> {
+
+    static void interface_interflop()
+    {
+        DR_ASSERT(false);
+    } 
+
+};
+
+template <int SIMD_TYPE, double (*FN)(double, double)>
+struct machin<double, FN, SIMD_TYPE> {
+
+    static void interface_interflop()
+    {
+        DR_ASSERT(false);
+    } 
+
+};
+
+template <float (*FN)(float, float)>
+struct machin<float, FN, IFP_OP_256> {
+
+    static void interface_interflop()
+    {
+        dr_printf("float, 256\n");
+
+        constexpr size_t size = sizeof(dr_zmm_t)/sizeof(float);
+        float src0[size], src1[size], res[size];
+
+        asm volatile("\tvmovaps %%ymm2, %0\n" : "=m" (src0));
+        dr_printf("src0[0] = %.30f\n", src0[0]);
+
+        asm volatile("\tvmovaps %%ymm7, %0\n" : "=m" (src1));
+        dr_printf("src1[0] = %.30f\n", src1[0]);
+
+                res[7] = Interflop::Op<float>::add(src1[7], src0[7]);
+                res[6] = Interflop::Op<float>::add(src1[6], src0[6]);
+                res[5] = Interflop::Op<float>::add(src1[5], src0[5]);
+                res[4] = Interflop::Op<float>::add(src1[4], src0[4]);
+                res[3] = Interflop::Op<float>::add(src1[3], src0[3]);
+                res[2] = Interflop::Op<float>::add(src1[2], src0[2]);
+                res[1] = Interflop::Op<float>::add(src1[1], src0[1]);
+                res[0] = Interflop::Op<float>::add(src1[0], src0[0]);
+
+        dr_printf("res[0] = %.30f\n", res[0]);
+
+        asm volatile("\tvmovaps %0, %%ymm2\n" : : "m" (res));
+    } 
+
+};
+
+template <double (*FN)(double, double)>
+struct machin<double, FN, IFP_OP_256> {
+
+    static void interface_interflop()
+    {
+        dr_printf("double, 256\n");
+
+        constexpr size_t size = sizeof(dr_zmm_t)/sizeof(double);
+        double src0[size], src1[size], res[size];
+
+        asm volatile("\tvmovapd %%ymm2, %0\n" : "=m" (src0));
+        dr_printf("src0[0] = %.30f\n", src0[0]);
+
+        asm volatile("\tvmovapd %%ymm7, %0\n" : "=m" (src1));
+        dr_printf("src1[0] = %.30f\n", src1[0]);
+
+                res[7] = Interflop::Op<double>::add(src1[7], src0[7]);
+                res[6] = Interflop::Op<double>::add(src1[6], src0[6]);
+                res[5] = Interflop::Op<double>::add(src1[5], src0[5]);
+                res[4] = Interflop::Op<double>::add(src1[4], src0[4]);
+                res[3] = Interflop::Op<double>::add(src1[3], src0[3]);
+                res[2] = Interflop::Op<double>::add(src1[2], src0[2]);
+                res[1] = Interflop::Op<double>::add(src1[1], src0[1]);
+                res[0] = Interflop::Op<double>::add(src1[0], src0[0]);
+
+        dr_printf("res[0] = %.30f\n", res[0]);
+
+        asm volatile("\tvmovapd %0, %%ymm2\n" : : "m" (res));
+    } 
+
+};
+
+template <float (*FN)(float, float)>
+struct machin<float, FN, IFP_OP_128> {
+
+    static void interface_interflop()
+    {
+        dr_printf("float, 128\n");
+
+        constexpr size_t size = sizeof(dr_zmm_t)/sizeof(float);
+        float src0[size], src1[size], res[size];
+
+        asm volatile("\tvmovaps %%xmm2, %0\n" : "=m" (src0));
+        dr_printf("src0[0] = %.30f\n", src0[0]);
+
+        asm volatile("\tvmovaps %%xmm7, %0\n" : "=m" (src1));
+        dr_printf("src1[0] = %.30f\n", src1[0]);
+        
+                res[3] = Interflop::Op<float>::add(src1[3], src0[3]);
+                res[2] = Interflop::Op<float>::add(src1[2], src0[2]);
+                res[1] = Interflop::Op<float>::add(src1[1], src0[1]);
+                res[0] = Interflop::Op<float>::add(src1[0], src0[0]);
+
+        dr_printf("res[0] = %.30f\n", res[0]);
+
+        asm volatile("\tvmovaps %0, %%xmm2\n" : : "m" (res));
+    } 
+
+};
+
+template <double (*FN)(double, double)>
+struct machin<double, FN, IFP_OP_128> {
+
+    static void interface_interflop()
+    {
+        dr_printf("double, 128\n");
+
+        constexpr size_t size = sizeof(dr_zmm_t)/sizeof(double);
+        double src0[size], src1[size], res[size];
+
+        asm volatile("\tvmovapd %%xmm2, %0\n" : "=m" (src0));
+        dr_printf("src0[0] = %.30f\n", src0[0]);
+
+        asm volatile("\tvmovapd %%xmm7, %0\n" : "=m" (src1));
+        dr_printf("src1[0] = %.30f\n", src1[0]);
+
+                res[3] = Interflop::Op<double>::add(src1[3], src0[3]);
+                res[2] = Interflop::Op<double>::add(src1[2], src0[2]);
+                res[1] = Interflop::Op<double>::add(src1[1], src0[1]);
+                res[0] = Interflop::Op<double>::add(src1[0], src0[0]);
+
+        dr_printf("res[0] = %.30f\n", res[0]);
+
+        asm volatile("\tvmovapd %0, %%xmm2\n" : : "m" (res));
+    } 
+
+};
+
+template <float (*FN)(float, float)>
+struct machin<float, FN, 0> {
+
+    static void interface_interflop()
+    {
+        dr_printf("float, 0\n");
+        float temp_A;
+        float temp_B;
+
+        asm volatile("\tmovss %%xmm2, %0\n" : "=m" (temp_A));
+        dr_printf("temp_A = %.30f\n", temp_A);
+
+        asm volatile("\tmovss %%xmm7, %0\n" : "=m" (temp_B));
+        dr_printf("temp_B = %.30f\n", temp_B);
+
+        //float temp_C = temp_A + temp_B;
+
+        float temp_C = FN(temp_B, temp_A);
+
+        dr_printf("temp_C = %.30f\n", temp_C);
+
+        asm volatile("\tmovss %0, %%xmm2\n" : : "m" (temp_C));
+    } 
+
+};
+
+template <double (*FN)(double, double)>
+struct machin<double, FN, 0> {
+
+    static void interface_interflop()
+    {
+        //dr_printf("double, 0\n");
+        double temp_A;
+        double temp_B;
+
+        asm volatile("\tmovsd %%xmm2, %0\n" : "=m" (temp_A));
+        dr_printf("temp_A = %.30f\n", temp_A);
+
+        asm volatile("\tmovsd %%xmm7, %0\n" : "=m" (temp_B));
+        dr_printf("temp_B = %.30f\n", temp_B);
+
+        //double temp_C = temp_A + temp_B;
+
+        double temp_C = FN(temp_B, temp_A);
+        dr_printf("temp_C = %.30f\n", temp_C);
+
+        asm volatile("\tmovsd %0, %%xmm2\n" : : "m" (temp_C));
+    } 
+
+};
+
+template<typename FTYPE, FTYPE (*FN)(FTYPE, FTYPE), int SIMD_TYPE>
+inline void interface_interflop()
+{
+    machin<FTYPE, FN, SIMD_TYPE>::interface_interflop();
 }
 
 template<typename FTYPE, FTYPE (*FN)(FTYPE, FTYPE), int SIMD_TYPE>
@@ -62,39 +274,35 @@ inline bool insert_corresponding_parameters(void* drcontext, instrlist_t *bb, in
 {
     if(instr_num_srcs(instr) == 2)
     {
+
         opnd_t src0 = instr_get_src(instr, 0);
         opnd_t src1 = instr_get_src(instr, 1);
         opnd_t dst = instr_get_dst(instr, 0);
-        if(opnd_is_reg(src1) && opnd_is_reg(dst))
-        {
-            reg_id_t reg_src1 = opnd_get_reg(src1), reg_dst = opnd_get_reg(dst);
-            if(opnd_is_reg(src0))
-            {
-                //reg reg -> reg
-                reg_id_t reg_src0 = opnd_get_reg(src0);
-                dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_operation_reg<FTYPE, FN, SIMD_TYPE>, false, 4,OPND_CREATE_INT32(reg_src0),OPND_CREATE_INT32(reg_src1), OPND_CREATE_INT32(reg_dst), OPND_CREATE_INT32(DR_MC_MULTIMEDIA));
-                return true;
-            }else if(opnd_is_base_disp(src0))
-            {
-                reg_id_t base = opnd_get_base(src0);
-                int flags = DR_MC_MULTIMEDIA;
-                if(base == DR_REG_XSP) //Cannot find XIP
-                {
-                    flags |= DR_MC_CONTROL;
-                }else if(reg_is_gpr(base))
-                {
-                    flags |= DR_MC_INTEGER;
-                }
-                long disp = opnd_get_disp(src0);
-                dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_operation_base_disp<FTYPE, FN, SIMD_TYPE>, false, 5, OPND_CREATE_INT32(base),OPND_CREATE_INT64(disp),OPND_CREATE_INT32(reg_src1), OPND_CREATE_INT32(reg_dst), OPND_CREATE_INT32(flags));
-                return true;
 
-            }else if(opnd_is_rel_addr(src0) || opnd_is_abs_addr(src0))
-            {
-                dr_insert_clean_call(drcontext, bb, instr, (void*)interflop_operation_addr<FTYPE, FN, SIMD_TYPE>, false, 4, OPND_CREATE_INTPTR(opnd_get_addr(src0)),OPND_CREATE_INT32(reg_src1), OPND_CREATE_INT32(reg_dst), OPND_CREATE_INT32(DR_MC_MULTIMEDIA));
-                return true;
-            }
-        }
+        bool is_ymm = false;
+
+        if(opnd_is_reg(src0))
+            is_ymm = reg_is_ymm(opnd_get_reg(src0));
+            
+        /*if(is_ymm)
+            dr_printf("reg ymm\n");
+        else
+            dr_printf("reg not ymm\n");*/
+
+        //if(opnd_is_reg(src1) && opnd_is_reg(dst))
+        //{
+            prepare_for_call(drcontext, bb, instr, is_ymm);
+
+            move_operands<FTYPE, SIMD_TYPE>(drcontext, src0, src1, bb, instr, is_ymm);
+
+            dr_insert_call(drcontext, bb, instr, (void*)interface_interflop<FTYPE, FN, SIMD_TYPE>, 0);
+
+            move_back<FTYPE>(drcontext, dst, bb, instr, is_ymm);
+
+            after_call(drcontext, bb, instr, is_ymm);
+
+            return true;
+        //}
     }
     return false;
 }
@@ -205,7 +413,7 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                 instr_destroy(drcontext, instr);
             }else
             {
-                dr_printf("Bad oc\n");
+                //dr_printf("Bad oc\n");
             }
             
             //dr_insert_clean_call(drcontext, bb, instr, ifp_is_double(oc) ? (void*)interflop_operation<double> : (void*)interflop_operation<float>, false, 2, OPND_CREATE_INTPTR(instr_get_app_pc(instr)) , opnd_create_immed_int(oc & IFP_OP_MASK , OPSZ_4));

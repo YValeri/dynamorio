@@ -21,6 +21,26 @@
 #define IFP_OP_TYPE_MASK   0b00011110000
 #define IFP_SIMD_TYPE_MASK 0b11100000000
 
+/*
+#define IFP_OP_OTHER       0b000000000000
+#define IFP_OP_DOUBLE      0b000000000001
+#define IFP_OP_FLOAT       0b000000000010
+#define IFP_OP_PACKED      0b000000000100
+#define IFP_OP_SCALAR      0b000000001000
+#define IFP_OP_ADD         0b000000010000
+#define IFP_OP_SUB         0b000000100000
+#define IFP_OP_MUL         0b000001000000
+#define IFP_OP_DIV         0b000010000000
+#define IFP_OP_FMA         0b000100000000
+#define IFP_OP_128         0b001000000000
+#define IFP_OP_256         0b010000000000
+#define IFP_OP_512         0b100000000000
+
+#define IFP_OP_MASK        0b111111110000
+#define IFP_OP_TYPE_MASK   0b000111110000
+#define IFP_SIMD_TYPE_MASK 0b111000000000
+*/
+
 // For operations that are unsupported for the moment
 #define IFP_OP_UNSUPPORTED IFP_OP_OTHER
 

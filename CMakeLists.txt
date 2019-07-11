@@ -678,7 +678,7 @@ endmacro()
 # BASE_CFLAGS applies to both C and C++.
 # BASE_CONLY_FLAGS applies to just C.
 # BASE_CXXONLY_FLAGS applies to just C++.
-set(BASE_CFLAGS "")
+set(BASE_CFLAGS "-g")
 set(BASE_CONLY_FLAGS "")
 set(BASE_CXXONLY_FLAGS "")
 if (UNIX)

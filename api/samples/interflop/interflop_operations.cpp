@@ -92,6 +92,8 @@ enum OPERATION_CATEGORY ifp_get_operation_category(instr_t* instr)
 
 #elif defined(AARCH64)
 
+        case OP_fadd: //SSE scalar float add
+        return IFP_ADDS;
 #endif
 
         default:

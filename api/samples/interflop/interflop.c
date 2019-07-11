@@ -284,6 +284,13 @@ static void _interflop_div_float(float a, float b, float* c, void* context) {
 	*c = _mca_sbin(a, b, (mpfr_bin)MP_DIV);
 }
 
+static void _interflop_fma_float(float a, float b, float c, float* d, void* context) {
+	//return a / b
+	//*c = a/b;
+	*d = _mca_sbin(a, b, (mpfr_bin)MP_MUL);
+	*d = _mca_sbin(*d, c, (mpfr_bin)MP_ADD);
+}
+
 
 static void _interflop_add_double(double a, double b, double* c, void* context) {
 	//return a + b
@@ -307,6 +314,13 @@ static void _interflop_div_double(double a, double b, double* c, void* context) 
 	//return a / b
 	//*c = a/b;
 	*c = _mca_dbin(a, b, (mpfr_bin)MP_DIV);
+}
+
+static void _interflop_fma_double(double a, double b, double c, double* d, void* context) {
+	//return a / b
+	//*c = a/b;
+	*d = _mca_dbin(a, b, (mpfr_bin)MP_MUL);
+	*d = _mca_dbin(*d, c, (mpfr_bin)MP_ADD);
 }
 
 struct interflop_backend_interface_t interflop_init(void ** context) {
@@ -362,10 +376,12 @@ struct interflop_backend_interface_t interflop_init(void ** context) {
 	    _interflop_sub_float,
 	    _interflop_mul_float,
 	    _interflop_div_float,
+	    _interflop_fma_float,
 	    _interflop_add_double,
 	    _interflop_sub_double,
 	    _interflop_mul_double,
-	    _interflop_div_double
+	    _interflop_div_double,
+	    _interflop_fma_double
     };
 
     return interflop_backend_mca;
