@@ -12,6 +12,7 @@
 #include "interflop/interflop_compute.hpp"
 #include <vector>
 #include <string>
+#include "interflop/symbol_config.hpp"
 
 #ifndef MAX_INSTR_OPND_COUNT
 
@@ -30,8 +31,15 @@
 
 static void event_exit(void);
 
-//Function to treat each block of instructions 
-static dr_emit_flags_t event_basic_block(   void *drcontext,        //Context
+//Function to treat each block of instructions to instrument
+static dr_emit_flags_t app2app_bb_event(   void *drcontext,        //Context
+                                            void *tag,              // Unique identifier of the block
+                                            instrlist_t *bb,        // Linked list of the instructions 
+                                            bool for_trace,         //TODO
+                                            bool translating);      //TODO
+
+//Function to treat each block of instructions to get the symbols
+static dr_emit_flags_t symbol_lookup_event(   void *drcontext,        //Context
                                             void *tag,              // Unique identifier of the block
                                             instrlist_t *bb,        // Linked list of the instructions 
                                             bool for_trace,         //TODO
@@ -42,6 +50,7 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
                                 int argc,   
                                 const char *argv[])
 {
+    symbol_lookup_config_from_args(argc, argv);
     // Init DynamoRIO MGR extension ()
     drmgr_init();
     drsym_init(0);
@@ -50,7 +59,7 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
     dr_register_exit_event(event_exit);
 
     // Define the function to executed to treat each instructions block
-    drmgr_register_bb_app2app_event(event_basic_block, NULL);
+    drmgr_register_bb_app2app_event(app2app_bb_event, NULL);
 
     interflop_verrou_configure(VR_RANDOM , nullptr);
     
@@ -198,7 +207,7 @@ bool symcb (const char *name, size_t modoffs, void *data)
     return name != NULL;
 }
 
-static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t *bb, bool for_trace, bool translating)
+static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t *bb, bool for_trace, bool translating)
 {
     //instr_t *instr, *next_instr;
     OPERATION_CATEGORY oc;
@@ -206,7 +215,7 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
     app_pc pc = instr_get_app_pc(instr);
     module_data_t* mod = dr_lookup_module(pc);
     drsym_info_t sym;
-    char name[256];
+    char name[256], filename[512];
     std::string str(dr_module_preferred_name(mod));
     bool test=true;
     for(int i=0; i<modules.size(); i++)
@@ -226,8 +235,8 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
     sym.struct_size=sizeof(sym);
     sym.name = name;
     sym.name_size=256;
-    sym.file=NULL;
-    sym.file_size=0;
+    sym.file=filename;
+    sym.file_size=512;
     drsym_error_t symres=drsym_lookup_address(mod->full_path, pc-mod->start, &sym, DRSYM_DEFAULT_FLAGS);
     if (symres == DRSYM_SUCCESS || symres == DRSYM_ERROR_LINE_NOT_AVAILABLE) {
         const char *modname = dr_module_preferred_name(mod);
