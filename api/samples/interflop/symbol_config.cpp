@@ -9,15 +9,22 @@
 #include <fstream>
 
 static interflop_client_mode_t interflop_client_mode;
+static std::ofstream symbol_file;
 
 void print_help()
 {
     dr_printf(IFP_HELP_STRING);
 }
 
-interflop_client_mode_t get_client_mode();
+interflop_client_mode_t get_client_mode()
+{
+    return interflop_client_mode;
+}
 
-void set_client_mode(interflop_client_mode_t mode);
+void set_client_mode(interflop_client_mode_t mode)
+{
+    interflop_client_mode = mode;
+}
 
 typedef struct _module_entry
 {
@@ -56,7 +63,31 @@ static inline size_t vec_idx_of(std::vector<T, std::allocator<T>> vec, T elem)
     return size;
 }
 
-
+void write_symbols_to_file()
+{
+    if(symbol_file.is_open() && symbol_file.good())
+    {
+        symbol_file << IFP_SYMBOL_FILE_HEADER;
+        size_t num_modules = lookup_vector.size();
+        size_t totalSymbols=0;
+        for(size_t i=0; i<num_modules; i++)
+        {
+            totalSymbols+=lookup_vector[i].symbols.size();
+        }
+        symbol_file << "# This list contains " << totalSymbols << " symbols of interest, split into " << num_modules << " modules\n";
+        for(size_t i=0; i<num_modules; i++)
+        {
+            symbol_file << lookup_vector[i].module_name << "\n";
+            size_t symbols_size = lookup_vector[i].symbols.size();
+            for(size_t j=0; j< symbols_size; j++)
+            {
+                symbol_file << '\t' << lookup_vector[i].module_name << "!" << lookup_vector[i].symbols[j] << "\n";
+            }
+        }
+        symbol_file.flush();
+        symbol_file.close();
+    }
+}
 
 /*
 //CURRENTLY UNUSED
@@ -80,7 +111,7 @@ static std::string getSymbolName(module_data_t* module, app_pc intr_pc)
             drsym_error_t sym_error = drsym_lookup_address(module->full_path, intr_pc-module->start, &sym, DRSYM_DEFAULT_FLAGS);
             if(sym_error == DRSYM_SUCCESS || sym_error == DRSYM_ERROR_LINE_NOT_AVAILABLE)
             {
-                dr_printf("%u\n", sym.name_available_size);
+                //dr_printf("%u\n", sym.name_available_size);
                 char* name_str = (char*)calloc(sym.name_available_size+1, sizeof(char));
                 sym.name = name_str;
                 sym.name_size = sym.name_available_size+1;
@@ -97,6 +128,14 @@ static std::string getSymbolName(module_data_t* module, app_pc intr_pc)
         }
     }
     return name;
+}
+
+bool shouldInstrumentModule(const module_data_t* module)
+{
+    module_entry entry(std::string(dr_module_preferred_name(module)), false);
+    size_t pos = vec_idx_of(lookup_vector, entry);
+    return ((interflop_client_mode == IFP_CLIENT_BL_ONLY) && (pos == lookup_vector.size() || lookup_vector[pos].all_symbols==false))
+    || ((interflop_client_mode == IFP_CLIENT_WL_ONLY || interflop_client_mode == IFP_CLIENT_BL_WL) && (pos != lookup_vector.size()));
 }
 
 bool needsToInstrument(instrlist_t* ilist)
@@ -121,11 +160,13 @@ bool needsToInstrument(instrlist_t* ilist)
                 if(mod)
                 {
                     module_entry entry(std::string(dr_module_preferred_name(mod)), false);
+                    //dr_printf("%s", entry.module_name.c_str());
                     size_t pos = vec_idx_of(lookup_vector, entry);
                     if(pos == lookup_vector.size()) 
                     {
                         //Didn't find the module
-                        return interflop_client_mode != IFP_CLIENT_WL_ONLY || interflop_client_mode != IFP_CLIENT_BL_WL; //Instrument if the list isn't a whitelist
+                        dr_free_module_data(mod);
+                        return interflop_client_mode != IFP_CLIENT_WL_ONLY && interflop_client_mode != IFP_CLIENT_BL_WL; //Instrument if the list isn't a whitelist
                     }else
                     {
                         //Found the module
@@ -137,21 +178,26 @@ bool needsToInstrument(instrlist_t* ilist)
                                 case IFP_CLIENT_BL_WL:
                                 if(lookup_vector[pos].symbols.empty()) //No exceptions to the whitelist
                                 {
+                                    dr_free_module_data(mod);
                                     return true;
                                 }else
                                 {
                                     std::string name = getSymbolName(mod, pc);
+                                    //dr_printf("!%s", name.c_str());
                                     if(!name.empty())
                                     {
                                         size_t sympos = vec_idx_of(lookup_vector[pos].symbols, name);
+                                        dr_free_module_data(mod);
                                         return sympos == lookup_vector[pos].symbols.size(); //Instrument if the symbol isn't in the list
                                     }
                                 }
                                 break;
                                 case IFP_CLIENT_WL_ONLY:
+                                dr_free_module_data(mod);
                                 return true;
                                 break;
                                 default:
+                                dr_free_module_data(mod);
                                 return false;
                                 
                             }
@@ -159,22 +205,26 @@ bool needsToInstrument(instrlist_t* ilist)
                         {
                             //Only some symbols
                             std::string name = getSymbolName(mod, pc);
+                            //dr_printf("!%s", name.c_str());
                             if(!name.empty())
                             {
                                 size_t sympos = vec_idx_of(lookup_vector[pos].symbols, name);
                                 if(sympos == lookup_vector[pos].symbols.size())
                                 {
                                     //Didn't find symbol
+                                    dr_free_module_data(mod);
                                     return interflop_client_mode == IFP_CLIENT_BL_ONLY;
                                 }else
                                 {
                                     //Found symbol
+                                    dr_free_module_data(mod);
                                     return interflop_client_mode == IFP_CLIENT_WL_ONLY || interflop_client_mode == IFP_CLIENT_BL_WL;
                                 }
                             }
                             
                         }
-                    }    
+                    }
+                    dr_free_module_data(mod);   
                 }
             }
         }
@@ -374,7 +424,7 @@ void symbol_lookup_config_from_args(int argc, const char* argv[])
         {
             interflop_client_mode = IFP_CLIENT_NOLOOKUP;
             break;
-        }else if(arg == "--whitelist" || "-w") //Whitelist
+        }else if(arg == "--whitelist" || arg == "-w") //Whitelist
         {
             if(interflop_client_mode == IFP_CLIENT_BL_ONLY || interflop_client_mode == IFP_CLIENT_BL_WL) //If we have a blacklist
             {
@@ -394,7 +444,7 @@ void symbol_lookup_config_from_args(int argc, const char* argv[])
                 break;
             }
             
-        }else if(arg == "--blacklist" || "-b") //Whitelist
+        }else if(arg == "--blacklist" || arg == "-b") //Whitelist
         {
             if(interflop_client_mode == IFP_CLIENT_WL_ONLY || interflop_client_mode == IFP_CLIENT_BL_WL) //If we have a whitelist
             {
@@ -417,12 +467,31 @@ void symbol_lookup_config_from_args(int argc, const char* argv[])
         }else if(arg == "--generate" || arg == "-g")
         {
             interflop_client_mode = IFP_CLIENT_GENERATE;
+            if(++i < argc) //If the filename is precised
+            {
+                symbol_file.open(argv[i]);
+                if(symbol_file.fail())
+                {
+                    dr_fprintf(STDERR, "Can't open the generated file\n");
+                    interflop_client_mode = IFP_CLIENT_HELP;
+                    break;
+                }
+            }else
+            {
+                dr_fprintf(STDERR, "Not enough arguments\n");
+                interflop_client_mode = IFP_CLIENT_HELP;
+                break;
+            }
             break;
         }else if(arg == "--help" || arg == "-h")
         {
             interflop_client_mode = IFP_CLIENT_HELP;
             break;
+        }else
+        {
+            DR_ASSERT_MSG(false, "Unknown command line option\n");
         }
+        
     }
 
     std::ifstream  blacklist, whitelist;
@@ -469,8 +538,8 @@ void logSymbol(instrlist_t* ilist)
     static size_t oldModule = 0;
     static size_t oldPos = 0;
     instr_t * instr = instrlist_first_app(ilist);
-    app_pc pc;
-    module_data_t* mod;
+    app_pc pc = 0;
+    module_data_t* mod = nullptr;
     module_entry entry("", false);
     if(instr)
     {
@@ -530,5 +599,9 @@ void logSymbol(instrlist_t* ilist)
                 }
             }
         }
+    }
+    if(mod)
+    {
+        dr_free_module_data(mod);
     }
 }

@@ -26,8 +26,11 @@ void set_client_mode(interflop_client_mode_t mode);
 
 void symbol_lookup_config_from_args(int argc, const char* argv[]);
 
-bool needsToinstrument(instrlist_t* ilist);
+bool needsToInstrument(instrlist_t* ilist);
 
 void logSymbol(instrlist_t* ilist);
+
+void write_symbols_to_file();
+bool shouldInstrumentModule(const module_data_t* module);
 #endif
 
