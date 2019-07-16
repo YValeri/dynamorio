@@ -481,7 +481,7 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                 }
                 else {
                     translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_SRC_1) , SRC(instr,0), SRC(instr,0)) , bb , instr);
-                    translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_SRC_0) , SRC(instr,1), SRC(instr,0)) , bb , instr);
+                    translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_SRC_0) , SRC(instr,1), SRC(instr,1)) , bb , instr);
                 }
             }
             else {
