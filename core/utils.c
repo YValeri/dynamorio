@@ -618,7 +618,6 @@ deadlock_avoidance_lock(mutex_t *lock, bool acquired, bool ownable)
                 }
                 ASSERT((dcontext->thread_owned_locks->last_lock->rank <
                         lock->rank IF_CLIENT_INTERFACE(
-                            || first_client /*FIXME PR 198871: remove */
                             || both_client)) &&
                        "rank order violation");
                 if (ownable) {

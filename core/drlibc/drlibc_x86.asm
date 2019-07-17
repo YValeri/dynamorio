@@ -45,6 +45,7 @@
 #ifdef MACOS
 # include "include/syscall_mach.h" /* SYSCALL_NUM_MARKER_MACH */
 #endif
+#define REG_XBX rbx
 START_FILE
 
 DECL_EXTERN(unexpected_return)

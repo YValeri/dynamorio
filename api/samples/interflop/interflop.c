@@ -285,9 +285,10 @@ static void _interflop_div_float(float a, float b, float* c, void* context) {
 }
 
 static void _interflop_fma_float(float a, float b, float c, float* d, void* context) {
-	//return a / b
-	//*c = a/b;
+	//return a * b + c
+	//*d = a*b;
 	*d = _mca_sbin(a, b, (mpfr_bin)MP_MUL);
+	//*d = *d + c;
 	*d = _mca_sbin(*d, c, (mpfr_bin)MP_ADD);
 }
 
@@ -317,9 +318,10 @@ static void _interflop_div_double(double a, double b, double* c, void* context) 
 }
 
 static void _interflop_fma_double(double a, double b, double c, double* d, void* context) {
-	//return a / b
-	//*c = a/b;
-	*d = _mca_dbin(a, b, (mpfr_bin)MP_MUL);
+	//return a * b + c
+	//*d = a*b;
+	*d = _mca_sbin(a, b, (mpfr_bin)MP_MUL);
+	//*d = *d + c;
 	*d = _mca_dbin(*d, c, (mpfr_bin)MP_ADD);
 }
 

@@ -50,33 +50,33 @@ template <>
 struct Op<double> {
   static double add (double a, double b) {
     double res;
-    Backend::get().interface.interflop_add_double (a, b, &res, Backend::get().context);
-    //interflop_verrou_add_double(a,b,&res , Backend::get().context);
+    //Backend::get().interface.interflop_add_double (a, b, &res, Backend::get().context);
+    interflop_verrou_add_double(a,b,&res , Backend::get().context);
     return res;
   }
 
   static double sub (double a, double b) {
     double res;
-    Backend::get().interface.interflop_sub_double (a, b, &res, Backend::get().context);
-    //interflop_verrou_sub_double(a,b,&res , Backend::get().context);
+    //Backend::get().interface.interflop_sub_double (a, b, &res, Backend::get().context);
+    interflop_verrou_sub_double(a,b,&res , Backend::get().context);
     return res;
   }
 
   static double mul (double a, double b) {
     double res;
-    Backend::get().interface.interflop_mul_double (a, b, &res, Backend::get().context);
-    //interflop_verrou_mul_double(a,b,&res , Backend::get().context);
+    //Backend::get().interface.interflop_mul_double (a, b, &res, Backend::get().context);
+    interflop_verrou_mul_double(a,b,&res , Backend::get().context);
     return res;
   }
 
   static double div (double a, double b) {
     double res;
-    Backend::get().interface.interflop_div_double (a, b, &res, Backend::get().context);
-    //interflop_verrou_div_double(a,b,&res , Backend::get().context);
+    //Backend::get().interface.interflop_div_double (a, b, &res, Backend::get().context);
+    interflop_verrou_div_double(a,b,&res , Backend::get().context);
     return res;
   }
 
-  static double fma (double a, double b, double c) {
+  static double fma(double a, double b, double c) {
     double res;
     //Backend::get().interface.interflop_div_double (a, b, &res, Backend::get().context);
     interflop_verrou_mul_double(a,b,&res , Backend::get().context);
@@ -90,29 +90,29 @@ template <>
 struct Op<float> {
   static float add (float a, float b) {
     float res;
-    Backend::get().interface.interflop_add_float (a, b, &res, Backend::get().context);
-    //interflop_verrou_add_float(a,b,&res , Backend::get().context);
+    //Backend::get().interface.interflop_add_float (a, b, &res, Backend::get().context);
+    interflop_verrou_add_float(a,b,&res , Backend::get().context);
     return res;
   }
 
   static float sub (float a, float b) {
     float res;
-    Backend::get().interface.interflop_sub_float (a, b, &res, Backend::get().context);
-    //interflop_verrou_sub_float(a,b,&res , Backend::get().context);
+    //Backend::get().interface.interflop_sub_float (a, b, &res, Backend::get().context);
+    interflop_verrou_sub_float(a,b,&res , Backend::get().context);
     return res;
   }
 
   static float mul (float a, float b) {
     float res;
-    Backend::get().interface.interflop_mul_float (a, b, &res, Backend::get().context);
-    //interflop_verrou_mul_float(a,b,&res , Backend::get().context);
+    //Backend::get().interface.interflop_mul_float (a, b, &res, Backend::get().context);
+    interflop_verrou_mul_float(a,b,&res , Backend::get().context);
     return res;
   }
 
   static float div (float a, float b) {
     float res;
-    Backend::get().interface.interflop_div_float (a, b, &res, Backend::get().context);
-    //interflop_verrou_div_float(a,b,&res , Backend::get().context);
+    //Backend::get().interface.interflop_div_float (a, b, &res, Backend::get().context);
+    interflop_verrou_div_float(a,b,&res , Backend::get().context);
     return res;
   }
 
