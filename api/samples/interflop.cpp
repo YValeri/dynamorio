@@ -483,7 +483,7 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
 
     bool display = false;
     bool display_after = false;
-    bool saveSRC0 = false, saveSRC1 = false, saveYMM0 = false, saveYMM1 = false;
+    bool saveSRC0 = false, saveSRC1 = false, saveYMM0 = false, saveYMM1 = false, saveZMM0 = false , saveZMM1 = false;
 
     for(instr = instrlist_first(bb); instr != NULL; instr = next_instr)
     {
@@ -536,6 +536,11 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
             // ****************************************************************************
             reg_id_t topush_reg[] = {DR_REG_XDI , DR_REG_XSI , DR_REG_XAX , DR_REG_XBP , DR_REG_XSP , DR_REG_XBX};
             insert_push_pseudo_stack_list(drcontext , topush_reg , bb , instr , buffer_reg , scratch , 6);
+
+            // ***** Sub stack pointer to handle the case where XSP is equal to XBP and XSP doesn't match the top of the stack *****
+            // ***** Otherwise the call will erase data when pushing the return address *****
+            // ***** If the gap is greater than 32 bytes, the program may crash !!!!!!!!!!!!!!! *****
+            translate_insert(INSTR_CREATE_sub(drcontext , OP_REG(DR_REG_XSP) , OP_INT(32)) , bb , instr);
         
 
             if(is_scalar) { /* SCALAR */
@@ -587,12 +592,6 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                         translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_SRC_1) , SRC(instr,0) , SRC(instr,0)) , bb , instr);
                     }
                 }
-            
-
-                // ***** Sub stack pointer to handle the case where XSP is equal to XBP and XSP doesn't match the top of the stack *****
-                // ***** Otherwise the call will erase data when pushing the return address *****
-                // ***** If the gap is greater than 32 bytes, the program may crash !!!!!!!!!!!!!!! *****
-                translate_insert(INSTR_CREATE_sub(drcontext , OP_REG(DR_REG_XSP) , OP_INT(32)) , bb , instr);
                 
                 // ****************************************************************************
                 // ***** SCALAR CALL *****
@@ -653,19 +652,26 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                     translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(GET_REG(SRC(instr,1)))) , SRC(instr,1)) , bb , instr);
                 }
                 else if(OP_IS_BASE_DISP(SRC(instr,1))) {
-                    if(ifp_is_128(oc)) {
+                    if(ifp_is_128(oc)) { /* 128 */
                         saveSRC1 = true;
                         insert_push_pseudo_stack(drcontext , DR_REG_SRC_1 , bb , instr , buffer_reg , scratch);
 
                         translate_insert(INSTR_CREATE_movupd(drcontext , OP_REG(DR_REG_SRC_1) , OP_BASE_DISP(opnd_get_base(SRC(instr,1)) , opnd_get_disp(SRC(instr,1)), reg_get_size(DR_REG_SRC_1))) , bb  , instr);
                         translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(DR_REG_SRC_1)) , OP_REG(DR_REG_SRC_1)) , bb  , instr);
                     }
-                    else { /* 256 */
+                    else if(ifp_is_256(oc)) { /* 256 */
                         saveYMM1 = true;
                         insert_push_pseudo_stack(drcontext , DR_REG_YMM1 , bb , instr , buffer_reg , scratch);
 
                         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM1) , OP_BASE_DISP(opnd_get_base(SRC(instr,1)) , opnd_get_disp(SRC(instr,1)), reg_get_size(DR_REG_YMM1))) , bb  , instr);
                         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(DR_REG_YMM1)) , OP_REG(DR_REG_YMM1)) , bb  , instr);
+                    }
+                    else { /* 512 */
+                        saveZMM1 = true;
+                        insert_push_pseudo_stack(drcontext , DR_REG_ZMM1 , bb , instr , buffer_reg , scratch);
+
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM1) , OP_BASE_DISP(opnd_get_base(SRC(instr,1)) , opnd_get_disp(SRC(instr,1)), reg_get_size(DR_REG_ZMM1))) , bb  , instr);
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(DR_REG_ZMM1)) , OP_REG(DR_REG_ZMM1)) , bb  , instr);
                     }
                 }
 
@@ -678,27 +684,29 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                     translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(GET_REG(SRC(instr,0)))) , SRC(instr,0)) , bb , instr);
                 }
                 else if(OP_IS_BASE_DISP(SRC(instr,0))) {
-                    if(ifp_is_128(oc)) {
+                    if(ifp_is_128(oc)) { /* 128 */
                         saveSRC0 = true;
                         insert_push_pseudo_stack(drcontext , DR_REG_SRC_0 , bb , instr , buffer_reg , scratch);
 
                         translate_insert(INSTR_CREATE_movupd(drcontext , OP_REG(DR_REG_SRC_0) , OP_BASE_DISP(opnd_get_base(SRC(instr,0)) , opnd_get_disp(SRC(instr,0)), reg_get_size(DR_REG_SRC_0))) , bb  , instr);
                         translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(DR_REG_SRC_0)) , OP_REG(DR_REG_SRC_0)) , bb  , instr);
                     }
-                    else { /* 256 */
+                    else if(ifp_is_256(oc)) { /* 256 */
                         saveYMM0 = true;
                         insert_push_pseudo_stack(drcontext , DR_REG_YMM0 , bb , instr , buffer_reg , scratch);
 
                         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM0) , OP_BASE_DISP(opnd_get_base(SRC(instr,0)) , opnd_get_disp(SRC(instr,0)), reg_get_size(DR_REG_YMM0))) , bb  , instr);
                         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(DR_REG_YMM0)) , OP_REG(DR_REG_YMM0)) , bb  , instr);
                     }
+                    else { /* 512 */
+                        saveZMM0 = true;
+                        insert_push_pseudo_stack(drcontext , DR_REG_ZMM0 , bb , instr , buffer_reg , scratch);
+
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM0) , OP_BASE_DISP(opnd_get_base(SRC(instr,0)) , opnd_get_disp(SRC(instr,0)), reg_get_size(DR_REG_ZMM0))) , bb  , instr);
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(DR_REG_ZMM0)) , OP_REG(DR_REG_ZMM0)) , bb  , instr);
+                    }
                 }   
 
-                // ***** Sub stack pointer to handle the case where XSP is equal to XBP and XSP doesn't match the top of the stack *****
-                // ***** Otherwise the call will erase data when pushing the return address *****
-                // ***** If the gap is greater than 32 bytes, the program may crash !!!!!!!!!!!!!!! *****
-                translate_insert(INSTR_CREATE_sub(drcontext , OP_REG(DR_REG_XSP) , OP_INT(32)) , bb , instr);
-                
                 //****************************************************************************
                 // ***** VECTORIAL CALL *****
                 // ****************************************************************************
@@ -739,6 +747,10 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                 // ****************************************************************************
                 // ****************************************************************************
 
+                if(saveZMM0) {
+                    saveZMM0 = false;
+                    insert_pop_pseudo_stack(drcontext , DR_REG_ZMM0 , bb , instr , buffer_reg , scratch);
+                }
 
                 if(saveYMM0) {
                     saveYMM0 = false;
@@ -748,6 +760,11 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                 if(saveSRC0) {
                     saveSRC0 = false;   
                     insert_pop_pseudo_stack(drcontext , DR_REG_SRC_0 , bb , instr , buffer_reg , scratch);
+                }
+
+                if(saveZMM1) {
+                    saveZMM1 = false;
+                    insert_pop_pseudo_stack(drcontext , DR_REG_ZMM1 , bb , instr , buffer_reg , scratch);
                 }
 
                 if(saveYMM1) {
@@ -768,10 +785,9 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                 if(IS_XMM(GET_REG(DST(instr,0)))) {
                     translate_insert(INSTR_CREATE_movupd(drcontext , DST(instr,0) , OP_BASE_DISP(DR_REG_XDI , 0 , reg_get_size(GET_REG(DST(instr,0))))) , bb , instr);
                 }
-                else if(IS_YMM(GET_REG(DST(instr,0)))) {
+                else if(IS_YMM(GET_REG(DST(instr,0))) || IS_ZMM(GET_REG(DST(instr,0)))) {
                     translate_insert(INSTR_CREATE_vmovupd(drcontext , DST(instr,0) , OP_BASE_DISP(DR_REG_XDI , 0 , reg_get_size(GET_REG(DST(instr,0))))) , bb , instr);
                 }
-
             }
 
             // ****************************************************************************
