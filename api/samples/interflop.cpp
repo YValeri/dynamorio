@@ -168,15 +168,6 @@ struct interflop_backend {
 
     static void apply_vect(FTYPE *vect_a,  FTYPE *vect_b) {
        
-        dr_printf("A : %p\nB : %p\n",vect_a , vect_b);
-
-        dr_printf("A : ");
-        for(int i = 0 ; i < 4 ; i++) dr_printf("%d ",(int)(*((double*)(vect_a)+i)));
-        dr_printf("\n");
-        dr_printf("B : ");
-        for(int i = 0 ; i < 4 ; i++) dr_printf("%d ",(int)(*((double*)(vect_b)+i)));
-        dr_printf("\n");
-
         int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : 0;
         int nb_elem = vect_size/sizeof(FTYPE);
         
@@ -186,18 +177,26 @@ struct interflop_backend {
             res = FN(vect_a[i],vect_b[i]);
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
         }
+       
+       /*
+        dr_printf("A : %p\nB : %p\n",vect_a , vect_b);
 
+        dr_printf("A : ");
+        for(int i = 0 ; i < 4 ; i++) dr_printf("%d ",(int)(*((double*)(vect_a)+i)));
+        dr_printf("\n");
+        dr_printf("B : ");
+        for(int i = 0 ; i < 4 ; i++) dr_printf("%d ",(int)(*((double*)(vect_b)+i)));
+        dr_printf("\n");
         
+
         dr_printf("RES : ");
         for(int i = 0 ; i < 4 ; i++) dr_printf("%d ",(int)(*((FTYPE*)(GET_TLS(dr_get_current_drcontext(), tls_result))+i)));
         dr_printf("\n");
+        */
     }
 
 
 };
-
-
-
 
 
 //######################################################################################################################################################################################
@@ -460,10 +459,13 @@ inline void insert_corresponding_vect_call(void* drcontext, instrlist_t *bb, ins
     {
         case IFP_OP_128:
             dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_128>::apply_vect , 0);
+        break;
         case IFP_OP_256:
             dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_256>::apply_vect , 0);
+        break;
         case IFP_OP_512:
             dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_512>::apply_vect , 0);
+        break;
         default:
             dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN>::apply_vect , 0);
     }
@@ -494,7 +496,6 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
             bool is_double = ifp_is_double(oc);
             bool is_scalar = ifp_is_scalar(oc);
 
-            
             /*
             dr_print_instr(drcontext, STDERR, instr , "II : ");
             dr_print_opnd(drcontext , STDERR , SRC(instr,0) , "SRC 0 : ");
@@ -611,7 +612,7 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                         dr_insert_call(drcontext , bb , instr ,is_double ?  (void*)interflop_backend<double,Interflop::Op<double>::div>::apply : (void*)interflop_backend<float,Interflop::Op<float>::div>::apply , 0);
                     break;
                     default:
-                        ERROR("Error insert call : Operation not found !");
+                        ERROR("Error insert scalar call : Operation not found !");
                 }
                 // ****************************************************************************
                 // ****************************************************************************
@@ -634,10 +635,6 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
             }
 
             else { /* PACKED */
-
-                dr_print_instr(drcontext, STDERR, instr , "VECTORIAL OP : ");
-                dr_print_opnd(drcontext , STDERR , SRC(instr,0) , "SRC 0 : ");
-                dr_print_opnd(drcontext , STDERR , SRC(instr,1) , "SRC 1 : ");
                 
                 // Move addresses of thread memory location of each operand in regiters XDI and XSI
                 INSERT_READ_TLS(drcontext , tls_op_A , bb , instr , DR_REG_XDI);
@@ -696,6 +693,11 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(DR_REG_YMM0)) , OP_REG(DR_REG_YMM0)) , bb  , instr);
                     }
                 }   
+
+                // ***** Sub stack pointer to handle the case where XSP is equal to XBP and XSP doesn't match the top of the stack *****
+                // ***** Otherwise the call will erase data when pushing the return address *****
+                // ***** If the gap is greater than 32 bytes, the program may crash !!!!!!!!!!!!!!! *****
+                translate_insert(INSTR_CREATE_sub(drcontext , OP_REG(DR_REG_XSP) , OP_INT(32)) , bb , instr);
                 
                 //****************************************************************************
                 // ***** VECTORIAL CALL *****
@@ -703,75 +705,31 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                 switch (oc & IFP_OP_TYPE_MASK)
                 {
                     case IFP_OP_ADD:
-                        
-                        switch(oc & IFP_SIMD_TYPE_MASK)
-                        {
-                            case IFP_OP_128:
-                                dr_insert_call(drcontext , bb , instr , is_double ?  (void*)interflop_backend<double,Interflop::Op<double>::add , IFP_OP_128>::apply_vect : (void*)interflop_backend<float,Interflop::Op<float>::add , IFP_OP_128>::apply_vect , 0);
-                            break;
-                            case IFP_OP_256:
-                                dr_insert_call(drcontext , bb , instr , is_double ?  (void*)interflop_backend<double,Interflop::Op<double>::add , IFP_OP_256>::apply_vect : (void*)interflop_backend<float,Interflop::Op<float>::add , IFP_OP_256>::apply_vect , 0);
-                            break;
-                            case IFP_OP_512:
-                                dr_insert_call(drcontext , bb , instr , is_double ?  (void*)interflop_backend<double,Interflop::Op<double>::add , IFP_OP_512>::apply_vect : (void*)interflop_backend<float,Interflop::Op<float>::add , IFP_OP_512>::apply_vect , 0);
-                            break;
-                            default:
-                                dr_insert_call(drcontext , bb , instr ,is_double ?  (void*)interflop_backend<double, Interflop::Op<double>::add>::apply_vect : (void*)interflop_backend<float,Interflop::Op<float>::add>::apply_vect , 0);
-                        }
-
+                        if(is_double)
+                            insert_corresponding_vect_call<double,Interflop::Op<double>::add>(drcontext , bb , instr, oc);
+                        else
+                            insert_corresponding_vect_call<float,Interflop::Op<float>::add>(drcontext , bb , instr, oc);
                     break;
                     case IFP_OP_SUB:
-
-                        switch(oc & IFP_SIMD_TYPE_MASK)
-                        {
-                            case IFP_OP_128:
-                                dr_insert_call(drcontext , bb , instr , is_double ?  (void*)interflop_backend<double,Interflop::Op<double>::sub , IFP_OP_128>::apply_vect : (void*)interflop_backend<float,Interflop::Op<float>::sub , IFP_OP_128>::apply_vect , 0);
-                            break;
-                            case IFP_OP_256:
-                                dr_insert_call(drcontext , bb , instr , is_double ?  (void*)interflop_backend<double,Interflop::Op<double>::sub , IFP_OP_256>::apply_vect : (void*)interflop_backend<float,Interflop::Op<float>::sub , IFP_OP_256>::apply_vect , 0);
-                            break;
-                            case IFP_OP_512:
-                                dr_insert_call(drcontext , bb , instr , is_double ?  (void*)interflop_backend<double,Interflop::Op<double>::sub , IFP_OP_512>::apply_vect : (void*)interflop_backend<float,Interflop::Op<float>::sub , IFP_OP_512>::apply_vect , 0);
-                            break;
-                            default:
-                                dr_insert_call(drcontext , bb , instr ,is_double ?  (void*)interflop_backend<double, Interflop::Op<double>::sub>::apply_vect : (void*)interflop_backend<float,Interflop::Op<float>::sub>::apply_vect , 0);
-                        }
+                        if(is_double)
+                            insert_corresponding_vect_call<double,Interflop::Op<double>::sub>(drcontext , bb , instr, oc);
+                        else
+                            insert_corresponding_vect_call<float,Interflop::Op<float>::sub>(drcontext , bb , instr, oc);
 
                     break;
                     case IFP_OP_MUL:
-
-                       switch(oc & IFP_SIMD_TYPE_MASK)
-                        {
-                            case IFP_OP_128:
-                                dr_insert_call(drcontext , bb , instr , is_double ?  (void*)interflop_backend<double,Interflop::Op<double>::mul , IFP_OP_128>::apply_vect : (void*)interflop_backend<float,Interflop::Op<float>::mul , IFP_OP_128>::apply_vect , 0);
-                            break;
-                            case IFP_OP_256:
-                                dr_insert_call(drcontext , bb , instr , is_double ?  (void*)interflop_backend<double,Interflop::Op<double>::mul , IFP_OP_256>::apply_vect : (void*)interflop_backend<float,Interflop::Op<float>::mul , IFP_OP_256>::apply_vect , 0);
-                            break;
-                            case IFP_OP_512:
-                                dr_insert_call(drcontext , bb , instr , is_double ?  (void*)interflop_backend<double,Interflop::Op<double>::mul , IFP_OP_512>::apply_vect : (void*)interflop_backend<float,Interflop::Op<float>::mul , IFP_OP_512>::apply_vect , 0);
-                            break;
-                            default:
-                                dr_insert_call(drcontext , bb , instr ,is_double ?  (void*)interflop_backend<double, Interflop::Op<double>::mul>::apply_vect : (void*)interflop_backend<float,Interflop::Op<float>::mul>::apply_vect , 0);
-                        }
+                        if(is_double)
+                            insert_corresponding_vect_call<double,Interflop::Op<double>::mul>(drcontext , bb , instr, oc);
+                        else
+                            insert_corresponding_vect_call<float,Interflop::Op<float>::mul>(drcontext , bb , instr, oc);
 
                     break;
                     case IFP_OP_DIV:
-
-                        switch(oc & IFP_SIMD_TYPE_MASK)
-                        {
-                            case IFP_OP_128:
-                                dr_insert_call(drcontext , bb , instr , is_double ?  (void*)interflop_backend<double,Interflop::Op<double>::div , IFP_OP_128>::apply_vect : (void*)interflop_backend<float,Interflop::Op<float>::div , IFP_OP_128>::apply_vect , 0);
-                            break;
-                            case IFP_OP_256:
-                                dr_insert_call(drcontext , bb , instr , is_double ?  (void*)interflop_backend<double,Interflop::Op<double>::div , IFP_OP_256>::apply_vect : (void*)interflop_backend<float,Interflop::Op<float>::div , IFP_OP_256>::apply_vect , 0);
-                            break;
-                            case IFP_OP_512:
-                                dr_insert_call(drcontext , bb , instr , is_double ?  (void*)interflop_backend<double,Interflop::Op<double>::div , IFP_OP_512>::apply_vect : (void*)interflop_backend<float,Interflop::Op<float>::div , IFP_OP_512>::apply_vect , 0);
-                            break;
-                            default:
-                                dr_insert_call(drcontext , bb , instr ,is_double ?  (void*)interflop_backend<double, Interflop::Op<double>::div>::apply_vect : (void*)interflop_backend<float,Interflop::Op<float>::div>::apply_vect , 0);
-                        }
+                        if(is_double)
+                            insert_corresponding_vect_call<double,Interflop::Op<double>::div>(drcontext , bb , instr, oc);
+                        else
+                            insert_corresponding_vect_call<float,Interflop::Op<float>::div>(drcontext , bb , instr, oc);
+                       
                     break;
                     default:
                         ERROR("Error insert call : Operation not found !");
