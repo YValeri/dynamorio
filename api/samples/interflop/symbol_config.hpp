@@ -5,19 +5,110 @@
 #ifndef SYMBOL_CONFIG_HEADER
 #define SYMBOL_CONFIG_HEADER
 
-#ifndef SYMBOL_NAME_MAX_SIZE
-#define SYMBOL_NAME_MAX_SIZE 1024
-#endif
+#include <string>
+#include <vector>
 
+/** Specifies the behavior of the client */
 typedef enum{
-    IFP_CLIENT_NOLOOKUP         =0, //Don't look at symbols
-    IFP_CLIENT_GENERATE         =1, //Generate the symbols from an execution
-    IFP_CLIENT_BL_ONLY          =2, //Don't instrument the symbols in the blacklist
-    IFP_CLIENT_WL_ONLY          =4, //Instrument only the symbols in the whitelist
-    IFP_CLIENT_BL_WL            =6, //Instrument the symbols in the whitelist that aren't in the blacklist
-    IFP_CLIENT_HELP             =-1, //Display arguments help
-    IFP_CLIENT_DEFAULT=IFP_CLIENT_NOLOOKUP
+    IFP_CLIENT_DEFAULT          =0, /** Default */
+    IFP_CLIENT_NOLOOKUP         =0, /** Don't look at symbols */
+    IFP_CLIENT_GENERATE         =1, /** Generate the symbols from an execution */
+    IFP_CLIENT_BL_ONLY          =2, /** Don't instrument the symbols in the blacklist */
+    IFP_CLIENT_WL_ONLY          =4, /** Instrument only the symbols in the whitelist */
+    IFP_CLIENT_BL_WL            =6, /** Instrument the symbols in the whitelist that aren't in the blacklist */
+    IFP_CLIENT_HELP             =-1 /** Display arguments help */
 }interflop_client_mode_t;
+
+/** Specifies the type of lookup we are requesting */
+typedef enum {
+    IFP_LOOKUP_MODULE=true, /** Lookup the module */
+    IFP_LOOKUP_SYMBOL=false /** Lookup the symbol */
+}ifp_lookup_type_t;
+
+/** Structure holding informations on a module, used for the whitelist and blacklist before further processing*/
+typedef struct _module_entry
+{
+    inline _module_entry (const std::string & mod_name, const bool all) : module_name(mod_name), all_symbols(all){}
+    inline bool operator==(struct _module_entry o){return o.module_name == module_name;};
+
+    std::string module_name; /** Prefered name of the module */
+    bool all_symbols;       /** True if we are considering the whole module */
+    std::vector<std::string> symbols; /** List of the symbols of interest in this module */
+} module_entry;
+
+/** Structure of a range of app_pc*/
+typedef struct _addr_range_t
+{
+    inline _addr_range_t():start(0), end(0){}
+    inline _addr_range_t(app_pc _start, app_pc _end): start(_start), end(_end){}
+    inline bool contains(app_pc pc)const{return pc >= start && pc<end;} /** Returns true if the given app_pc is in the range*/
+    app_pc start; /** Start of the range */
+    app_pc end; /**End of the range */
+} addr_range_t;
+
+/** Structure holding a symbol */
+typedef struct _symbol_entry_t
+{
+    inline bool contains(app_pc pc)const{return range.contains(pc);}
+    std::string name; /** Name of the symbol */
+    addr_range_t range; /** Range of app_pc of this symbol*/
+} symbol_entry_t;
+
+/** Structure holding a module and its symbols for lookup purposes */
+typedef struct _lookup_entry_t
+{
+    inline bool contains(app_pc pc, ifp_lookup_type_t lookup)const /* Returns true if the app_pc is contained within this lookup */
+    {
+        if(lookup == IFP_LOOKUP_MODULE || (total && symbols.empty()))
+        {
+            //Either we are looking for the whole module, or for a symbol in a total module without symbols as exceptions
+            if(contiguous)
+            {
+                return range.contains(pc);
+            }else
+            {
+                //The module isn't contiguous, we need to check each segment
+                size_t segsize = segments.size();
+                for(size_t i=0; i<segsize; i++)
+                {
+                    if(segments[i].contains(pc))
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }else
+        {
+            //We are looking at a symbol
+            if(!range.contains(pc))
+            {
+                //If the address isn't even in the full range of the module, it won't be found
+                return false;
+            }else
+            {
+                //Note : checking for each range of segments would be possible, but performance-wise wouldn't be much better than looking for symbols
+                size_t symsize = symbols.size();
+                for(size_t i=0; i<symsize; i++)
+                {
+                    if(symbols[i].contains(pc))
+                    {
+                        return !total; //If it was "total", then the symbols would be exceptions
+                    }
+                }
+                return total; //In total state with symbols, not finding the right symbol means it's not an exception
+            }
+            
+        }
+        
+    }
+    std::string name; /** Name of the module */
+    addr_range_t range; /** Full range of the module \note If the module isn't contiguous, an app_pc in this range may not be in the module*/
+    bool contiguous; /** True if the module is contiguous (always true on Windows, most of the time on Linux, sometimes in MacOS)*/
+    bool total; /** True if the module should be considered in its entirety*/
+    std::vector<addr_range_t> segments; /** Ranges of app_pc for each segment of the module*/
+    std::vector<symbol_entry_t> symbols; /** Symbols of interest of the module */
+} lookup_entry_t;
 
 void print_help();
 
@@ -32,5 +123,8 @@ void logSymbol(instrlist_t* ilist);
 
 void write_symbols_to_file();
 bool shouldInstrumentModule(const module_data_t* module);
-#endif
+
+void print_lookup();
+
+#endif //SYMBOL_CONFIG_HEADER
 

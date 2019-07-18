@@ -57,18 +57,18 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
                                 int argc,   
                                 const char *argv[])
 {
+    drsym_init(0);
     symbol_lookup_config_from_args(argc, argv);
     interflop_client_mode_t client_mode = get_client_mode();
     if(client_mode == IFP_CLIENT_HELP)
     {
-        //print_help();
         dr_abort_with_code(0);
         return;
     }
 
     // Init DynamoRIO MGR extension ()
     drmgr_init();
-    drsym_init(0);
+    
     
     // Define the functions to be called before exiting this client program
     dr_register_exit_event(event_exit);
