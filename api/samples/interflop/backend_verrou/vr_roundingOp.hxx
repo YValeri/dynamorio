@@ -99,6 +99,7 @@ public:
     OP::check(p,res);
     const RealType signError=OP::sameSignOfError(p,res);
 
+    
     if(signError==0.){
       return res;
     }else{
