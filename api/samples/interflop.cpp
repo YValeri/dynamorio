@@ -60,7 +60,7 @@
 #define INSERT_READ_TLS(drcontext , tls , bb , instr , reg) drmgr_insert_read_tls_field((drcontext) , (tls) , (bb) , (instr) , (reg))
 #define INSERT_WRITE_TLS(drcontext , tls , bb , instr , reg , temp_reg) drmgr_insert_write_tls_field((drcontext) , (tls_stack) , (bb) , (instr) , (buffer_reg) , (temp_reg));
 
-#define SIZE_STACK 2048
+#define SIZE_STACK 4096
 #define PTR_SIZE sizeof(void*)
 #define FLOAT_SIZE sizeof(float)
 #define DOUBLE_SIZE sizeof(double)
@@ -71,6 +71,10 @@ typedef byte SLOT;
 #define NB_XMM_REG 16
 static reg_id_t XMM_REG[] = {DR_REG_XMM0, DR_REG_XMM1, DR_REG_XMM2, DR_REG_XMM3, DR_REG_XMM4, DR_REG_XMM5, DR_REG_XMM6, DR_REG_XMM7, DR_REG_XMM8, DR_REG_XMM9, DR_REG_XMM10, DR_REG_XMM11, DR_REG_XMM12, DR_REG_XMM13, DR_REG_XMM14, DR_REG_XMM15};
 static reg_id_t XMM_REG_REVERSE[] = {DR_REG_XMM15, DR_REG_XMM14, DR_REG_XMM13, DR_REG_XMM12, DR_REG_XMM11, DR_REG_XMM10, DR_REG_XMM9, DR_REG_XMM8, DR_REG_XMM7, DR_REG_XMM6, DR_REG_XMM5, DR_REG_XMM4, DR_REG_XMM3, DR_REG_XMM2, DR_REG_XMM1, DR_REG_XMM0};
+
+#define NB_YMM_REG 16
+static reg_id_t YMM_REG[] = {DR_REG_YMM0, DR_REG_YMM1, DR_REG_YMM2, DR_REG_YMM3, DR_REG_YMM4, DR_REG_YMM5, DR_REG_YMM6, DR_REG_YMM7, DR_REG_YMM8, DR_REG_YMM9, DR_REG_YMM10, DR_REG_YMM11, DR_REG_YMM12, DR_REG_YMM13, DR_REG_YMM14, DR_REG_YMM15};
+static reg_id_t YMM_REG_REVERSE[] = {DR_REG_YMM15, DR_REG_YMM14, DR_REG_YMM13, DR_REG_YMM12, DR_REG_YMM11, DR_REG_YMM10, DR_REG_YMM9, DR_REG_YMM8, DR_REG_YMM7, DR_REG_YMM6, DR_REG_YMM5, DR_REG_YMM4, DR_REG_YMM3, DR_REG_YMM2, DR_REG_YMM1, DR_REG_YMM0};
 
 int tls_result /* index of thread local storage to store the result of floating point operations */, 
     tls_op_A, tls_op_B /* index of thread local storage to store the operands of vectorial floating point operations */,
@@ -524,7 +528,7 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
             // ****************************************************************************
 
             // ****************************************************************************
-            // Reserve two registers among all registers available except RDIk
+            // Reserve two registers
             // ****************************************************************************
             reg_id_t buffer_reg  = DR_BUFFER_REG, 
                      scratch     = DR_SCRATCH_REG;
@@ -541,13 +545,13 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
             // push general purpose registers on pseudo stack 
             // All GPR except DR_BUFFER_REG and DR_SCRATCH_REG
             // ****************************************************************************
-            reg_id_t topush_reg[] = {DR_REG_XDI , DR_REG_XSI , DR_REG_XAX , DR_REG_XBP , DR_REG_XSP , DR_REG_XBX};
-            insert_push_pseudo_stack_list(drcontext , topush_reg , bb , instr , buffer_reg , scratch , 6);
+            reg_id_t topush_reg[] = {DR_REG_XDI , DR_REG_XSI , DR_REG_XAX , DR_REG_XBP , DR_REG_XSP , DR_REG_XBX , DR_REG_R8, DR_REG_R9, DR_REG_R10, DR_REG_R11, DR_REG_R12, DR_REG_R13, DR_REG_R14, DR_REG_R15};
+            insert_push_pseudo_stack_list(drcontext , topush_reg , bb , instr , buffer_reg , scratch , 14);
 
             // ****************************************************************************
-            // Push all XMM registers
+            // Push all YMM registers
             // ****************************************************************************
-            insert_push_pseudo_stack_list(drcontext , XMM_REG , bb , instr , buffer_reg , scratch , NB_XMM_REG);
+            insert_push_pseudo_stack_list(drcontext , YMM_REG , bb , instr , buffer_reg , scratch , NB_YMM_REG);
 
 
             if(is_scalar) { /* SCALAR */
@@ -639,9 +643,9 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                 }
 
                 // ****************************************************************************
-                // Restore all XMM registers 
+                // Restore all YMM registers 
                 // ****************************************************************************
-                insert_pop_pseudo_stack_list(drcontext , XMM_REG_REVERSE , bb , instr , buffer_reg , scratch , NB_XMM_REG);
+                insert_pop_pseudo_stack_list(drcontext , YMM_REG_REVERSE , bb , instr , buffer_reg , scratch , NB_YMM_REG);
 
 
                 // ****************************************************************************
@@ -663,64 +667,64 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
 
                 // ****** FIRST OPERAND *****
 
-                if(IS_XMM(GET_REG(SRC(instr,1)))) {
-                    translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(GET_REG(SRC(instr,1)))) , SRC(instr,1)) , bb , instr);
+                if(IS_XMM(GET_REG(SRC(instr,0)))) {
+                    translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(GET_REG(SRC(instr,0)))) , SRC(instr,0)) , bb , instr);
                 }
-                else if(IS_YMM(GET_REG(SRC(instr,1)))) {
-                    translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(GET_REG(SRC(instr,1)))) , SRC(instr,1)) , bb , instr);
+                else if(IS_YMM(GET_REG(SRC(instr,0)))) {
+                    translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(GET_REG(SRC(instr,0)))) , SRC(instr,0)) , bb , instr);
                 }
-                else if(OP_IS_BASE_DISP(SRC(instr,1))) {
+                else if(OP_IS_BASE_DISP(SRC(instr,0))) {
                     if(ifp_is_128(oc)) { /* 128 */
                         saveSRC1 = true;
                         insert_push_pseudo_stack(drcontext , DR_REG_SRC_1 , bb , instr , buffer_reg , scratch);
 
-                        translate_insert(INSTR_CREATE_movupd(drcontext , OP_REG(DR_REG_SRC_1) , OP_BASE_DISP(opnd_get_base(SRC(instr,1)) , opnd_get_disp(SRC(instr,1)), reg_get_size(DR_REG_SRC_1))) , bb  , instr);
+                        translate_insert(INSTR_CREATE_movupd(drcontext , OP_REG(DR_REG_SRC_1) , OP_BASE_DISP(opnd_get_base(SRC(instr,0)) , opnd_get_disp(SRC(instr,0)), reg_get_size(DR_REG_SRC_1))) , bb  , instr);
                         translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(DR_REG_SRC_1)) , OP_REG(DR_REG_SRC_1)) , bb  , instr);
                     }
                     else if(ifp_is_256(oc)) { /* 256 */
                         saveYMM1 = true;
                         insert_push_pseudo_stack(drcontext , DR_REG_YMM1 , bb , instr , buffer_reg , scratch);
 
-                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM1) , OP_BASE_DISP(opnd_get_base(SRC(instr,1)) , opnd_get_disp(SRC(instr,1)), reg_get_size(DR_REG_YMM1))) , bb  , instr);
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM1) , OP_BASE_DISP(opnd_get_base(SRC(instr,0)) , opnd_get_disp(SRC(instr,0)), reg_get_size(DR_REG_YMM1))) , bb  , instr);
                         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(DR_REG_YMM1)) , OP_REG(DR_REG_YMM1)) , bb  , instr);
                     }
                     else { /* 512 */
                         saveZMM1 = true;
                         insert_push_pseudo_stack(drcontext , DR_REG_ZMM1 , bb , instr , buffer_reg , scratch);
 
-                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM1) , OP_BASE_DISP(opnd_get_base(SRC(instr,1)) , opnd_get_disp(SRC(instr,1)), reg_get_size(DR_REG_ZMM1))) , bb  , instr);
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM1) , OP_BASE_DISP(opnd_get_base(SRC(instr,0)) , opnd_get_disp(SRC(instr,0)), reg_get_size(DR_REG_ZMM1))) , bb  , instr);
                         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(DR_REG_ZMM1)) , OP_REG(DR_REG_ZMM1)) , bb  , instr);
                     }
                 }
 
                 // ****** SECOND OPERAND *****
                 
-                if(IS_XMM(GET_REG(SRC(instr,0)))) {
-                    translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(GET_REG(SRC(instr,0)))) , SRC(instr,0)) , bb , instr);
+                if(IS_XMM(GET_REG(SRC(instr,1)))) {
+                    translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(GET_REG(SRC(instr,1)))) , SRC(instr,1)) , bb , instr);
                 }
-                else if(IS_YMM(GET_REG(SRC(instr,0)))) {
-                    translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(GET_REG(SRC(instr,0)))) , SRC(instr,0)) , bb , instr);
+                else if(IS_YMM(GET_REG(SRC(instr,1)))) {
+                    translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(GET_REG(SRC(instr,1)))) , SRC(instr,1)) , bb , instr);
                 }
-                else if(OP_IS_BASE_DISP(SRC(instr,0))) {
+                else if(OP_IS_BASE_DISP(SRC(instr,1))) {
                     if(ifp_is_128(oc)) { /* 128 */
                         saveSRC0 = true;
                         insert_push_pseudo_stack(drcontext , DR_REG_SRC_0 , bb , instr , buffer_reg , scratch);
 
-                        translate_insert(INSTR_CREATE_movupd(drcontext , OP_REG(DR_REG_SRC_0) , OP_BASE_DISP(opnd_get_base(SRC(instr,0)) , opnd_get_disp(SRC(instr,0)), reg_get_size(DR_REG_SRC_0))) , bb  , instr);
+                        translate_insert(INSTR_CREATE_movupd(drcontext , OP_REG(DR_REG_SRC_0) , OP_BASE_DISP(opnd_get_base(SRC(instr,1)) , opnd_get_disp(SRC(instr,1)), reg_get_size(DR_REG_SRC_0))) , bb  , instr);
                         translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(DR_REG_SRC_0)) , OP_REG(DR_REG_SRC_0)) , bb  , instr);
                     }
                     else if(ifp_is_256(oc)) { /* 256 */
                         saveYMM0 = true;
                         insert_push_pseudo_stack(drcontext , DR_REG_YMM0 , bb , instr , buffer_reg , scratch);
 
-                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM0) , OP_BASE_DISP(opnd_get_base(SRC(instr,0)) , opnd_get_disp(SRC(instr,0)), reg_get_size(DR_REG_YMM0))) , bb  , instr);
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM0) , OP_BASE_DISP(opnd_get_base(SRC(instr,1)) , opnd_get_disp(SRC(instr,1)), reg_get_size(DR_REG_YMM0))) , bb  , instr);
                         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(DR_REG_YMM0)) , OP_REG(DR_REG_YMM0)) , bb  , instr);
                     }
                     else { /* 512 */
                         saveZMM0 = true;
                         insert_push_pseudo_stack(drcontext , DR_REG_ZMM0 , bb , instr , buffer_reg , scratch);
 
-                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM0) , OP_BASE_DISP(opnd_get_base(SRC(instr,0)) , opnd_get_disp(SRC(instr,0)), reg_get_size(DR_REG_ZMM0))) , bb  , instr);
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM0) , OP_BASE_DISP(opnd_get_base(SRC(instr,1)) , opnd_get_disp(SRC(instr,1)), reg_get_size(DR_REG_ZMM0))) , bb  , instr);
                         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(DR_REG_ZMM0)) , OP_REG(DR_REG_ZMM0)) , bb  , instr);
                     }
                 }   
@@ -801,9 +805,9 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                 }
 
                 // ****************************************************************************
-                // Restore all XMM registers 
+                // Restore all YMM registers 
                 // ****************************************************************************
-                insert_pop_pseudo_stack_list(drcontext , XMM_REG_REVERSE , bb , instr , buffer_reg , scratch , NB_XMM_REG);
+                insert_pop_pseudo_stack_list(drcontext , YMM_REG_REVERSE , bb , instr , buffer_reg , scratch , NB_YMM_REG);
 
 
                 // ****************************************************************************
@@ -823,8 +827,8 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
             // pop general purpose registers on pseudo stack 
             // All GPR except DR_BUFFER_REG and DR_SCRATCH_REG
             // ****************************************************************************
-            reg_id_t topop_reg[] = {DR_REG_XBX , DR_REG_XSP , DR_REG_XBP , DR_REG_XAX , DR_REG_XSI , DR_REG_XDI};
-            insert_pop_pseudo_stack_list(drcontext , topop_reg , bb , instr , buffer_reg , scratch , 6);
+            reg_id_t topop_reg[] = {DR_REG_R15, DR_REG_R14, DR_REG_R13, DR_REG_R12, DR_REG_R11, DR_REG_R10, DR_REG_R9, DR_REG_R8, DR_REG_XBX , DR_REG_XSP , DR_REG_XBP , DR_REG_XAX , DR_REG_XSI , DR_REG_XDI};
+            insert_pop_pseudo_stack_list(drcontext , topop_reg , bb , instr , buffer_reg , scratch , 14);
 
             // ****************************************************************************
             // Restore processor flags
