@@ -57,7 +57,14 @@ typedef struct _symbol_entry_t
 /** Structure holding a module and its symbols for lookup purposes */
 typedef struct _lookup_entry_t
 {
-    inline bool contains(app_pc pc, ifp_lookup_type_t lookup)const /* Returns true if the app_pc is contained within this lookup */
+    /**
+     * \brief Returns true if the module contains the given address
+     * 
+     * \param pc Address of the instruction
+     * \param lookup Lookup type, if we are looking for the adress in the whole module, or in a symbol
+     * \return true If the adress is contained within the module
+     */
+    inline bool contains(app_pc pc, ifp_lookup_type_t lookup)const
     {
         if(lookup == IFP_LOOKUP_MODULE || (total && symbols.empty()))
         {
@@ -110,20 +117,56 @@ typedef struct _lookup_entry_t
     std::vector<symbol_entry_t> symbols; /** Symbols of interest of the module */
 } lookup_entry_t;
 
+/**
+ * \brief Prints the help of the client
+ * 
+ */
 void print_help();
 
+/**
+ * \brief Get the current client mode
+ * 
+ * \return interflop_client_mode_t Client mode
+ */
 interflop_client_mode_t get_client_mode();
+
+/**
+ * \brief Sets the client mode
+ * 
+ * \param mode 
+ */
 void set_client_mode(interflop_client_mode_t mode);
 
+/**
+ * \brief Sets the client mode and initialises the symbol lookups
+ */
 void symbol_lookup_config_from_args(int argc, const char* argv[]);
 
+/**
+ * \brief Returns true if \p ilist has to be instrumented
+ */
 bool needsToInstrument(instrlist_t* ilist);
 
+/**
+ * \brief Logs the symbol associated with \p ilist to the modules vector
+ */
 void logSymbol(instrlist_t* ilist);
 
+/**
+ * \brief Writes the symbols held by the modules vector to the output file (defined by the command line argument)
+ * 
+ */
 void write_symbols_to_file();
+
+/**
+ * \brief Returns true if the module passed by \p module should be instrumented
+ */
 bool shouldInstrumentModule(const module_data_t* module);
 
+/**
+ * \brief DEBUG_ONLY
+ * 
+ */
 void print_lookup();
 
 #endif //SYMBOL_CONFIG_HEADER

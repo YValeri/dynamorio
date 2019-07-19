@@ -66,6 +66,9 @@ void set_client_mode(interflop_client_mode_t mode)
     interflop_client_mode = mode;
 }
 
+/**
+ * \brief Returns the index of \elem, \p vec .size() if it's not found
+ */
 template<typename T>
 static inline size_t vec_idx_of(std::vector<T, std::allocator<T>> vec, T elem)
 {
@@ -76,6 +79,24 @@ static inline size_t vec_idx_of(std::vector<T, std::allocator<T>> vec, T elem)
             return i;
     }
     return size;
+}
+
+/**
+ * \brief Returns true if we need to clear the entry
+ * Clears the symbols if it's only what we need to clear
+ */
+static bool need_cleanup_module(module_entry & entry)
+{
+    if(entry.all_symbols && interflop_client_mode != IFP_CLIENT_BL_WL)
+    {
+        entry.symbols.clear();
+        return false;
+    }
+    if(!entry.all_symbols && entry.symbols.empty())
+    {
+        return true;
+    }
+    return false;
 }
 
 /* ### SYMBOLS FILE GENERATION ### */
@@ -93,7 +114,7 @@ void write_symbols_to_file()
             {
                 totalSymbols+=modules_vector[i].symbols.size();
             }
-            symbol_file << "# This list contains " << totalSymbols << " symbols of interest, split into " << num_modules << " modules\n";
+            symbol_file << "# This list contains " << totalSymbols << " symbols of interest, split between " << num_modules << " modules\n";
             for(size_t i=0; i<num_modules; i++)
             {
                 symbol_file << modules_vector[i].module_name << "\n";
@@ -109,13 +130,18 @@ void write_symbols_to_file()
     }
 }
 
+/**
+ * \brief Return the name of the symbol in \p module associated with the address \p intr_pc
+ */
 static std::string getSymbolName(module_data_t* module, app_pc intr_pc)
 {
     std::string name;
     if(module)
     {
+        //If the module doesn't have symbols, we can't know the name associated the adress
         if(drsym_module_has_symbols(module->full_path) == DRSYM_SUCCESS)
         {
+            //We ask a first time to get the length of the name
             drsym_info_t sym;
             sym.file=NULL;
             sym.name=NULL;
@@ -123,6 +149,7 @@ static std::string getSymbolName(module_data_t* module, app_pc intr_pc)
             drsym_error_t sym_error = drsym_lookup_address(module->full_path, intr_pc-module->start, &sym, DRSYM_DEFAULT_FLAGS);
             if(sym_error == DRSYM_SUCCESS || sym_error == DRSYM_ERROR_LINE_NOT_AVAILABLE)
             {
+                //We found the length of the name, now we retrieve it
                 char* name_str = (char*)calloc(sym.name_available_size+1, sizeof(char));
                 sym.name = name_str;
                 sym.name_size = sym.name_available_size+1;
@@ -133,6 +160,7 @@ static std::string getSymbolName(module_data_t* module, app_pc intr_pc)
                     free(name_str);
                     return name;
                 }
+                
                 free(name_str);
                 name = "";
             }
@@ -143,6 +171,7 @@ static std::string getSymbolName(module_data_t* module, app_pc intr_pc)
 
 void logSymbol(instrlist_t* ilist)
 {
+    //We save the old module and symbol locations, as we can expect a symbol to appear multiple times in a row
     static size_t oldModule = 0;
     static size_t oldPos = 0;
     instr_t * instr = instrlist_first_app(ilist);
@@ -164,11 +193,12 @@ void logSymbol(instrlist_t* ilist)
                     if(modules_vector.size() > oldModule)
                     {
                         
-                        if(modules_vector[oldModule] == entry)
+                        if(modules_vector[oldModule] == entry) // If the module is the last seen module
                         {
-                            if(modules_vector[oldModule].symbols.size() <= oldPos 
-                            || ((modules_vector[oldModule].symbols[oldPos] != symbolName) 
-                            && vec_idx_of(modules_vector[oldModule].symbols, symbolName) == modules_vector[oldModule].symbols.size()))
+                            //If it's not the old symbol, and it can't be found elsewhere, we need to add it
+                            if((modules_vector[oldModule].symbols.size() <= oldPos 
+                            || (modules_vector[oldModule].symbols[oldPos] != symbolName)) 
+                            && vec_idx_of(modules_vector[oldModule].symbols, symbolName) == modules_vector[oldModule].symbols.size())
                             {
                                 modules_vector[oldModule].symbols.push_back(symbolName);
                                 oldPos=modules_vector[oldModule].symbols.size()-1;
@@ -176,6 +206,7 @@ void logSymbol(instrlist_t* ilist)
                             
                         }else
                         {
+                            //It's not the last seen module
                             size_t pos = vec_idx_of(modules_vector, entry);
                             if(pos == modules_vector.size())
                             {
@@ -214,17 +245,106 @@ void logSymbol(instrlist_t* ilist)
     }
 }
 
+/* ### INTRUMENTATION ### */
+
+/**
+ * \brief Loads the module into the lookup if it doesn't exist in it
+ */
+static void lookup_or_load_module(const module_data_t* module)
+{
+    //If we find the module in the lookup, we don't need to load it
+    if(lookup_find(module->start, IFP_LOOKUP_MODULE))
+    {
+        return;
+    }
+
+    std::string name=dr_module_preferred_name(module);
+    module_entry entry(std::string(name), false);
+    size_t pos = vec_idx_of(modules_vector, entry);
+    //If it's not in the list of modules we care about, it won't be in the lookup
+    if(pos != modules_vector.size())
+    {
+        module_entry mentry = modules_vector[pos];
+        lookup_entry_t lentry;
+        lentry.name = name;
+        lentry.range.start = module->start;
+        lentry.range.end = module->end;
+        lentry.total = mentry.all_symbols;
+        lentry.contiguous = module->contiguous;
+        //When a module isn't continuous (sometimes on Linux, often on MacOS), we need to remember the bounds of each segment
+        if(!lentry.contiguous)
+        {
+            for(size_t i=0; i<module->num_segments; i++)
+            {
+                lentry.segments.emplace_back(module->segments[i].start, module->segments[i].end);
+            }
+        }
+        //When the module isn't total, or there can be exceptions to the total module, we need to register each symbol
+        if(!lentry.total || interflop_client_mode == IFP_CLIENT_BL_WL)
+        {
+            size_t modoff;
+            drsym_info_t info;
+            info.struct_size = sizeof(info);
+            info.file=nullptr;
+            info.name=nullptr;
+
+            for(size_t j=0; j<mentry.symbols.size(); j++)
+            {
+                drsym_error_t err = drsym_lookup_symbol(module->full_path, (name+"!"+mentry.symbols[j]).c_str(), &modoff, DRSYM_DEFAULT_FLAGS);
+                if(err == DRSYM_SUCCESS)
+                {
+                    err = drsym_lookup_address(module->full_path, modoff, &info, DRSYM_DEFAULT_FLAGS);
+                    if(err == DRSYM_SUCCESS || err == DRSYM_ERROR_LINE_NOT_AVAILABLE)
+                    {
+                        symbol_entry_t sentry;
+                        sentry.name = mentry.symbols[j];
+                        sentry.range.start = module->start+info.start_offs;
+                        sentry.range.end = module->start+info.end_offs;
+                        lentry.symbols.push_back(sentry);
+                    }
+                }
+            }
+            //We free the ressources of symbol information for this module, we won't need them anymore
+            drsym_free_resources(module->full_path);
+        }
+        lookup_vector.push_back(lentry);
+    }
+}
+
+/**
+ * This function takes the modules vector (assuming it's loaded already), and converts it into the lookup vector
+ * If the module can't be found by name, it will be loaded in when DynamoRIO loads it in memory
+ */
+static void load_lookup_from_modules_vector()
+{
+
+    auto end = std::remove_if(modules_vector.begin(), modules_vector.end(),[](module_entry const& mentry) {
+                                  std::string module_name = mentry.module_name;
+                                  module_data_t* mod = dr_lookup_module_by_name(module_name.c_str());
+                                  if(mod) {
+                                      lookup_or_load_module(mod);
+                                      dr_free_module_data(mod);
+                                      return true;
+                                  }
+                                  return false;
+                              });
+
+    modules_vector.erase(end, modules_vector.end());
+}
+
 bool shouldInstrumentModule(const module_data_t* module)
 {
     lookup_or_load_module(module);
     lookup_entry_t* found_module = lookup_find(module->start, IFP_LOOKUP_MODULE);
     if(found_module != nullptr)
     {
+        //We found the module in the list, we need to instrument it if it's not blacklisted totally
         return (interflop_client_mode == IFP_CLIENT_BL_ONLY && !found_module->total) ||
         interflop_client_mode == IFP_CLIENT_WL_ONLY || interflop_client_mode == IFP_CLIENT_BL_WL;
     }else
     {
-        return interflop_client_mode == IFP_CLIENT_BL_ONLY;
+        //We didn't find the module in the lookup, we instrument it if we're not white listing
+        return interflop_client_mode == IFP_CLIENT_BL_ONLY || interflop_client_mode == IFP_CLIENT_NOLOOKUP;
     }
 }
 
@@ -234,10 +354,12 @@ bool needsToInstrument(instrlist_t* ilist)
     {
         if(interflop_client_mode == IFP_CLIENT_NOLOOKUP)
         {
+            //We always instrument in NOLOOKUP
             return true;
         }
         if(interflop_client_mode == IFP_CLIENT_GENERATE || interflop_client_mode == IFP_CLIENT_HELP)
         {
+            //We never instrument in GENERATE or HELP (nor that this check is strictly necessary)
             return false;
         }
         instr_t * instr = instrlist_first_app(ilist);
@@ -246,6 +368,7 @@ bool needsToInstrument(instrlist_t* ilist)
             app_pc pc = instr_get_app_pc(instr);
             if(pc)
             {
+                //We instrument if we found the symbol in the lookup for whitelists, otherwise always for blacklists
                 return lookup_find(pc, IFP_LOOKUP_SYMBOL) != nullptr || interflop_client_mode == IFP_CLIENT_BL_ONLY;
             }
         }
@@ -258,6 +381,8 @@ bool needsToInstrument(instrlist_t* ilist)
     return interflop_client_mode == IFP_CLIENT_NOLOOKUP || interflop_client_mode == IFP_CLIENT_BL_ONLY; 
     
 }
+
+/* ### FILE PARSING ### */
 
 static void parseLine(std::string line, bool parsing_whitelist)
 {
@@ -299,17 +424,19 @@ static void parseLine(std::string line, bool parsing_whitelist)
         }
         module_entry entry(module, whole);
         bool exists = (pos = vec_idx_of<module_entry>(modules_vector, entry))!=modules_vector.size();
-        if(parsing_whitelist)
+        if(parsing_whitelist || interflop_client_mode == IFP_CLIENT_BL_ONLY)
         {
-            //Whitelist
+            //If we're parsing the whitelist, or the blacklist in blacklist only mode, it's only about adding to the lookup
             if(exists)
             {
                 if(whole)
                 {
+                    //Whole module, we clear the symbols
                     modules_vector[pos].symbols.clear();
                     modules_vector[pos].all_symbols=true;
                 }else
                 {
+                    //Add only if the symbol doesn't exist yet
                     if(!modules_vector[pos].all_symbols && vec_idx_of<std::string>(modules_vector[pos].symbols, symbol) == modules_vector[pos].symbols.size())
                     {
                         modules_vector[pos].symbols.push_back(symbol);
@@ -317,6 +444,7 @@ static void parseLine(std::string line, bool parsing_whitelist)
                 }
             }else
             {
+                //It doesn't exist yet, we need to push it
                 modules_vector.push_back(entry);
                 if(!whole)
                 {
@@ -325,74 +453,30 @@ static void parseLine(std::string line, bool parsing_whitelist)
             }
         }else
         {
-            //Blacklist
-            bool bl_only = interflop_client_mode == IFP_CLIENT_BL_ONLY;
+            //Parsing blacklist while in "whitelist and blacklist" mode
             if(exists)
             {
                 if(whole)
                 {
-                    if(bl_only)
-                    {
-                        modules_vector[pos].symbols.clear();
-                        modules_vector[pos].all_symbols=true;
-                    }else
-                    {
-                        modules_vector.erase(modules_vector.begin()+pos);
-                    }
+                    modules_vector.erase(modules_vector.begin()+pos);
                 }else
                 {
-                    if(bl_only)
+                    if(modules_vector[pos].all_symbols)
                     {
                         modules_vector[pos].symbols.push_back(symbol);
-                    }else
+                    }else 
                     {
-                        if(modules_vector[pos].all_symbols)
+                        size_t sympos= vec_idx_of<std::string>(modules_vector[pos].symbols, symbol);
+                        if(sympos != modules_vector[pos].symbols.size())
                         {
-                            modules_vector[pos].symbols.push_back(symbol);
-                        }else 
-                        {
-                            size_t sympos= vec_idx_of<std::string>(modules_vector[pos].symbols, symbol);
-                            if(sympos != modules_vector[pos].symbols.size())
-                            {
-                                modules_vector[pos].symbols.erase(modules_vector[pos].symbols.begin() + sympos);
-                            }
+                            modules_vector[pos].symbols.erase(modules_vector[pos].symbols.begin() + sympos);
                         }
-                        
                     }
                 }
-            }else
-            {
-                if(whole)
-                {
-                    if(bl_only)
-                    {
-                        modules_vector.push_back(entry);
-                    }
-                }else
-                {
-                    if(bl_only)
-                    {
-                        entry.symbols.push_back(symbol);
-                        modules_vector.push_back(entry);
-                    }
-                }
+                
             }
         }
     }
-}
-
-static bool need_cleanup_module(module_entry & entry)
-{
-    if(entry.all_symbols && interflop_client_mode != IFP_CLIENT_BL_WL)
-    {
-        entry.symbols.clear();
-        return false;
-    }
-    if(!entry.all_symbols && entry.symbols.empty())
-    {
-        return true;
-    }
-    return false;
 }
 
 static void generate_blacklist_from_file(std::ifstream& blacklist)
@@ -465,82 +549,7 @@ static lookup_entry_t* lookup_find(app_pc pc, ifp_lookup_type_t lookup_type)
     return nullptr;
 }
 
-static void lookup_or_load_module(const module_data_t* module)
-{
-    if(lookup_find(module->start, IFP_LOOKUP_MODULE))
-    {
-        return;
-    }
-    std::string name=dr_module_preferred_name(module);
-    module_entry entry(std::string(name), false);
-    size_t pos = vec_idx_of(modules_vector, entry);
-    if(pos != modules_vector.size())
-    {
-        module_entry mentry = modules_vector[pos];
-        lookup_entry_t lentry;
-        lentry.name = name;
-        lentry.range.start = module->start;
-        lentry.range.end = module->end;
-        lentry.total = mentry.all_symbols;
-        lentry.contiguous = module->contiguous;
-        if(!lentry.contiguous)
-        {
-            for(size_t i=0; i<module->num_segments; i++)
-            {
-                lentry.segments.emplace_back(module->segments[i].start, module->segments[i].end);
-            }
-        }
-        if(!lentry.total || interflop_client_mode == IFP_CLIENT_BL_WL)
-        {
-            size_t modoff;
-            drsym_info_t info;
-            info.struct_size = sizeof(info);
-            info.file=nullptr;
-            info.name=nullptr;
-
-            for(size_t j=0; j<mentry.symbols.size(); j++)
-            {
-                drsym_error_t err = drsym_lookup_symbol(module->full_path, (name+"!"+mentry.symbols[j]).c_str(), &modoff, DRSYM_DEFAULT_FLAGS);
-                if(err == DRSYM_SUCCESS)
-                {
-                    err = drsym_lookup_address(module->full_path, modoff, &info, DRSYM_DEFAULT_FLAGS);
-                    if(err == DRSYM_SUCCESS || err == DRSYM_ERROR_LINE_NOT_AVAILABLE)
-                    {
-                        symbol_entry_t sentry;
-                        sentry.name = mentry.symbols[j];
-                        sentry.range.start = module->start+info.start_offs;
-                        sentry.range.end = module->start+info.end_offs;
-                        lentry.symbols.push_back(sentry);
-                    }
-                }
-            }
-            drsym_free_resources(module->full_path);
-        }
-        lookup_vector.push_back(lentry);
-    }
-}
-
-/**
- * This function takes the modules vector (assuming it's loaded already), and converts it into the lookup vector
- * If the module can't be found by name, it will be loaded in when DynamoRIO loads it in memory
- */
-static void load_lookup_from_modules_vector()
-{
-
-    auto end = std::remove_if(modules_vector.begin(), modules_vector.end(),[](module_entry const& mentry) {
-                                  std::string module_name = mentry.module_name;
-                                  module_data_t* mod = dr_lookup_module_by_name(module_name.c_str());
-                                  if(mod) {
-                                      lookup_or_load_module(mod);
-                                      dr_free_module_data(mod);
-                                      return true;
-                                  }
-                                  return false;
-                              });
-
-    modules_vector.erase(end, modules_vector.end());
-}
-
+/* ### ARGUMENTS PARSING ### */
 
 void symbol_lookup_config_from_args(int argc, const char* argv[])
 {
