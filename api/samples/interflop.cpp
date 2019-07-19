@@ -68,6 +68,10 @@
 
 typedef byte SLOT;
 
+#define NB_XMM_REG 16
+static reg_id_t XMM_REG[] = {DR_REG_XMM0, DR_REG_XMM1, DR_REG_XMM2, DR_REG_XMM3, DR_REG_XMM4, DR_REG_XMM5, DR_REG_XMM6, DR_REG_XMM7, DR_REG_XMM8, DR_REG_XMM9, DR_REG_XMM10, DR_REG_XMM11, DR_REG_XMM12, DR_REG_XMM13, DR_REG_XMM14, DR_REG_XMM15};
+static reg_id_t XMM_REG_REVERSE[] = {DR_REG_XMM15, DR_REG_XMM14, DR_REG_XMM13, DR_REG_XMM12, DR_REG_XMM11, DR_REG_XMM10, DR_REG_XMM9, DR_REG_XMM8, DR_REG_XMM7, DR_REG_XMM6, DR_REG_XMM5, DR_REG_XMM4, DR_REG_XMM3, DR_REG_XMM2, DR_REG_XMM1, DR_REG_XMM0};
+
 int tls_result /* index of thread local storage to store the result of floating point operations */, 
     tls_op_A, tls_op_B /* index of thread local storage to store the operands of vectorial floating point operations */,
     tls_stack /* index of thread local storage to store the address of the shallow stack */;
@@ -159,14 +163,27 @@ template <typename FTYPE , FTYPE (*FN)(FTYPE, FTYPE) , int SIMD_TYPE = IFP_OP_SC
 struct interflop_backend {
 
     static void apply(FTYPE a,  FTYPE b) {
+
+        //byte fp_state_buf[DR_FPSTATE_BUF_SIZE] __attribute__ ((aligned(16)));
+        //proc_save_fpstate(fp_state_buf);
+
         // ***** Call to backend and get the result *****
         FTYPE res = FN(a,b);
 
         // ***** Copy the result in thread local memory *****
         *((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result)) = res;
+
+        //  proc_restore_fpstate(fp_state_buf);
+
+        //dr_printf("A : %f\nB : %f\nA op B : %f\n",a, b,res);
+
+        //dr_printf("\n");
     }
 
     static void apply_vect(FTYPE *vect_a,  FTYPE *vect_b) {
+
+        //byte fp_state_buf[DR_FPSTATE_BUF_SIZE] __attribute__ ((aligned(16)));
+        //proc_save_fpstate(fp_state_buf);
        
         int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : 0;
         int nb_elem = vect_size/sizeof(FTYPE);
@@ -177,22 +194,24 @@ struct interflop_backend {
             res = FN(vect_a[i],vect_b[i]);
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
         }
-       
-       /*
-        dr_printf("A : %p\nB : %p\n",vect_a , vect_b);
 
+        //proc_restore_fpstate(fp_state_buf);
+       
+       
+        //dr_printf("A : %p\nB : %p\n",vect_a , vect_b);
+/*
         dr_printf("A : ");
-        for(int i = 0 ; i < 4 ; i++) dr_printf("%d ",(int)(*((double*)(vect_a)+i)));
+        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_a)+i)));
         dr_printf("\n");
         dr_printf("B : ");
-        for(int i = 0 ; i < 4 ; i++) dr_printf("%d ",(int)(*((double*)(vect_b)+i)));
+        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_b)+i)));
         dr_printf("\n");
         
 
-        dr_printf("RES : ");
-        for(int i = 0 ; i < 4 ; i++) dr_printf("%d ",(int)(*((FTYPE*)(GET_TLS(dr_get_current_drcontext(), tls_result))+i)));
-        dr_printf("\n");
-        */
+        dr_printf("A op B : ");
+        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(GET_TLS(dr_get_current_drcontext(), tls_result))+i)));
+        dr_printf("\n\n");
+*/     
     }
 
 
@@ -253,26 +272,13 @@ static void print() {
     dr_printf("RBX : %02X \nEBX : %02X\nRBX : %e\n\n",*((uint64 *)rbx) , *((unsigned int*)ebx), *((double*)rbx));
     dr_printf("RDX : %02X \nEDX : %02X\nRDX : %e\n\n",*((uint64 *)rdx) , *((unsigned int*)edx), *((double*)rdx));
     dr_printf("RCX : %02X \nECX : %02X\nRCX : %e\n\n",*((uint64 *)rcx) , *((unsigned int*)ecx), *((double*)rcx));
-
-    dr_printf("XMM 0 : ");
-    for(int i = 0 ; i < 2 ; i++) dr_printf("%e ",*(double*)&(xmm[8*i]));
-    dr_printf("\n");
-
-    dr_printf("XMM 1 : ");
-    for(int i = 0 ; i < 2 ; i++) dr_printf("%e ",*(double*)&(xmm1[8*i]));
-    dr_printf("\n");
-
-    dr_printf("XMM 2 : ");
-    for(int i = 0 ; i < 2 ; i++) dr_printf("%e ",*(double*)&(xmm2[8*i]));
-    dr_printf("\n");
-
-    dr_printf("XMM 3 : ");
-    for(int i = 0 ; i < 2 ; i++) dr_printf("%e ",*(double*)&(xmm3[8*i]));
-    dr_printf("\n");
-
-    dr_printf("XMM 4 : ");
-    for(int i = 0 ; i < 2 ; i++) dr_printf("%e ",*(double*)&(xmm4[8*i]));
-    dr_printf("\n");
+    
+    for(int i = 0 ; i < NB_XMM_REG ; i++) {
+        reg_get_value_ex(XMM_REG[i] , &mcontext , xmm);
+        dr_printf("XMM%d : ",i);
+        for(int k = 0 ; k < 2 ; k++) dr_printf("%e ",*(double*)&(xmm[8*k]));
+        dr_printf("\n");
+    }
 
     dr_printf("YMM 0 : ");
     for(int i = 0 ; i < 4 ; i++) dr_printf("%e ",*(double*)&(ymm[8*i]));
@@ -496,8 +502,9 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
             bool is_double = ifp_is_double(oc);
             bool is_scalar = ifp_is_scalar(oc);
 
-            /*
+            
             dr_print_instr(drcontext, STDERR, instr , "II : ");
+            /*
             dr_print_opnd(drcontext , STDERR , SRC(instr,0) , "SRC 0 : ");
             dr_print_opnd(drcontext , STDERR , SRC(instr,1) , "SRC 1 : ");
             */
@@ -537,11 +544,11 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
             reg_id_t topush_reg[] = {DR_REG_XDI , DR_REG_XSI , DR_REG_XAX , DR_REG_XBP , DR_REG_XSP , DR_REG_XBX};
             insert_push_pseudo_stack_list(drcontext , topush_reg , bb , instr , buffer_reg , scratch , 6);
 
-            // ***** Sub stack pointer to handle the case where XSP is equal to XBP and XSP doesn't match the top of the stack *****
-            // ***** Otherwise the call will erase data when pushing the return address *****
-            // ***** If the gap is greater than 32 bytes, the program may crash !!!!!!!!!!!!!!! *****
-            translate_insert(INSTR_CREATE_sub(drcontext , OP_REG(DR_REG_XSP) , OP_INT(32)) , bb , instr);
-        
+            // ****************************************************************************
+            // Push all XMM registers
+            // ****************************************************************************
+            insert_push_pseudo_stack_list(drcontext , XMM_REG , bb , instr , buffer_reg , scratch , NB_XMM_REG);
+
 
             if(is_scalar) { /* SCALAR */
 
@@ -592,6 +599,11 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                         translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_SRC_1) , SRC(instr,0) , SRC(instr,0)) , bb , instr);
                     }
                 }
+
+                // ***** Sub stack pointer to handle the case where XSP is equal to XBP and XSP doesn't match the top of the stack *****
+                // ***** Otherwise the call will erase data when pushing the return address *****
+                // ***** If the gap is greater than 32 bytes, the program may crash !!!!!!!!!!!!!!! *****
+                translate_insert(INSTR_CREATE_sub(drcontext , OP_REG(DR_REG_XSP) , OP_INT(32)) , bb , instr);
                 
                 // ****************************************************************************
                 // ***** SCALAR CALL *****
@@ -625,6 +637,12 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                     saveSRC0 = false;   
                     insert_pop_pseudo_stack(drcontext , DR_REG_SRC_0 , bb , instr , buffer_reg , scratch);
                 }
+
+                // ****************************************************************************
+                // Restore all XMM registers 
+                // ****************************************************************************
+                insert_pop_pseudo_stack_list(drcontext , XMM_REG_REVERSE , bb , instr , buffer_reg , scratch , NB_XMM_REG);
+
 
                 // ****************************************************************************
                 // Set the result in the corresponding register
@@ -707,6 +725,11 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                     }
                 }   
 
+                // ***** Sub stack pointer to handle the case where XSP is equal to XBP and XSP doesn't match the top of the stack *****
+                // ***** Otherwise the call will erase data when pushing the return address *****
+                // ***** If the gap is greater than 32 bytes, the program may crash !!!!!!!!!!!!!!! *****
+                translate_insert(INSTR_CREATE_sub(drcontext , OP_REG(DR_REG_XSP) , OP_INT(32)) , bb , instr);
+
                 //****************************************************************************
                 // ***** VECTORIAL CALL *****
                 // ****************************************************************************
@@ -776,6 +799,12 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                     saveSRC1 = false;   
                     insert_pop_pseudo_stack(drcontext , DR_REG_SRC_1 , bb , instr , buffer_reg , scratch);
                 }
+
+                // ****************************************************************************
+                // Restore all XMM registers 
+                // ****************************************************************************
+                insert_pop_pseudo_stack_list(drcontext , XMM_REG_REVERSE , bb , instr , buffer_reg , scratch , NB_XMM_REG);
+
 
                 // ****************************************************************************
                 // Set the result in the corresponding register
