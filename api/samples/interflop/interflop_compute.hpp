@@ -1,8 +1,8 @@
 #ifndef INTERFLOP_COMPUTE_HEADER
 #define INTERFLOP_COMPUTE_HEADER
 
-#include "../backend_verrou/interflop_verrou.h"
-#include "./backend/interflop/backend.hxx"
+#include "./backend_verrou/interflop_verrou.h"
+#include "./backend/backend.hxx"
 #include "interflop_operations.hpp"
 #include "dr_api.h"
 #include "dr_ir_opnd.h"
