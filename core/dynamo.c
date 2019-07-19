@@ -942,8 +942,19 @@ standalone_init(void)
 void
 standalone_exit(void)
 {
-    /* should clean up here */
+    /* We support re-attach by setting doing_detach. */
+    doing_detach = true;
+    config_heap_exit();
+    os_fast_exit();
+    os_slow_exit();
+    dynamo_vm_areas_exit();
+    d_r_heap_exit();
+    vmm_heap_exit();
+    options_exit();
     d_r_config_exit();
+    doing_detach = false;
+    standalone_library = false;
+    dynamo_initialized = false;
 }
 #endif
 
@@ -1609,7 +1620,7 @@ create_new_dynamo_context(bool initial, byte *dstack_in, priv_mcontext_t *mc)
     /* also ensure we don't have extra padding beyond x86.asm defines */
     ASSERT(sizeof(priv_mcontext_t) ==
            IF_X64_ELSE(18, 10) * sizeof(reg_t) + PRE_XMM_PADDING +
-               MCXT_TOTAL_SIMD_SLOTS_SIZE);
+               MCXT_TOTAL_SIMD_SLOTS_SIZE + MCXT_TOTAL_OPMASK_SLOTS_SIZE);
 #elif defined(ARM)
     /* FIXME i#1551: add arm alignment check if any */
 #endif /* X86/ARM */
@@ -2708,7 +2719,7 @@ dr_app_setup(void)
     dcontext_t *dcontext;
     dr_api_entry = true;
     res = dynamorio_app_init();
-    /* For dr_api_entry, we do not install signal handlers during init (to avoid
+    /* For dr_api_entry, we do not install all our signal handlers during init (to avoid
      * races: i#2335): we delay until dr_app_start().  Plus the vsyscall hook is
      * not set up until we find out the syscall method.  Thus we're already
      * "os_process_not_under_dynamorio".

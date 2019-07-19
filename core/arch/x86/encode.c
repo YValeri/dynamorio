@@ -30,7 +30,6 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  */
-
 /* Copyright (c) 2003-2007 Determina Corp. */
 /* Copyright (c) 2001-2003 Massachusetts Institute of Technology */
 /* Copyright (c) 2001 Hewlett-Packard Company */
@@ -494,9 +493,26 @@ size_ok_varsz(decode_info_t *di /*prefixes field is IN/OUT; x86_mode is IN*/,
         if (size_template == OPSZ_8 || size_template == OPSZ_16)
             return true; /* will take prefix or no prefix */
         return false;
+    case OPSZ_quarter_16_vex32:
+        if (size_template == OPSZ_4 || size_template == OPSZ_8)
+            return true; /* will take prefix or no prefix */
+        return false;
+    case OPSZ_eighth_16_vex32:
+        if (size_template == OPSZ_2 || size_template == OPSZ_4)
+            return true; /* will take prefix or no prefix */
+        return false;
     case OPSZ_half_16_vex32_evex64:
         if (size_template == OPSZ_8 || size_template == OPSZ_16 ||
             size_template == OPSZ_32)
+            return true; /* will take prefix or no prefix */
+        return false;
+    case OPSZ_quarter_16_vex32_evex64:
+        if (size_template == OPSZ_4 || size_template == OPSZ_8 ||
+            size_template == OPSZ_16)
+            return true; /* will take prefix or no prefix */
+        return false;
+    case OPSZ_eighth_16_vex32_evex64:
+        if (size_template == OPSZ_2 || size_template == OPSZ_4 || size_template == OPSZ_8)
             return true; /* will take prefix or no prefix */
         return false;
     case OPSZ_vex32_evex64:
@@ -553,9 +569,13 @@ collapse_subreg_size(opnd_size_t sz)
     case OPSZ_16_of_32:
     case OPSZ_16_of_32_evex64: return OPSZ_16;
     case OPSZ_32_of_64: return OPSZ_32;
+    case OPSZ_4_of_32_evex64: return OPSZ_4;
+    case OPSZ_8_of_32_evex64: return OPSZ_8;
     }
     /* OPSZ_8_of_16_vex32, OPSZ_4_rex8_of_16, and OPSZ_12_rex8_of_16,
-     * OPSZ_half_16_vex32, and OPSZ_half_16_vex32_evex64 are kept.
+     * OPSZ_half_16_vex32, OPSZ_quarter_16_vex32, OPSZ_eighth_16_vex32,
+     * OPSZ_half_16_vex32_evex64, OPSZ_quarter_16_vex32_evex64, and
+     * OPSZ_eighth_16_vex32_evex64 are kept.
      */
     return sz;
 }
@@ -622,6 +642,12 @@ size_ok(decode_info_t *di /*prefixes field is IN/OUT; x86_mode is IN*/,
                 di->prefixes |= prefix_data_addr;
                 return true;
             }
+            if (size_template == OPSZ_eighth_16_vex32)
+                return !TEST(PREFIX_VEX_L, di->prefixes);
+            if (size_template == OPSZ_eighth_16_vex32_evex64) {
+                return !TEST(PREFIX_VEX_L, di->prefixes) &&
+                    !TEST(PREFIX_EVEX_LL, di->prefixes);
+            }
             return false;
         case OPSZ_4:
             if (size_template == OPSZ_4_short2)
@@ -642,6 +668,21 @@ size_ok(decode_info_t *di /*prefixes field is IN/OUT; x86_mode is IN*/,
             }
             if (size_template == OPSZ_4_rex8_of_16)
                 return !TEST(PREFIX_REX_W, di->prefixes);
+            if (size_template == OPSZ_quarter_16_vex32)
+                return !TEST(PREFIX_VEX_L, di->prefixes);
+            if (size_template == OPSZ_quarter_16_vex32_evex64) {
+                return !TEST(PREFIX_VEX_L, di->prefixes) &&
+                    !TEST(PREFIX_EVEX_LL, di->prefixes);
+            }
+            if (size_template == OPSZ_eighth_16_vex32) {
+                di->prefixes |= PREFIX_VEX_L;
+                return true;
+            }
+            if (size_template == OPSZ_eighth_16_vex32_evex64) {
+                if (!TEST(di->prefixes, PREFIX_EVEX_LL))
+                    di->prefixes |= PREFIX_VEX_L;
+                return true;
+            }
             return false;
         case OPSZ_6:
             if (size_template == OPSZ_6_irex10_short4) {
@@ -672,6 +713,21 @@ size_ok(decode_info_t *di /*prefixes field is IN/OUT; x86_mode is IN*/,
             if (size_template == OPSZ_half_16_vex32_evex64) {
                 return !TEST(PREFIX_VEX_L, di->prefixes) &&
                     !TEST(PREFIX_EVEX_LL, di->prefixes);
+            }
+            if (size_template == OPSZ_quarter_16_vex32) {
+                if (!TEST(di->prefixes, PREFIX_EVEX_LL))
+                    di->prefixes |= PREFIX_VEX_L;
+                return true;
+            }
+            if (size_template == OPSZ_quarter_16_vex32_evex64) {
+                if (!TEST(di->prefixes, PREFIX_EVEX_LL))
+                    di->prefixes |= PREFIX_VEX_L;
+                return true;
+            }
+            if (size_template == OPSZ_eighth_16_vex32_evex64) {
+                di->prefixes |= PREFIX_EVEX_LL;
+                di->prefixes &= ~PREFIX_VEX_L;
+                return true;
             }
             return false;
         case OPSZ_10:
@@ -705,6 +761,11 @@ size_ok(decode_info_t *di /*prefixes field is IN/OUT; x86_mode is IN*/,
                 size_template == OPSZ_half_16_vex32_evex64) {
                 if (!TEST(di->prefixes, PREFIX_EVEX_LL))
                     di->prefixes |= PREFIX_VEX_L;
+                return true;
+            }
+            if (size_template == OPSZ_quarter_16_vex32_evex64) {
+                di->prefixes |= PREFIX_EVEX_LL;
+                di->prefixes &= ~PREFIX_VEX_L;
                 return true;
             }
             return false; /* no matching varsz, must be exact match */
@@ -809,6 +870,8 @@ size_ok(decode_info_t *di /*prefixes field is IN/OUT; x86_mode is IN*/,
         case OPSZ_half_16_vex32_evex64:
         case OPSZ_16_of_32_evex64:
         case OPSZ_32_of_64:
+        case OPSZ_4_of_32_evex64:
+        case OPSZ_8_of_32_evex64:
         case OPSZ_0:
             /* handled below */
             break;
@@ -903,7 +966,9 @@ reg_size_ok(decode_info_t *di /*prefixes field is IN/OUT; x86_mode is IN*/, reg_
             return (reg >= REG_START_XMM && reg <= REG_STOP_XMM);
     }
     if (opsize == OPSZ_8_of_16_vex32 || opsize == OPSZ_half_16_vex32 ||
-        opsize == OPSZ_half_16_vex32_evex64 || optype == TYPE_VSIB) {
+        opsize == OPSZ_quarter_16_vex32 || opsize == OPSZ_eighth_16_vex32 ||
+        opsize == OPSZ_half_16_vex32_evex64 || opsize == OPSZ_quarter_16_vex32_evex64 ||
+        opsize == OPSZ_eighth_16_vex32_evex64 || optype == TYPE_VSIB) {
         if (reg >= REG_START_XMM && reg <= REG_STOP_XMM)
             return !TEST(PREFIX_VEX_L, di->prefixes);
         if (reg >= REG_START_YMM && reg <= REG_STOP_YMM) {
@@ -927,7 +992,8 @@ reg_size_ok(decode_info_t *di /*prefixes field is IN/OUT; x86_mode is IN*/, reg_
         } else
             return false;
     }
-    if (opsize == OPSZ_16_of_32_evex64) {
+    if (opsize == OPSZ_16_of_32_evex64 || opsize == OPSZ_4_of_32_evex64 ||
+        opsize == OPSZ_8_of_32_evex64) {
         if (reg >= REG_START_YMM && reg <= REG_STOP_YMM) {
             if (!TEST(di->prefixes, PREFIX_EVEX_LL))
                 di->prefixes |= PREFIX_VEX_L;
@@ -1029,7 +1095,7 @@ opnd_needs_evex(opnd_t opnd)
 
 static bool
 opnd_type_ok(decode_info_t *di /*prefixes field is IN/OUT; x86_mode is IN*/, opnd_t opnd,
-             int optype, opnd_size_t opsize)
+             int optype, opnd_size_t opsize, uint flags)
 {
     DOLOG(ENC_LEVEL, LOG_EMIT, {
         dcontext_t *dcontext = get_thread_private_dcontext();
@@ -1138,6 +1204,13 @@ opnd_type_ok(decode_info_t *di /*prefixes field is IN/OUT; x86_mode is IN*/, opn
         if (TEST(PREFIX_ADDR, di->prefixes))
             return false; /* VSIB invalid w/ 16-bit addressing */
 #endif
+        if (TEST(REQUIRES_VSIB_YMM, flags)) {
+            if (!reg_is_strictly_ymm(opnd_get_index(opnd)))
+                return false;
+        } else if (TEST(REQUIRES_VSIB_ZMM, flags)) {
+            if (!reg_is_strictly_zmm(opnd_get_index(opnd)))
+                return false;
+        }
         /* fall through */
     case TYPE_FLOATMEM:
     case TYPE_M: return mem_size_ok(di, opnd, optype, opsize);
@@ -1405,7 +1478,7 @@ instr_info_extra_opnds(const instr_info_t *info)
     if (iitype != TYPE_NONE) {                                                           \
         if (inst_num < iinum)                                                            \
             return false;                                                                \
-        if (!opnd_type_ok(di, get_op, iitype, iisize))                                   \
+        if (!opnd_type_ok(di, get_op, iitype, iisize, flags))                            \
             return false;                                                                \
         if (opnd_needs_evex(get_op)) {                                                   \
             if (!TEST(REQUIRES_EVEX, flags))                                             \
@@ -1637,7 +1710,8 @@ encode_immed(decode_info_t *di, byte *pc)
             if (di->immed_shift > 0)
                 val >>= di->immed_shift;
 #ifdef X64
-                /* we auto-truncate below to the proper size rather than complaining */
+                /* we auto-truncate below to the proper size rather than complaining
+                 */
 #endif
         } else {
             val = di->immed;
@@ -1819,6 +1893,9 @@ encode_base_disp(decode_info_t *di, opnd_t opnd)
             di->disp = disp;
         }
     } else {
+        int compressed_disp_scale = 0;
+        if (di->evex_encoded)
+            compressed_disp_scale = decode_get_compressed_disp_scale(di);
         if (disp == 0 &&
             /* must use 8-bit disp for 0x0(%ebp) or 0x0(%r13) */
             ((!addr16 &&
@@ -1831,7 +1908,15 @@ encode_base_disp(decode_info_t *di, opnd_t opnd)
             /* no disp */
             di->mod = 0;
             di->has_disp = false;
-        } else if (disp >= INT8_MIN && disp <= INT8_MAX &&
+        } else if (di->evex_encoded && disp % compressed_disp_scale == 0 &&
+                   disp / compressed_disp_scale >= INT8_MIN &&
+                   disp / compressed_disp_scale <= INT8_MAX &&
+                   !opnd_is_disp_force_full(opnd)) {
+            /* 8-bit compressed disp */
+            di->mod = 1;
+            di->has_disp = true;
+            di->disp = disp / compressed_disp_scale;
+        } else if (!di->evex_encoded && disp >= INT8_MIN && disp <= INT8_MAX &&
                    !opnd_is_disp_force_full(opnd)) {
             /* 8-bit disp */
             di->mod = 1;
@@ -1885,11 +1970,15 @@ encode_base_disp(decode_info_t *di, opnd_t opnd)
                 /* note that r13 can be an index register */
                 CLIENT_ASSERT(index != REG_ESP IF_X64(&&index != REG_RSP),
                               "encode error: xsp cannot be an index register");
-                CLIENT_ASSERT(reg_is_32bit(index) ||
-                                  (X64_MODE(di) && reg_is_64bit(index)) ||
-                                  reg_is_xmm(index) /* VSIB */,
-                              "encode error: index must be general-purpose register");
+                CLIENT_ASSERT(
+                    reg_is_32bit(index) || (X64_MODE(di) && reg_is_64bit(index)) ||
+                        reg_is_strictly_xmm(index) || reg_is_strictly_ymm(index) ||
+                        reg_is_strictly_zmm(index) /* VSIB */,
+                    "encode error: index must be general-purpose register or VSIB "
+                    "index "
+                    "vector register");
                 encode_reg_ext_prefixes(di, index, PREFIX_REX_X);
+                encode_avx512_reg_ext_prefixes(di, index, PREFIX_EVEX_VV);
                 if (X64_MODE(di) && reg_is_32bit(index))
                     di->prefixes |= PREFIX_ADDR;
                 di->index = reg_get_bits(index);
@@ -2631,12 +2720,11 @@ copy_and_re_relativize_raw_instr(dcontext_t *dcontext, instr_t *instr, byte *dst
  * N.B: if instr is a jump with an instr_t target, the caller MUST set the note
  * field in the target instr_t prior to calling instr_encode on the jump instr.
  *
- * Returns the pc after the encoded instr, or NULL if the instruction cannot be encoded.
- * Note that if instr_is_label(instr) it will be  encoded as a 0-byte instruction.
- * If a pc-relative operand cannot reach its target:
- *   If reachable == NULL, we assert and encoding fails (returning NULL);
- *   Else, encoding continues, and *reachable is set to false.
- * Else, if reachable != NULL, *reachable is set to true.
+ * Returns the pc after the encoded instr, or NULL if the instruction cannot be
+ * encoded. Note that if instr_is_label(instr) it will be  encoded as a 0-byte
+ * instruction. If a pc-relative operand cannot reach its target: If reachable ==
+ * NULL, we assert and encoding fails (returning NULL); Else, encoding continues, and
+ * *reachable is set to false. Else, if reachable != NULL, *reachable is set to true.
  */
 byte *
 instr_encode_arch(dcontext_t *dcontext, instr_t *instr, byte *copy_pc, byte *final_pc,
@@ -2757,6 +2845,13 @@ instr_encode_arch(dcontext_t *dcontext, instr_t *instr, byte *copy_pc, byte *fin
     CLIENT_ASSERT(!di.vex_encoded || !di.evex_encoded,
                   "instr_encode error: flags can't be both vex and evex.");
 
+    if (di.evex_encoded)
+        decode_get_tuple_type_input_size(info, &di);
+    if (di.vex_encoded || di.evex_encoded) {
+        if (TEST(OPCODE_MODRM, info->opcode))
+            di.prefixes |= PREFIX_REX_W;
+    }
+
     const instr_info_t *ii = info;
     int offs = 0;
     do {
@@ -2842,18 +2937,12 @@ instr_encode_arch(dcontext_t *dcontext, instr_t *instr, byte *copy_pc, byte *fin
         field_ptr++;
     }
 
-    /* vex and evex prefix must be last and if present includes prefix bytes, rex flags,
-     * and some opcode bytes.
+    /* vex and evex prefix must be last and if present includes prefix bytes, rex
+     * flags, and some opcode bytes.
      */
     if (di.vex_encoded) {
-        if (TEST(OPCODE_MODRM, info->opcode)) {
-            di.prefixes |= PREFIX_REX_W;
-        }
         field_ptr = encode_vex_prefixes(field_ptr, &di, info, &output_initial_opcode);
     } else if (di.evex_encoded) {
-        if (TEST(OPCODE_MODRM, info->opcode)) {
-            di.prefixes |= PREFIX_REX_W;
-        }
         field_ptr = encode_evex_prefixes(field_ptr, &di, info, &output_initial_opcode);
     } else {
         CLIENT_ASSERT(!TEST(PREFIX_VEX_L, di.prefixes), "internal encode vex error");

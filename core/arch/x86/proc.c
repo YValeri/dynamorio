@@ -68,9 +68,12 @@
 #define AMD_ECX /* cAMD */ 0x444d4163
 
 static bool avx_enabled;
+static bool avx512_enabled;
 
 static int num_simd_saved;
 static int num_simd_registers;
+static int num_simd_sse_avx_registers;
+static int num_simd_sse_avx_saved;
 
 /* global writable variable for debug registers value */
 DECLARE_NEVERPROT_VAR(app_pc d_r_debug_register[DEBUG_REGISTERS_NB], { 0 });
@@ -343,6 +346,8 @@ proc_init_arch(void)
             LOG(GLOBAL, LOG_TOP, 1, "\tProcessor has SSE3\n");
         if (proc_has_feature(FEATURE_AVX))
             LOG(GLOBAL, LOG_TOP, 1, "\tProcessor has AVX\n");
+        if (proc_has_feature(FEATURE_AVX512))
+            LOG(GLOBAL, LOG_TOP, 1, "\tProcessor has AVX-512\n");
         if (proc_has_feature(FEATURE_OSXSAVE))
             LOG(GLOBAL, LOG_TOP, 1, "\tProcessor has OSXSAVE\n");
     }
@@ -352,25 +357,54 @@ proc_init_arch(void)
                       (!proc_has_feature(FEATURE_FXSR) && !proc_has_feature(FEATURE_SSE)),
                   "Unsupported processor type: SSE and FXSR must match");
 
-    num_simd_saved = MCXT_NUM_SIMD_SLOTS;
-    num_simd_registers = MCXT_NUM_SIMD_SLOTS;
+    /* As part of lazy context switching of AVX-512 state, the number of saved registers
+     * is initialized excluding extended AVX-512 registers.
+     */
+    num_simd_saved = MCXT_NUM_SIMD_SSE_AVX_SLOTS;
+    /* The number of total registers may be switched to include extended AVX-512
+     * registers if OS and processor support will be detected further below.
+     */
+    num_simd_registers = MCXT_NUM_SIMD_SSE_AVX_SLOTS;
+    /* Please note that this constant is not assigned based on feature support. It
+     * represents the xstate/fpstate/sigcontext structure sizes for non-AVX-512 state.
+     */
+    num_simd_sse_avx_registers = MCXT_NUM_SIMD_SSE_AVX_SLOTS;
+    num_simd_sse_avx_saved = MCXT_NUM_SIMD_SSE_AVX_SLOTS;
 
-    if (proc_has_feature(FEATURE_AVX) && proc_has_feature(FEATURE_OSXSAVE)) {
-        /* Even if the processor supports AVX, it will #UD on any AVX instruction
-         * if the OS hasn't enabled YMM and XMM state saving.
-         * To check that, we invoke xgetbv -- for which we need FEATURE_OSXSAVE.
-         * FEATURE_OSXSAVE is also listed as one of the 3 steps in Intel Vol 1
-         * Fig 13-1: 1) cpuid OSXSAVE; 2) xgetbv 0x6; 3) cpuid AVX.
-         * Xref i#1278, i#1030, i#437.
-         */
+    if (proc_has_feature(FEATURE_OSXSAVE)) {
         uint bv_high = 0, bv_low = 0;
         dr_xgetbv(&bv_high, &bv_low);
-        LOG(GLOBAL, LOG_TOP, 2, "\txgetbv => 0x%08x%08x\n", bv_high, bv_low);
-        if (TESTALL(XCR0_AVX | XCR0_SSE, bv_low)) {
-            avx_enabled = true;
-            LOG(GLOBAL, LOG_TOP, 1, "\tProcessor and OS fully support AVX\n");
-        } else {
-            LOG(GLOBAL, LOG_TOP, 1, "\tOS does NOT support AVX\n");
+        if (proc_has_feature(FEATURE_AVX)) {
+            /* Even if the processor supports AVX, it will #UD on any AVX instruction
+             * if the OS hasn't enabled YMM and XMM state saving.
+             * To check that, we invoke xgetbv -- for which we need FEATURE_OSXSAVE.
+             * FEATURE_OSXSAVE is also listed as one of the 3 steps in Intel Vol 1
+             * Fig 13-1: 1) cpuid OSXSAVE; 2) xgetbv 0x6; 3) cpuid AVX.
+             * Xref i#1278, i#1030, i#437.
+             */
+            LOG(GLOBAL, LOG_TOP, 2, "\txgetbv => 0x%08x%08x\n", bv_high, bv_low);
+            if (TESTALL(XCR0_AVX | XCR0_SSE, bv_low)) {
+                avx_enabled = true;
+                LOG(GLOBAL, LOG_TOP, 1, "\tProcessor and OS fully support AVX\n");
+            } else {
+                LOG(GLOBAL, LOG_TOP, 1, "\tOS does NOT support AVX\n");
+            }
+        }
+        if (proc_has_feature(FEATURE_AVX512)) {
+            if (TESTALL(XCR0_HI16_ZMM | XCR0_ZMM_HI256 | XCR0_OPMASK, bv_low)) {
+                /* XXX i#1312: It had been unclear whether the kernel uses CR0 bits to
+                 * disable AVX-512 for its own lazy context switching optimization. If it
+                 * did, then our lazy context switch would interfere with the kernel's and
+                 * more support would be needed. We have concluded that the Linux kernel
+                 * at does not do its own lazy context switch optimization for AVX-512 at
+                 * this time.
+                 */
+                avx512_enabled = true;
+                num_simd_registers = MCXT_NUM_SIMD_SLOTS;
+                LOG(GLOBAL, LOG_TOP, 1, "\tProcessor and OS fully support AVX-512\n");
+            } else {
+                LOG(GLOBAL, LOG_TOP, 1, "\tOS does NOT support AVX-512\n");
+            }
         }
     }
     for (i = 0; i < DEBUG_REGISTERS_NB; i++) {
@@ -433,6 +467,18 @@ int
 proc_num_simd_registers(void)
 {
     return num_simd_registers;
+}
+
+int
+proc_num_simd_sse_avx_registers(void)
+{
+    return num_simd_sse_avx_registers;
+}
+
+int
+proc_num_simd_sse_avx_saved(void)
+{
+    return num_simd_sse_avx_saved;
 }
 
 DR_API
@@ -543,4 +589,10 @@ bool
 proc_avx_enabled(void)
 {
     return avx_enabled;
+}
+
+bool
+proc_avx512_enabled(void)
+{
+    return avx512_enabled;
 }

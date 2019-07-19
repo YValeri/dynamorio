@@ -52,6 +52,7 @@ cmake_minimum_required(VERSION 2.8.11)
 include(../../make/policies.cmake NO_POLICY_SCOPE)
 
 option(TEST_LONG "run long set of tests")
+option(SKIP_FLAKY_TESTS "do not run tests named *_FLAKY")
 # if TEST_SUITE is off, we disable some flaky tests in order to have all
 # tests succeed (i#389).  TEST_SUITE is now a top-level option.
 set(TEST_SECONDS "90" CACHE STRING "Test time limit in seconds")
@@ -1627,6 +1628,9 @@ if (X86) # FIXME i#1551, i#1569: port asm to ARM and AArch64
   # FIXME i#105: get this working for 32-bit linux
   if (X64 OR WIN32)
     tobuild(common.decode common/decode.c)
+    if (proc_supports_avx512)
+      set_target_properties(common.decode PROPERTIES COMPILE_FLAGS "${CFLAGS_AVX512}")
+    endif ()
   endif (X64 OR WIN32)
 endif (X86)
 # FIXME i#1025: get working on Linux
@@ -1809,7 +1813,12 @@ if (CLIENT_INTERFACE)
       # For the subtest "targeting upper 2GB of low 4GB" we move -vm_base out of the
       # way:
       "-no_vm_base_near_app -vm_base 0x120000000" "")
+    # XXX i#1312, i#3504: The test doesn't currently compile with CFLAGS_AVX512 but
+    # attempts to test features based on it. The compile flag needs to be added.
     tobuild_ci(client.cleancall client-interface/cleancall.c "" "" "")
+    if (proc_supports_avx512)
+      append_property_string(TARGET client.cleancall.dll COMPILE_FLAGS "${CFLAGS_AVX512}")
+    endif ()
     if (UNIX)
       torunonly_ci(client.cleancall.prof-pcs client.cleancall client.cleancall.dll
         client-interface/cleancall.c "" "-prof_pcs -opt_cleancall 0" "")
@@ -2546,6 +2555,12 @@ endif ()
 
   if (NOT ANDROID) # XXX i#1874: get working on Android
     tobuild_ci(client.destructor client-interface/destructor.cpp "" "" "")
+  endif ()
+
+  if (proc_supports_avx512)
+    # XXX i#1312: This is untested on Windows.
+    tobuild_ci(client.avx512lazy client-interface/avx512lazy.c "" "" "")
+    set_target_properties(client.avx512lazy PROPERTIES COMPILE_FLAGS "${CFLAGS_AVX512}")
   endif ()
 
   if (BUILD_SAMPLES)
@@ -3772,6 +3787,16 @@ function(run2testname testname ops test)
   set(${testname} "${prefix}${test}" PARENT_SCOPE)
 endfunction(run2testname)
 
+function(is_test_enabled_by_name output name regex)
+  set(enabled OFF)
+  if (NOT SKIP_FLAKY_TESTS OR NOT "${name}" MATCHES "_FLAKY")
+    if (NOT regex OR "${name}" MATCHES "${regex}")
+      set(enabled ON)
+    endif ()
+  endif ()
+  set(${output} ${enabled} PARENT_SCOPE)
+endfunction ()
+
 foreach (run ${run_list})
   set(enabled OFF)
 
@@ -3831,28 +3856,32 @@ foreach (run ${run_list})
       list(APPEND prior_prefixes "${prefix}")
     endif ()
     foreach (test ${testlist_normal})
-      if (NOT regex OR "${test}" MATCHES "${regex}")
+      is_test_enabled_by_name(name_ok ${test} "${regex}")
+      if (name_ok)
         run2testname(test_name "${run}" ${test})
         torun_normal("${test_name}" ${test} "${run}")
-      endif (NOT regex OR "${test}" MATCHES "${regex}")
+      endif ()
     endforeach (test)
     foreach (test ${testlist_ci})
-      if (NOT regex OR "${test}" MATCHES "${regex}")
+      is_test_enabled_by_name(name_ok ${test} "${regex}")
+      if (name_ok)
         run2testname(test_name "${run}" ${test})
         torun_ci("${test_name}" ${test} "${run}")
-      endif (NOT regex OR "${test}" MATCHES "${regex}")
+      endif ()
     endforeach (test)
     foreach (test ${testlist_api})
-      if (NOT regex OR "${test}" MATCHES "${regex}")
+      is_test_enabled_by_name(name_ok ${test} "${regex}")
+      if (name_ok)
         run2testname(test_name "${run}" ${test})
         torun_api("${test_name}" ${test} "${run}")
-      endif (NOT regex OR "${test}" MATCHES "${regex}")
+      endif ()
     endforeach (test)
     foreach (test ${testlist_runall})
-      if (NOT regex OR "${test}" MATCHES "${regex}")
+      is_test_enabled_by_name(name_ok ${test} "${regex}")
+      if (name_ok)
         run2testname(test_name "${run}" ${test})
         torun_runall("${test_name}" ${test} "${run}")
-      endif (NOT regex OR "${test}" MATCHES "${regex}")
+      endif ()
     endforeach (test)
 
   endif (enabled)

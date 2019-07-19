@@ -262,6 +262,7 @@ typedef enum {
     FEATURE_ERMSB = 9 + 128,    /**< Enhanced rep movsb/stosb supported */
     FEATURE_INVPCID = 10 + 128, /**< #OP_invpcid supported */
     FEATURE_RTM = 11 + 128,     /**< Restricted Transactional Memory supported */
+    FEATURE_AVX512 = 16 + 128,  /**< AVX-512 instructions supported */
 } feature_bit_t;
 
 /**
@@ -294,6 +295,9 @@ extern size_t cache_line_size;
 
 /* xcr0 and xstate_bv feature bits */
 enum {
+    XCR0_HI16_ZMM = 7,
+    XCR0_ZMM_HI256 = 6,
+    XCR0_OPMASK = 5,
     XCR0_AVX = 4,
     XCR0_SSE = 2,
     XCR0_FP = 1,
@@ -494,6 +498,30 @@ DR_API
 int
 proc_num_simd_registers(void);
 
+/*
+ * This function is internal only.
+ *
+ * Returns the number of SIMD registers, but excluding AVX-512 extended registers. The
+ * function is only used internally. It shall be primarily used for xstate, fpstate,
+ * or sigcontext state access. For example, the xmm or ymmh fields are always of SSE or
+ * AVX size, while the extended AVX-512 register state is stored on top of that.
+ * proc_num_simd_registers() and proc_num_simd_saved() are not suitable to use in this
+ * case.
+ */
+int
+proc_num_simd_sse_avx_registers(void);
+
+/*
+ * This function is internal only.
+ *
+ * Returns the number of SIMD registers preserved for a context switch, but excluding
+ * AVX-512 extended registers. Its usage model is the same as
+ * proc_num_simd_sse_avx_registers(), but reflects the actual number of saved registers,
+ * the same way as proc_num_simd_saved() does.
+ */
+int
+proc_num_simd_sse_avx_saved(void);
+
 DR_API
 /**
  * Saves the floating point state into the buffer \p buf.
@@ -550,5 +578,14 @@ DR_API
  */
 bool
 proc_avx_enabled(void);
+
+DR_API
+/**
+ * Returns whether AVX-512 is enabled by both the processor and the OS.
+ * Even if the processor supports AVX-512, if the OS does not enable AVX-512,
+ * then AVX-512 instructions will fault.
+ */
+bool
+proc_avx512_enabled(void);
 
 #endif /* _PROC_H_ */

@@ -83,6 +83,8 @@
  */
 #    define PREFIX_SEG_FS 0x20
 #    define PREFIX_SEG_GS 0x40
+/* Prefix used for AVX-512 */
+#    define PREFIX_EVEX 0x000100000
 #endif
 
 /* XXX: when adding prefixes, shift all the private values as they start
@@ -121,8 +123,10 @@ typedef struct instr_info_t {
     opnd_size_t src2_size;
     byte src3_type;
     opnd_size_t src3_size;
-    ushort flags; /* encoding and extra operand flags */
-    uint eflags;  /* combination of read & write flags from instr.h */
+    uint flags;  /* encoding and extra operand flags in lower half,
+                  * AVX-512 tupletype attribute in upper half.
+                  */
+    uint eflags; /* combination of read & write flags from instr.h */
     /* For normal entries, this points to the next entry in the encoding chain
      * for this opcode.
      * For special entries, this can point to the extra operand table,
@@ -323,6 +327,8 @@ enum {
                            * EVEX.LL'.
                            */
     OPSZ_32_of_64,        /**< 256 bits: half of ZMM. */
+    OPSZ_4_of_32_evex64,  /**< 32 bits: can be part of YMM or ZMM register. */
+    OPSZ_8_of_32_evex64,  /**< 64 bits: can be part of YMM or ZMM register. */
 #ifdef AVOID_API_EXPORT
 /* Add new size here.  Also update size_names[] in decode_shared.c along with
  * the size routines in opnd_shared.c.
@@ -398,12 +404,30 @@ enum {
     OPSZ_half_16_vex32,      /* half of 128 bits (XMM or memory);
                               * if vex.L then is half of 256 bits (YMM or memory).
                               */
-    OPSZ_half_16_vex32_evex64, /* 64 bits, but can be half of XMM register;
-                                * if evex.L then is 256 bits (YMM or memory);
-                                * if evex.L' then is 512 bits (ZMM or memory).
-                                */
+    OPSZ_half_16_vex32_evex64,    /* 64 bits, but can be half of XMM register;
+                                   * if evex.L then is 256 bits (YMM or memory);
+                                   * if evex.L' then is 512 bits (ZMM or memory).
+                                   */
+    OPSZ_quarter_16_vex32,        /* quarter of 128 bits (XMM or memory);
+                                   * if vex.L then is quarter of 256 bits (YMM or memory).
+                                   */
+    OPSZ_quarter_16_vex32_evex64, /* quarter of 128 bits (XMM or memory);
+                                   * if evex.L then is quarter of 256 bits (YMM or
+                                   * memory);
+                                   * if evex.L' then is quarter of 512 bits (ZMM
+                                   * or memory).
+                                   */
+    OPSZ_eighth_16_vex32,         /* eighth of 128 bits (XMM or memory);
+                                   * if vex.L then is eighth of 256 bits (YMM or memory).
+                                   */
+    OPSZ_eighth_16_vex32_evex64,  /* eighth of 128 bits (XMM or memory);
+                                   * if evex.L then is eighth of 256 bits (YMM or
+                                   * memory);
+                                   * if evex.L' then is eighth of 512 bits (ZMM
+                                   * or memory).
+                                   */
     OPSZ_SUBREG_START = OPSZ_1_of_4,
-    OPSZ_SUBREG_END = OPSZ_half_16_vex32_evex64,
+    OPSZ_SUBREG_END = OPSZ_eighth_16_vex32_evex64,
     OPSZ_LAST_ENUM, /* note last is NOT inclusive */
 };
 
