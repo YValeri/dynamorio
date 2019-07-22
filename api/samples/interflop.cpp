@@ -3,8 +3,8 @@
  */
 
 #include "dr_api.h"
-#include "dr_ir_opcodes.h"
-#include "dr_ir_opnd.h"
+#include "../include/dr_ir_opcodes.h"
+#include "../include/dr_ir_opnd.h"
 #include "drreg.h"
 #include "drmgr.h"
 #include "interflop/interflop_operations.hpp"
@@ -28,7 +28,10 @@
 //#define DR_REG_SRC_1 DR_REG_XMM1
 #define DR_REG_XMM_BUFFER DR_REG_XMM15
 #define DR_REG_YMM_BUFFER DR_REG_YMM15
+#define DR_REG_ZMM_BUFFER DR_REG_ZMM31
 
+#define AVX_2_SUPPORTED (proc_has_feature(FEATURE_AVX2))
+#define AVX_512_SUPPORTED (proc_has_feature(FEATURE_AVX512F)) //(proc_num_simd_registers()==32) 
 
 #define DR_BUFFER_REG DR_REG_XCX
 #define DR_SCRATCH_REG DR_REG_XDX
@@ -74,11 +77,15 @@ typedef byte SLOT;
 
 #define NB_XMM_REG 16
 static reg_id_t XMM_REG[] = {DR_REG_XMM0, DR_REG_XMM1, DR_REG_XMM2, DR_REG_XMM3, DR_REG_XMM4, DR_REG_XMM5, DR_REG_XMM6, DR_REG_XMM7, DR_REG_XMM8, DR_REG_XMM9, DR_REG_XMM10, DR_REG_XMM11, DR_REG_XMM12, DR_REG_XMM13, DR_REG_XMM14, DR_REG_XMM15};
-//static reg_id_t XMM_REG_REVERSE[] = {DR_REG_XMM15, DR_REG_XMM14, DR_REG_XMM13, DR_REG_XMM12, DR_REG_XMM11, DR_REG_XMM10, DR_REG_XMM9, DR_REG_XMM8, DR_REG_XMM7, DR_REG_XMM6, DR_REG_XMM5, DR_REG_XMM4, DR_REG_XMM3, DR_REG_XMM2, DR_REG_XMM1, DR_REG_XMM0};
+static reg_id_t XMM_REG_REVERSE[] = {DR_REG_XMM15, DR_REG_XMM14, DR_REG_XMM13, DR_REG_XMM12, DR_REG_XMM11, DR_REG_XMM10, DR_REG_XMM9, DR_REG_XMM8, DR_REG_XMM7, DR_REG_XMM6, DR_REG_XMM5, DR_REG_XMM4, DR_REG_XMM3, DR_REG_XMM2, DR_REG_XMM1, DR_REG_XMM0};
 
 #define NB_YMM_REG 16
 static reg_id_t YMM_REG[] = {DR_REG_YMM0, DR_REG_YMM1, DR_REG_YMM2, DR_REG_YMM3, DR_REG_YMM4, DR_REG_YMM5, DR_REG_YMM6, DR_REG_YMM7, DR_REG_YMM8, DR_REG_YMM9, DR_REG_YMM10, DR_REG_YMM11, DR_REG_YMM12, DR_REG_YMM13, DR_REG_YMM14, DR_REG_YMM15};
 static reg_id_t YMM_REG_REVERSE[] = {DR_REG_YMM15, DR_REG_YMM14, DR_REG_YMM13, DR_REG_YMM12, DR_REG_YMM11, DR_REG_YMM10, DR_REG_YMM9, DR_REG_YMM8, DR_REG_YMM7, DR_REG_YMM6, DR_REG_YMM5, DR_REG_YMM4, DR_REG_YMM3, DR_REG_YMM2, DR_REG_YMM1, DR_REG_YMM0};
+
+#define NB_ZMM_REG 32
+static reg_id_t ZMM_REG[] = {DR_REG_ZMM0, DR_REG_ZMM1, DR_REG_ZMM2, DR_REG_ZMM3, DR_REG_ZMM4, DR_REG_ZMM5, DR_REG_ZMM6, DR_REG_ZMM7, DR_REG_ZMM8, DR_REG_ZMM9, DR_REG_ZMM10, DR_REG_ZMM11, DR_REG_ZMM12, DR_REG_ZMM13, DR_REG_ZMM14, DR_REG_ZMM15, DR_REG_ZMM16, DR_REG_ZMM17, DR_REG_ZMM18, DR_REG_ZMM19, DR_REG_ZMM20, DR_REG_ZMM21, DR_REG_ZMM22, DR_REG_ZMM23, DR_REG_ZMM24, DR_REG_ZMM25, DR_REG_ZMM26, DR_REG_ZMM27, DR_REG_ZMM28, DR_REG_ZMM29, DR_REG_ZMM30, DR_REG_ZMM31};
+static reg_id_t ZMM_REG_REVERSE[] = {DR_REG_ZMM31, DR_REG_ZMM30, DR_REG_ZMM29, DR_REG_ZMM28, DR_REG_ZMM27, DR_REG_ZMM26, DR_REG_ZMM25, DR_REG_ZMM24, DR_REG_ZMM23, DR_REG_ZMM22, DR_REG_ZMM21, DR_REG_ZMM20, DR_REG_ZMM19, DR_REG_ZMM18, DR_REG_ZMM17, DR_REG_ZMM16, DR_REG_ZMM15, DR_REG_ZMM14, DR_REG_ZMM13, DR_REG_ZMM12, DR_REG_ZMM11, DR_REG_ZMM10, DR_REG_ZMM9, DR_REG_ZMM8, DR_REG_ZMM7, DR_REG_ZMM6, DR_REG_ZMM5, DR_REG_ZMM4, DR_REG_ZMM3, DR_REG_ZMM2, DR_REG_ZMM1, DR_REG_ZMM0};
 
 int tls_result /* index of thread local storage to store the result of floating point operations */, 
     tls_op_A, tls_op_B /* index of thread local storage to store the operands of vectorial floating point operations */,
@@ -145,6 +152,8 @@ static void event_exit(void)
 }
 
 static void thread_init(void *dr_context) {
+    dr_alloc_flags_t alloc_flags = DR_ALLOC_NON_HEAP;
+
     SET_TLS(dr_context , tls_result ,dr_thread_alloc(dr_context , MAX_OPND_SIZE_BYTES));
     SET_TLS(dr_context , tls_stack , dr_thread_alloc(dr_context , SIZE_STACK*sizeof(SLOT)));
     SET_TLS(dr_context , tls_op_A , dr_thread_alloc(dr_context , MAX_OPND_SIZE_BYTES));
@@ -522,9 +531,17 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
             insert_push_pseudo_stack_list(drcontext , topush_reg , bb , instr , buffer_reg , scratch , 14);
 
             // ****************************************************************************
-            // Push all YMM registers
+            // Push all ZMM/YMM/XMM registers
             // ****************************************************************************
-            insert_push_pseudo_stack_list(drcontext , YMM_REG , bb , instr , buffer_reg , scratch , NB_YMM_REG);
+            if(AVX_512_SUPPORTED) {
+                insert_push_pseudo_stack_list(drcontext , ZMM_REG , bb , instr , buffer_reg , scratch , NB_ZMM_REG);
+            }
+            else if(AVX_2_SUPPORTED) {
+                insert_push_pseudo_stack_list(drcontext , YMM_REG , bb , instr , buffer_reg , scratch , NB_YMM_REG);
+            }
+            else { /* SSE only */
+                insert_push_pseudo_stack_list(drcontext , XMM_REG , bb , instr , buffer_reg , scratch , NB_XMM_REG);
+            }
 
             // Move addresses of thread memory location of each operand in regiters XDI and XSI
             INSERT_READ_TLS(drcontext , tls_op_A , bb , instr , DR_REG_XDI);
@@ -577,8 +594,8 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(DR_REG_YMM_BUFFER)) , OP_REG(DR_REG_YMM_BUFFER)) , bb  , instr);
                     }
                     else { /* 512 */
-                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM1) , OP_BASE_DISP(opnd_get_base(SRC(instr,0)) , opnd_get_disp(SRC(instr,0)), reg_get_size(DR_REG_ZMM1))) , bb  , instr);
-                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(DR_REG_ZMM1)) , OP_REG(DR_REG_ZMM1)) , bb  , instr);
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM_BUFFER) , OP_BASE_DISP(opnd_get_base(SRC(instr,0)) , opnd_get_disp(SRC(instr,0)), reg_get_size(DR_REG_ZMM_BUFFER))) , bb  , instr);
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(DR_REG_ZMM_BUFFER)) , OP_REG(DR_REG_ZMM_BUFFER)) , bb  , instr);
                     }
                 }
 
@@ -600,8 +617,8 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
                         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(DR_REG_YMM_BUFFER)) , OP_REG(DR_REG_YMM_BUFFER)) , bb  , instr);
                     }
                     else { /* 512 */
-                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM0) , OP_BASE_DISP(opnd_get_base(SRC(instr,1)) , opnd_get_disp(SRC(instr,1)), reg_get_size(DR_REG_ZMM0))) , bb  , instr);
-                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(DR_REG_ZMM0)) , OP_REG(DR_REG_ZMM0)) , bb  , instr);
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM_BUFFER) , OP_BASE_DISP(opnd_get_base(SRC(instr,1)) , opnd_get_disp(SRC(instr,1)), reg_get_size(DR_REG_ZMM_BUFFER))) , bb  , instr);
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(DR_REG_ZMM_BUFFER)) , OP_REG(DR_REG_ZMM_BUFFER)) , bb  , instr);
                     }
                 }   
             }
@@ -649,9 +666,18 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
             // ****************************************************************************
 
             // ****************************************************************************
-            // Restore all YMM registers 
+            // Restore all ZMM/YMM/XMM registers 
             // ****************************************************************************
-            insert_pop_pseudo_stack_list(drcontext , YMM_REG_REVERSE , bb , instr , buffer_reg , scratch , NB_YMM_REG);
+            if(AVX_512_SUPPORTED) {
+                insert_pop_pseudo_stack_list(drcontext , ZMM_REG_REVERSE , bb , instr , buffer_reg , scratch , NB_ZMM_REG);
+            }
+            else if(AVX_2_SUPPORTED){
+                insert_pop_pseudo_stack_list(drcontext , YMM_REG_REVERSE , bb , instr , buffer_reg , scratch , NB_YMM_REG); 
+            }
+            else { /* SSE only */
+                insert_pop_pseudo_stack_list(drcontext , XMM_REG_REVERSE , bb , instr , buffer_reg , scratch , NB_XMM_REG); 
+            }
+            
 
             // ****************************************************************************
             // Set the result in the corresponding register
