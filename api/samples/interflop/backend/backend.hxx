@@ -53,7 +53,7 @@ struct Op<double> {
 
     //res=a+b;
     //Backend::get().interface.interflop_add_double (a, b, &res, Backend::get().context);
-    interflop_verrou_add_double(a,b,&res , Backend::get().context);
+    interflop_verrou_add_double(a,b,&res , NULL);
     return res;
   }
 
@@ -61,24 +61,24 @@ struct Op<double> {
     double res;
 
     //res=a-b;
-    //Backend::get().interface.interflop_sub_double (a, b, &res, Backend::get().context);
-    interflop_verrou_sub_double(a,b,&res , Backend::get().context);
+    //Backend::get().interface.interflop_sub_double (a, b, &res, NULL);
+    interflop_verrou_sub_double(a,b,&res , NULL);
     return res;
   }
 
   static double mul (double a, double b) {
     double res;
     //res=a*b;
-    //Backend::get().interface.interflop_mul_double (a, b, &res, Backend::get().context);
-    interflop_verrou_mul_double(a,b,&res , Backend::get().context);
+    //Backend::get().interface.interflop_mul_double (a, b, &res, NULL);
+    interflop_verrou_mul_double(a,b,&res , NULL);
     return res;
   }
 
   static double div (double a, double b) {
     double res;
     //res=a/b;
-    //Backend::get().interface.interflop_div_double (a, b, &res, Backend::get().context);
-    interflop_verrou_div_double(a,b,&res , Backend::get().context);
+    //Backend::get().interface.interflop_div_double (a, b, &res, NULL);
+    interflop_verrou_div_double(a,b,&res , NULL);
     return res;
   }
 };
@@ -90,8 +90,8 @@ struct Op<float> {
     float res;
 
     //res=a+b;
-    //Backend::get().interface.interflop_add_float (a, b, &res, Backend::get().context);
-    interflop_verrou_add_float(a,b,&res , Backend::get().context);
+    //Backend::get().interface.interflop_add_float (a, b, &res, NULL);
+    interflop_verrou_add_float(a,b,&res , NULL);
     return res;
   }
 
@@ -99,8 +99,8 @@ struct Op<float> {
     float res;
 
     //res=a-b;
-    //Backend::get().interface.interflop_sub_float (a, b, &res, Backend::get().context);
-    interflop_verrou_sub_float(a,b,&res , Backend::get().context);
+    //Backend::get().interface.interflop_sub_float (a, b, &res, NULL);
+    interflop_verrou_sub_float(a,b,&res , NULL);
     return res;
   }
 
@@ -108,8 +108,8 @@ struct Op<float> {
     float res;
 
     //res=a*b;
-    //Backend::get().interface.interflop_mul_float (a, b, &res, Backend::get().context);
-    interflop_verrou_mul_float(a,b,&res , Backend::get().context);
+    //Backend::get().interface.interflop_mul_float (a, b, &res, NULL);
+    interflop_verrou_mul_float(a,b,&res , NULL);
     return res;
   }
 
@@ -117,8 +117,8 @@ struct Op<float> {
     float res;
 
     res = a/b;
-    //Backend::get().interface.interflop_div_float (a, b, &res, Backend::get().context);
-    interflop_verrou_div_float(a,b,&res , Backend::get().context);
+    //Backend::get().interface.interflop_div_float (a, b, &res, NULL);
+    interflop_verrou_div_float(a,b,&res , NULL);
     return res;
   }
 };
