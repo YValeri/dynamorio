@@ -3,8 +3,8 @@
  */
 
 #include "dr_api.h"
-#include "dr_ir_opcodes.h"
-#include "dr_ir_opnd.h"
+#include "../include/dr_ir_opcodes.h"
+#include "../include/dr_ir_opnd.h"
 #include "drreg.h"
 #include "drmgr.h"
 #include "drsyms.h"
@@ -28,8 +28,14 @@
 
 #define ERROR(message) dr_fprintf(STDERR, "%s\n" , (message));
 
-#define DR_REG_SRC_0 DR_REG_XMM0
-#define DR_REG_SRC_1 DR_REG_XMM1
+//#define DR_REG_SRC_0 DR_REG_XMM0
+//#define DR_REG_SRC_1 DR_REG_XMM1
+#define DR_REG_XMM_BUFFER DR_REG_XMM15
+#define DR_REG_YMM_BUFFER DR_REG_YMM15
+#define DR_REG_ZMM_BUFFER DR_REG_ZMM31
+
+#define AVX_2_SUPPORTED (proc_has_feature(FEATURE_AVX2))
+#define AVX_512_SUPPORTED (proc_has_feature(FEATURE_AVX512F)) //(proc_num_simd_registers()==32) 
 
 #define DR_BUFFER_REG DR_REG_XCX
 #define DR_SCRATCH_REG DR_REG_XDX
@@ -56,6 +62,7 @@
 #define IS_YMM(reg) reg_is_strictly_ymm((reg))
 #define IS_ZMM(reg) reg_is_strictly_zmm((reg))
 #define OP_IS_BASE_DISP(opnd) opnd_is_base_disp((opnd))
+#define OP_IS_REL_ADDR(opnd) opnd_is_rel_addr((opnd))
 
 #define MOVE_FLOATING(is_double, drcontext , dest , srcd , srcs) (is_double) ? INSTR_CREATE_movsd((drcontext) , (dest) , (srcd)) : INSTR_CREATE_movss((drcontext) , (dest), (srcs))
 
@@ -80,14 +87,16 @@ static reg_id_t XMM_REG_REVERSE[] = {DR_REG_XMM15, DR_REG_XMM14, DR_REG_XMM13, D
 static reg_id_t YMM_REG[] = {DR_REG_YMM0, DR_REG_YMM1, DR_REG_YMM2, DR_REG_YMM3, DR_REG_YMM4, DR_REG_YMM5, DR_REG_YMM6, DR_REG_YMM7, DR_REG_YMM8, DR_REG_YMM9, DR_REG_YMM10, DR_REG_YMM11, DR_REG_YMM12, DR_REG_YMM13, DR_REG_YMM14, DR_REG_YMM15};
 static reg_id_t YMM_REG_REVERSE[] = {DR_REG_YMM15, DR_REG_YMM14, DR_REG_YMM13, DR_REG_YMM12, DR_REG_YMM11, DR_REG_YMM10, DR_REG_YMM9, DR_REG_YMM8, DR_REG_YMM7, DR_REG_YMM6, DR_REG_YMM5, DR_REG_YMM4, DR_REG_YMM3, DR_REG_YMM2, DR_REG_YMM1, DR_REG_YMM0};
 
+#define NB_ZMM_REG 32
+static reg_id_t ZMM_REG[] = {DR_REG_ZMM0, DR_REG_ZMM1, DR_REG_ZMM2, DR_REG_ZMM3, DR_REG_ZMM4, DR_REG_ZMM5, DR_REG_ZMM6, DR_REG_ZMM7, DR_REG_ZMM8, DR_REG_ZMM9, DR_REG_ZMM10, DR_REG_ZMM11, DR_REG_ZMM12, DR_REG_ZMM13, DR_REG_ZMM14, DR_REG_ZMM15, DR_REG_ZMM16, DR_REG_ZMM17, DR_REG_ZMM18, DR_REG_ZMM19, DR_REG_ZMM20, DR_REG_ZMM21, DR_REG_ZMM22, DR_REG_ZMM23, DR_REG_ZMM24, DR_REG_ZMM25, DR_REG_ZMM26, DR_REG_ZMM27, DR_REG_ZMM28, DR_REG_ZMM29, DR_REG_ZMM30, DR_REG_ZMM31};
+static reg_id_t ZMM_REG_REVERSE[] = {DR_REG_ZMM31, DR_REG_ZMM30, DR_REG_ZMM29, DR_REG_ZMM28, DR_REG_ZMM27, DR_REG_ZMM26, DR_REG_ZMM25, DR_REG_ZMM24, DR_REG_ZMM23, DR_REG_ZMM22, DR_REG_ZMM21, DR_REG_ZMM20, DR_REG_ZMM19, DR_REG_ZMM18, DR_REG_ZMM17, DR_REG_ZMM16, DR_REG_ZMM15, DR_REG_ZMM14, DR_REG_ZMM13, DR_REG_ZMM12, DR_REG_ZMM11, DR_REG_ZMM10, DR_REG_ZMM9, DR_REG_ZMM8, DR_REG_ZMM7, DR_REG_ZMM6, DR_REG_ZMM5, DR_REG_ZMM4, DR_REG_ZMM3, DR_REG_ZMM2, DR_REG_ZMM1, DR_REG_ZMM0};
+
 int tls_result /* index of thread local storage to store the result of floating point operations */, 
     tls_op_A, tls_op_B /* index of thread local storage to store the operands of vectorial floating point operations */,
     tls_stack /* index of thread local storage to store the address of the shallow stack */;
 
 // Function to treat each block of instructions 
 static dr_emit_flags_t event_basic_block(   void *drcontext, void *tag, instrlist_t *bb, bool for_trace, bool translating);     
-
-static dr_emit_flags_t runtime(void *drcontext, void *tag, instrlist_t *bb, bool for_trace, bool translating, void **user_data);
                                         
 static void event_exit(void);
 
@@ -146,8 +155,6 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
     // Define the function to executed to treat each instructions block
     //drmgr_register_bb_app2app_event(event_basic_block, NULL);
 
-    //drmgr_register_bb_instrumentation_event(runtime,NULL,NULL);
-
     interflop_verrou_configure(VR_RANDOM , nullptr);
 
     
@@ -194,6 +201,8 @@ static void event_exit(void)
 }
 
 static void thread_init(void *dr_context) {
+    dr_alloc_flags_t alloc_flags = DR_ALLOC_NON_HEAP;
+
     SET_TLS(dr_context , tls_result ,dr_thread_alloc(dr_context , MAX_OPND_SIZE_BYTES));
     SET_TLS(dr_context , tls_stack , dr_thread_alloc(dr_context , SIZE_STACK*sizeof(SLOT)));
     SET_TLS(dr_context , tls_op_A , dr_thread_alloc(dr_context , MAX_OPND_SIZE_BYTES));
@@ -212,47 +221,26 @@ static void thread_exit(void *dr_context) {
 //######################################################################################################################################################################################
 
 
-template <typename FTYPE , FTYPE (*FN)(FTYPE, FTYPE) , int SIMD_TYPE = IFP_OP_SCALAR>
+template <typename FTYPE , FTYPE (*FN)(FTYPE, FTYPE) , int SIMD_TYPE>
 struct interflop_backend {
 
-    static void apply(FTYPE a,  FTYPE b) {
-
-        //byte fp_state_buf[DR_FPSTATE_BUF_SIZE] __attribute__ ((aligned(16)));
-        //proc_save_fpstate(fp_state_buf);
-
-        // ***** Call to backend and get the result *****
-        FTYPE res = FN(a,b);
-
-        // ***** Copy the result in thread local memory *****
-        *((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result)) = res;
-
-        //  proc_restore_fpstate(fp_state_buf);
-
-        //dr_printf("A : %f\nB : %f\nA op B : %f\n",a, b,res);
-
-        //dr_printf("\n");
-    }
-
-    static void apply_vect(FTYPE *vect_a,  FTYPE *vect_b) {
-
-        //byte fp_state_buf[DR_FPSTATE_BUF_SIZE] __attribute__ ((aligned(16)));
-        //proc_save_fpstate(fp_state_buf);
+    static void apply(FTYPE *vect_a,  FTYPE *vect_b) {
        
-        int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : 0;
-        int nb_elem = vect_size/sizeof(FTYPE);
-        
+        constexpr int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
+        constexpr int nb_elem = vect_size/sizeof(FTYPE);
+
         FTYPE res;
         
         for(int i = 0 ; i < nb_elem ; i++) {
             res = FN(vect_a[i],vect_b[i]);
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
-        }
-
-        //proc_restore_fpstate(fp_state_buf);
-       
-       
-        //dr_printf("A : %p\nB : %p\n",vect_a , vect_b);
+        }       
 /*
+        dr_printf("Vect size : %d\n",vect_size);
+        dr_printf("Nb elem : %d\n",nb_elem);
+
+        dr_printf("A : %p\nB : %p\n",vect_a , vect_b);
+
         dr_printf("A : ");
         for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_a)+i)));
         dr_printf("\n");
@@ -260,14 +248,11 @@ struct interflop_backend {
         for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_b)+i)));
         dr_printf("\n");
         
-
         dr_printf("A op B : ");
         for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(GET_TLS(dr_get_current_drcontext(), tls_result))+i)));
         dr_printf("\n\n");
-*/     
+*/
     }
-
-
 };
 
 
@@ -329,7 +314,7 @@ static void print() {
     for(int i = 0 ; i < NB_XMM_REG ; i++) {
         reg_get_value_ex(XMM_REG[i] , &mcontext , xmm);
         dr_printf("XMM%d : ",i);
-        for(int k = 0 ; k < 2 ; k++) dr_printf("%e ",*(double*)&(xmm[8*k]));
+        for(int k = 0 ; k < 4 ; k++) dr_printf("%e ",*(float*)&(xmm[4*k]));
         dr_printf("\n");
     }
 
@@ -512,21 +497,21 @@ static inline void insert_push_pseudo_stack_list(void *drcontext , reg_id_t *reg
 
 
 template <typename FTYPE , FTYPE (*FN)(FTYPE, FTYPE)>
-inline void insert_corresponding_vect_call(void* drcontext, instrlist_t *bb, instr_t* instr,OPERATION_CATEGORY oc)
+inline void insert_corresponding_call(void* drcontext, instrlist_t *bb, instr_t* instr,OPERATION_CATEGORY oc)
 {
     switch(oc & IFP_SIMD_TYPE_MASK)
     {
         case IFP_OP_128:
-            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_128>::apply_vect , 0);
+            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_128>::apply , 0);
         break;
         case IFP_OP_256:
-            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_256>::apply_vect , 0);
+            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_256>::apply , 0);
         break;
         case IFP_OP_512:
-            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_512>::apply_vect , 0);
+            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_512>::apply , 0);
         break;
-        default:
-            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN>::apply_vect , 0);
+        default: /*SCALAR */
+            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_SCALAR>::apply , 0);
     }
 }
 
@@ -546,7 +531,6 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
 
     bool display = false;
     bool display_after = false;
-    bool saveSRC0 = false, saveSRC1 = false, saveYMM0 = false, saveYMM1 = false, saveZMM0 = false , saveZMM1 = false;
 
     for(instr = instrlist_first_app(bb); instr != NULL; instr = next_instr)
     {
@@ -558,9 +542,8 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             bool is_double = ifp_is_double(oc);
             bool is_scalar = ifp_is_scalar(oc);
 
-            
-            dr_print_instr(drcontext, STDERR, instr , "II : ");
             /*
+            dr_print_instr(drcontext, STDERR, instr , "II : ");
             dr_print_opnd(drcontext , STDERR , SRC(instr,0) , "SRC 0 : ");
             dr_print_opnd(drcontext , STDERR , SRC(instr,1) , "SRC 1 : ");
             */
@@ -582,8 +565,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             // ****************************************************************************
             // Reserve two registers
             // ****************************************************************************
-            reg_id_t buffer_reg  = DR_BUFFER_REG, 
-                     scratch     = DR_SCRATCH_REG;
+            reg_id_t buffer_reg  = DR_BUFFER_REG, scratch = DR_SCRATCH_REG;
 
             dr_save_reg(drcontext , bb , instr , buffer_reg , SPILL_SLOT_BUFFER_REG);
             dr_save_reg(drcontext , bb , instr , scratch , SPILL_SLOT_SCRATCH_REG);
@@ -601,122 +583,51 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             insert_push_pseudo_stack_list(drcontext , topush_reg , bb , instr , buffer_reg , scratch , 14);
 
             // ****************************************************************************
-            // Push all YMM registers
+            // Push all ZMM/YMM/XMM registers
             // ****************************************************************************
-            insert_push_pseudo_stack_list(drcontext , YMM_REG , bb , instr , buffer_reg , scratch , NB_YMM_REG);
-
-
-            if(is_scalar) { /* SCALAR */
-
-                // ****************************************************************************
-                // pass arguments using XMM registers for floating point operands 
-                // ****************************************************************************
-                
-                // Handle the case where the first oeprand is the register SRC_0
-                if(IS_REG(SRC(instr,0)) && IS_REG(SRC(instr,1)) && GET_REG(SRC(instr,0)) == DR_REG_SRC_0) {
-                    
-                    saveSRC0 = true;
-                    saveSRC1 = true;
-
-                    insert_push_pseudo_stack(drcontext , DR_REG_SRC_0 , bb , instr , buffer_reg , scratch);
-                    insert_push_pseudo_stack(drcontext , DR_REG_SRC_1 , bb , instr , buffer_reg , scratch);
-
-                    if(GET_REG(SRC(instr,1)) == DR_REG_SRC_1) {
-                        // Swap SRC_0 and SRC_1
-                        translate_insert(INSTR_CREATE_pxor(drcontext , OP_REG(DR_REG_SRC_0) , OP_REG(DR_REG_SRC_1)) , bb , instr);
-                        translate_insert(INSTR_CREATE_pxor(drcontext , OP_REG(DR_REG_SRC_1) , OP_REG(DR_REG_SRC_0)) , bb , instr);
-                        translate_insert(INSTR_CREATE_pxor(drcontext , OP_REG(DR_REG_SRC_0) , OP_REG(DR_REG_SRC_1)) , bb , instr);
-                    }
-                    else {
-                        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_SRC_1) , SRC(instr,0), SRC(instr,0)) , bb , instr);
-                        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_SRC_0) , SRC(instr,1), SRC(instr,1)) , bb , instr);
-                    }
-                }
-                else {
-                    // ***** First operand in XMM0 *****
-                    if(!IS_REG(SRC(instr,1)) || GET_REG(SRC(instr,1)) != DR_REG_SRC_0) {
-                        saveSRC0 = true;
-
-                        // Save current value of XMM0 in pseudo stack
-                        insert_push_pseudo_stack(drcontext , DR_REG_SRC_0 , bb , instr , buffer_reg , scratch);
-
-                        // Set the XMM register with the operand floating point value 
-                        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_SRC_0) , SRC(instr,1), SRC(instr,1)) , bb , instr);
-                    }
-
-                    // ***** Second operand in XMM1 *****
-                    if(!IS_REG(SRC(instr,0)) || GET_REG(SRC(instr,0)) != DR_REG_SRC_1) {
-                        saveSRC1 = true;
-
-                        // Save current value of XMM1 in pseudo stack
-                        insert_push_pseudo_stack(drcontext , DR_REG_SRC_1 , bb , instr , buffer_reg , scratch);
-                    
-                        // Set the XMM register with the operand floating point value 
-                        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_SRC_1) , SRC(instr,0) , SRC(instr,0)) , bb , instr);
-                    }
-                }
-
-                // ***** Sub stack pointer to handle the case where XSP is equal to XBP and XSP doesn't match the top of the stack *****
-                // ***** Otherwise the call will erase data when pushing the return address *****
-                // ***** If the gap is greater than 32 bytes, the program may crash !!!!!!!!!!!!!!! *****
-                translate_insert(INSTR_CREATE_sub(drcontext , OP_REG(DR_REG_XSP) , OP_INT(32)) , bb , instr);
-                
-                // ****************************************************************************
-                // ***** SCALAR CALL *****
-                // ****************************************************************************
-                switch (oc & IFP_OP_TYPE_MASK)
-                {
-                    case IFP_OP_ADD:
-                        dr_insert_call(drcontext , bb , instr ,is_double ?  (void*)interflop_backend<double,Interflop::Op<double>::add>::apply : (void*)interflop_backend<float,Interflop::Op<float>::add>::apply , 0);
-                    break;
-                    case IFP_OP_SUB:
-                        dr_insert_call(drcontext , bb , instr ,is_double ?  (void*)interflop_backend<double,Interflop::Op<double>::sub>::apply : (void*)interflop_backend<float,Interflop::Op<float>::sub>::apply , 0);
-                    break;
-                    case IFP_OP_MUL:
-                        dr_insert_call(drcontext , bb , instr ,is_double ?  (void*)interflop_backend<double,Interflop::Op<double>::mul>::apply : (void*)interflop_backend<float,Interflop::Op<float>::mul>::apply , 0);
-                    break;
-                    case IFP_OP_DIV:
-                        dr_insert_call(drcontext , bb , instr ,is_double ?  (void*)interflop_backend<double,Interflop::Op<double>::div>::apply : (void*)interflop_backend<float,Interflop::Op<float>::div>::apply , 0);
-                    break;
-                    default:
-                        ERROR("Error insert scalar call : Operation not found !");
-                }
-                // ****************************************************************************
-                // ****************************************************************************
-
-                if(saveSRC1) {
-                    saveSRC1 = false;
-                    insert_pop_pseudo_stack(drcontext , DR_REG_SRC_1 , bb , instr , buffer_reg , scratch);
-                }
-
-                if(saveSRC0) {
-                    saveSRC0 = false;   
-                    insert_pop_pseudo_stack(drcontext , DR_REG_SRC_0 , bb , instr , buffer_reg , scratch);
-                }
-
-                // ****************************************************************************
-                // Restore all YMM registers 
-                // ****************************************************************************
-                insert_pop_pseudo_stack_list(drcontext , YMM_REG_REVERSE , bb , instr , buffer_reg , scratch , NB_YMM_REG);
-
-
-                // ****************************************************************************
-                // Set the result in the corresponding register
-                // ****************************************************************************  
-                INSERT_READ_TLS(drcontext , tls_result , bb , instr , DR_REG_XDI);
-                translate_insert(MOVE_FLOATING(is_double , drcontext , DST(instr,0) , OP_BASE_DISP(DR_REG_XDI, 0, OPSZ(DOUBLE_SIZE)) , OP_BASE_DISP(DR_REG_XDI,0,OPSZ(FLOAT_SIZE))), bb , instr);     
+            if(AVX_512_SUPPORTED) {
+                insert_push_pseudo_stack_list(drcontext , ZMM_REG , bb , instr , buffer_reg , scratch , NB_ZMM_REG);
+            }
+            else if(AVX_2_SUPPORTED) {
+                insert_push_pseudo_stack_list(drcontext , YMM_REG , bb , instr , buffer_reg , scratch , NB_YMM_REG);
+            }
+            else { /* SSE only */
+                insert_push_pseudo_stack_list(drcontext , XMM_REG , bb , instr , buffer_reg , scratch , NB_XMM_REG);
             }
 
-            else { /* PACKED */
-                
-                // Move addresses of thread memory location of each operand in regiters XDI and XSI
-                INSERT_READ_TLS(drcontext , tls_op_A , bb , instr , DR_REG_XDI);
-                INSERT_READ_TLS(drcontext , tls_op_B , bb , instr , DR_REG_XSI);
+            // Move addresses of thread memory location of each operand in regiters XDI and XSI
+            INSERT_READ_TLS(drcontext , tls_op_A , bb , instr , DR_REG_XDI);
+            INSERT_READ_TLS(drcontext , tls_op_B , bb , instr , DR_REG_XSI);
 
-                // ****************************************************************************
-                // ***** Move operands to thread local memory 
-                // ****************************************************************************
+            
+            // ****************************************************************************
+            // ***** Move operands to thread local memory 
+            // ****************************************************************************
 
+            if(is_scalar) {
+
+                // ****** FIRST OPERAND *****
+
+               if(IS_REG(SRC(instr,0)) ) {
+                   translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(DR_REG_XSI, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), SRC(instr,0) , SRC(instr,0)), bb, instr);
+               }
+               else if(OP_IS_BASE_DISP(SRC(instr,0)) || OP_IS_REL_ADDR(SRC(instr,0))) {
+                   translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_XMM_BUFFER) , SRC(instr,0) , SRC(instr,0)), bb, instr);
+                   translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(DR_REG_XSI, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), OP_REG(DR_REG_XMM_BUFFER) , OP_REG(DR_REG_XMM_BUFFER)), bb, instr);
+               }
+
+                 // ****** SECOND OPERAND *****
+               if(IS_REG(SRC(instr,1)) ) {
+                   translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(DR_REG_XDI, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), SRC(instr,1) , SRC(instr,1)), bb, instr);
+               }
+               else if(OP_IS_BASE_DISP(SRC(instr,1)) || OP_IS_REL_ADDR(SRC(instr,1))) {
+                   translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_XMM_BUFFER) , SRC(instr,1) , SRC(instr,1)), bb, instr);
+                   translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(DR_REG_XDI, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), OP_REG(DR_REG_XMM_BUFFER) , OP_REG(DR_REG_XMM_BUFFER)), bb, instr);
+               }   
+            }
+
+            else {   /* PACKED */ 
+            
                 // ****** FIRST OPERAND *****
 
                 if(IS_XMM(GET_REG(SRC(instr,0)))) {
@@ -727,25 +638,16 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
                 }
                 else if(OP_IS_BASE_DISP(SRC(instr,0))) {
                     if(ifp_is_128(oc)) { /* 128 */
-                        saveSRC1 = true;
-                        insert_push_pseudo_stack(drcontext , DR_REG_SRC_1 , bb , instr , buffer_reg , scratch);
-
-                        translate_insert(INSTR_CREATE_movupd(drcontext , OP_REG(DR_REG_SRC_1) , OP_BASE_DISP(opnd_get_base(SRC(instr,0)) , opnd_get_disp(SRC(instr,0)), reg_get_size(DR_REG_SRC_1))) , bb  , instr);
-                        translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(DR_REG_SRC_1)) , OP_REG(DR_REG_SRC_1)) , bb  , instr);
+                        translate_insert(INSTR_CREATE_movupd(drcontext , OP_REG(DR_REG_XMM_BUFFER) , OP_BASE_DISP(opnd_get_base(SRC(instr,0)) , opnd_get_disp(SRC(instr,0)), reg_get_size(DR_REG_XMM_BUFFER))) , bb  , instr);
+                        translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(DR_REG_XMM_BUFFER)) , OP_REG(DR_REG_XMM_BUFFER)) , bb  , instr);
                     }
                     else if(ifp_is_256(oc)) { /* 256 */
-                        saveYMM1 = true;
-                        insert_push_pseudo_stack(drcontext , DR_REG_YMM1 , bb , instr , buffer_reg , scratch);
-
-                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM1) , OP_BASE_DISP(opnd_get_base(SRC(instr,0)) , opnd_get_disp(SRC(instr,0)), reg_get_size(DR_REG_YMM1))) , bb  , instr);
-                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(DR_REG_YMM1)) , OP_REG(DR_REG_YMM1)) , bb  , instr);
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_BASE_DISP(opnd_get_base(SRC(instr,0)) , opnd_get_disp(SRC(instr,0)), reg_get_size(DR_REG_YMM_BUFFER))) , bb  , instr);
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(DR_REG_YMM_BUFFER)) , OP_REG(DR_REG_YMM_BUFFER)) , bb  , instr);
                     }
                     else { /* 512 */
-                        saveZMM1 = true;
-                        insert_push_pseudo_stack(drcontext , DR_REG_ZMM1 , bb , instr , buffer_reg , scratch);
-
-                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM1) , OP_BASE_DISP(opnd_get_base(SRC(instr,0)) , opnd_get_disp(SRC(instr,0)), reg_get_size(DR_REG_ZMM1))) , bb  , instr);
-                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(DR_REG_ZMM1)) , OP_REG(DR_REG_ZMM1)) , bb  , instr);
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM_BUFFER) , OP_BASE_DISP(opnd_get_base(SRC(instr,0)) , opnd_get_disp(SRC(instr,0)), reg_get_size(DR_REG_ZMM_BUFFER))) , bb  , instr);
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XSI, 0, reg_get_size(DR_REG_ZMM_BUFFER)) , OP_REG(DR_REG_ZMM_BUFFER)) , bb  , instr);
                     }
                 }
 
@@ -759,114 +661,84 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
                 }
                 else if(OP_IS_BASE_DISP(SRC(instr,1))) {
                     if(ifp_is_128(oc)) { /* 128 */
-                        saveSRC0 = true;
-                        insert_push_pseudo_stack(drcontext , DR_REG_SRC_0 , bb , instr , buffer_reg , scratch);
-
-                        translate_insert(INSTR_CREATE_movupd(drcontext , OP_REG(DR_REG_SRC_0) , OP_BASE_DISP(opnd_get_base(SRC(instr,1)) , opnd_get_disp(SRC(instr,1)), reg_get_size(DR_REG_SRC_0))) , bb  , instr);
-                        translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(DR_REG_SRC_0)) , OP_REG(DR_REG_SRC_0)) , bb  , instr);
+                        translate_insert(INSTR_CREATE_movupd(drcontext , OP_REG(DR_REG_XMM_BUFFER) , OP_BASE_DISP(opnd_get_base(SRC(instr,1)) , opnd_get_disp(SRC(instr,1)), reg_get_size(DR_REG_XMM_BUFFER))) , bb  , instr);
+                        translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(DR_REG_XMM_BUFFER)) , OP_REG(DR_REG_XMM_BUFFER)) , bb  , instr);
                     }
                     else if(ifp_is_256(oc)) { /* 256 */
-                        saveYMM0 = true;
-                        insert_push_pseudo_stack(drcontext , DR_REG_YMM0 , bb , instr , buffer_reg , scratch);
-
-                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM0) , OP_BASE_DISP(opnd_get_base(SRC(instr,1)) , opnd_get_disp(SRC(instr,1)), reg_get_size(DR_REG_YMM0))) , bb  , instr);
-                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(DR_REG_YMM0)) , OP_REG(DR_REG_YMM0)) , bb  , instr);
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_BASE_DISP(opnd_get_base(SRC(instr,1)) , opnd_get_disp(SRC(instr,1)), reg_get_size(DR_REG_YMM_BUFFER))) , bb  , instr);
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(DR_REG_YMM_BUFFER)) , OP_REG(DR_REG_YMM_BUFFER)) , bb  , instr);
                     }
                     else { /* 512 */
-                        saveZMM0 = true;
-                        insert_push_pseudo_stack(drcontext , DR_REG_ZMM0 , bb , instr , buffer_reg , scratch);
-
-                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM0) , OP_BASE_DISP(opnd_get_base(SRC(instr,1)) , opnd_get_disp(SRC(instr,1)), reg_get_size(DR_REG_ZMM0))) , bb  , instr);
-                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(DR_REG_ZMM0)) , OP_REG(DR_REG_ZMM0)) , bb  , instr);
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM_BUFFER) , OP_BASE_DISP(opnd_get_base(SRC(instr,1)) , opnd_get_disp(SRC(instr,1)), reg_get_size(DR_REG_ZMM_BUFFER))) , bb  , instr);
+                        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(DR_REG_XDI, 0, reg_get_size(DR_REG_ZMM_BUFFER)) , OP_REG(DR_REG_ZMM_BUFFER)) , bb  , instr);
                     }
                 }   
+            }
 
-                // ***** Sub stack pointer to handle the case where XSP is equal to XBP and XSP doesn't match the top of the stack *****
-                // ***** Otherwise the call will erase data when pushing the return address *****
-                // ***** If the gap is greater than 32 bytes, the program may crash !!!!!!!!!!!!!!! *****
-                translate_insert(INSTR_CREATE_sub(drcontext , OP_REG(DR_REG_XSP) , OP_INT(32)) , bb , instr);
+            // ***** Sub stack pointer to handle the case where XSP is equal to XBP and XSP doesn't match the top of the stack *****
+            // ***** Otherwise the call will erase data when pushing the return address *****
+            // ***** If the gap is greater than 32 bytes, the program may crash !!!!!!!!!!!!!!! *****
+            translate_insert(INSTR_CREATE_sub(drcontext , OP_REG(DR_REG_XSP) , OP_INT(32)) , bb , instr);
 
-                //****************************************************************************
-                // ***** VECTORIAL CALL *****
-                // ****************************************************************************
-                switch (oc & IFP_OP_TYPE_MASK)
-                {
-                    case IFP_OP_ADD:
-                        if(is_double)
-                            insert_corresponding_vect_call<double,Interflop::Op<double>::add>(drcontext , bb , instr, oc);
-                        else
-                            insert_corresponding_vect_call<float,Interflop::Op<float>::add>(drcontext , bb , instr, oc);
-                    break;
-                    case IFP_OP_SUB:
-                        if(is_double)
-                            insert_corresponding_vect_call<double,Interflop::Op<double>::sub>(drcontext , bb , instr, oc);
-                        else
-                            insert_corresponding_vect_call<float,Interflop::Op<float>::sub>(drcontext , bb , instr, oc);
+            //****************************************************************************
+            // ***** CALL *****
+            // ****************************************************************************
+            switch (oc & IFP_OP_TYPE_MASK)
+            {
+                case IFP_OP_ADD:
+                    if(is_double)
+                        insert_corresponding_call<double,Interflop::Op<double>::add>(drcontext , bb , instr, oc);
+                    else
+                        insert_corresponding_call<float,Interflop::Op<float>::add>(drcontext , bb , instr, oc);
+                break;
+                case IFP_OP_SUB:
+                    if(is_double)
+                        insert_corresponding_call<double,Interflop::Op<double>::sub>(drcontext , bb , instr, oc);
+                    else
+                        insert_corresponding_call<float,Interflop::Op<float>::sub>(drcontext , bb , instr, oc);
+                break;
+                case IFP_OP_MUL:
+                    if(is_double)
+                        insert_corresponding_call<double,Interflop::Op<double>::mul>(drcontext , bb , instr, oc);
+                    else
+                        insert_corresponding_call<float,Interflop::Op<float>::mul>(drcontext , bb , instr, oc);
+                break;
+                case IFP_OP_DIV:
+                    if(is_double)
+                        insert_corresponding_call<double,Interflop::Op<double>::div>(drcontext , bb , instr, oc);
+                    else
+                        insert_corresponding_call<float,Interflop::Op<float>::div>(drcontext , bb , instr, oc);
+                break;
+                default:
+                    ERROR("ERROR OPERATION NOT FOUND !");
+            }
 
-                    break;
-                    case IFP_OP_MUL:
-                        if(is_double)
-                            insert_corresponding_vect_call<double,Interflop::Op<double>::mul>(drcontext , bb , instr, oc);
-                        else
-                            insert_corresponding_vect_call<float,Interflop::Op<float>::mul>(drcontext , bb , instr, oc);
+            // ****************************************************************************
+            // ****************************************************************************
+            // ****************************************************************************
 
-                    break;
-                    case IFP_OP_DIV:
-                        if(is_double)
-                            insert_corresponding_vect_call<double,Interflop::Op<double>::div>(drcontext , bb , instr, oc);
-                        else
-                            insert_corresponding_vect_call<float,Interflop::Op<float>::div>(drcontext , bb , instr, oc);
-                       
-                    break;
-                    default:
-                        ERROR("Error insert call : Operation not found !");
-                }
+            // ****************************************************************************
+            // Restore all ZMM/YMM/XMM registers 
+            // ****************************************************************************
+            if(AVX_512_SUPPORTED) {
+                insert_pop_pseudo_stack_list(drcontext , ZMM_REG_REVERSE , bb , instr , buffer_reg , scratch , NB_ZMM_REG);
+            }
+            else if(AVX_2_SUPPORTED){
+                insert_pop_pseudo_stack_list(drcontext , YMM_REG_REVERSE , bb , instr , buffer_reg , scratch , NB_YMM_REG); 
+            }
+            else { /* SSE only */
+                insert_pop_pseudo_stack_list(drcontext , XMM_REG_REVERSE , bb , instr , buffer_reg , scratch , NB_XMM_REG); 
+            }
+            
 
-                // ****************************************************************************
-                // ****************************************************************************
-                // ****************************************************************************
-
-                if(saveZMM0) {
-                    saveZMM0 = false;
-                    insert_pop_pseudo_stack(drcontext , DR_REG_ZMM0 , bb , instr , buffer_reg , scratch);
-                }
-
-                if(saveYMM0) {
-                    saveYMM0 = false;
-                    insert_pop_pseudo_stack(drcontext , DR_REG_YMM0 , bb , instr , buffer_reg , scratch);
-                }
-
-                if(saveSRC0) {
-                    saveSRC0 = false;   
-                    insert_pop_pseudo_stack(drcontext , DR_REG_SRC_0 , bb , instr , buffer_reg , scratch);
-                }
-
-                if(saveZMM1) {
-                    saveZMM1 = false;
-                    insert_pop_pseudo_stack(drcontext , DR_REG_ZMM1 , bb , instr , buffer_reg , scratch);
-                }
-
-                if(saveYMM1) {
-                    saveYMM1 = false;
-                    insert_pop_pseudo_stack(drcontext , DR_REG_YMM1 , bb , instr , buffer_reg , scratch);
-                }
-
-                if(saveSRC1) {
-                    saveSRC1 = false;   
-                    insert_pop_pseudo_stack(drcontext , DR_REG_SRC_1 , bb , instr , buffer_reg , scratch);
-                }
-
-                // ****************************************************************************
-                // Restore all YMM registers 
-                // ****************************************************************************
-                insert_pop_pseudo_stack_list(drcontext , YMM_REG_REVERSE , bb , instr , buffer_reg , scratch , NB_YMM_REG);
-
-
-                // ****************************************************************************
-                // Set the result in the corresponding register
-                // ****************************************************************************  
-                INSERT_READ_TLS(drcontext , tls_result , bb , instr , DR_REG_XDI);
-
+            // ****************************************************************************
+            // Set the result in the corresponding register
+            // ****************************************************************************  
+            INSERT_READ_TLS(drcontext , tls_result , bb , instr , DR_REG_XDI);
+            if(is_scalar) {
+                translate_insert(MOVE_FLOATING(is_double , drcontext , DST(instr,0) , OP_BASE_DISP(DR_REG_XDI, 0, OPSZ(DOUBLE_SIZE)) , OP_BASE_DISP(DR_REG_XDI,0,OPSZ(FLOAT_SIZE))), bb , instr);     
+            }
+            else { /* PACKED */
                 if(IS_XMM(GET_REG(DST(instr,0)))) {
                     translate_insert(INSTR_CREATE_movupd(drcontext , DST(instr,0) , OP_BASE_DISP(DR_REG_XDI , 0 , reg_get_size(GET_REG(DST(instr,0))))) , bb , instr);
                 }
@@ -874,6 +746,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
                     translate_insert(INSTR_CREATE_vmovupd(drcontext , DST(instr,0) , OP_BASE_DISP(DR_REG_XDI , 0 , reg_get_size(GET_REG(DST(instr,0))))) , bb , instr);
                 }
             }
+
 
             // ****************************************************************************
             // pop general purpose registers on pseudo stack 
@@ -914,7 +787,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             }            
         }       
     }
-    return DR_EMIT_STORE_TRANSLATIONS;
+    return DR_EMIT_DEFAULT;
 }
 
 
