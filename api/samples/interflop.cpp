@@ -7,8 +7,12 @@
 #include "dr_ir_opnd.h"
 #include "drreg.h"
 #include "drmgr.h"
+#include "drsyms.h"
 #include "interflop/interflop_operations.hpp"
 #include "interflop/interflop_compute.hpp"
+#include <vector>
+#include <string>
+#include "interflop/symbol_config.hpp"
 
 #ifndef MAX_INSTR_OPND_COUNT
 
@@ -97,22 +101,52 @@ static inline void insert_pop_pseudo_stack(void *drcontext , reg_id_t reg, instr
 static inline void insert_push_pseudo_stack_list(void *drcontext , reg_id_t *reg_to_push_list , _instr_list_t *bb , instr_t *instr , reg_id_t buffer_reg , reg_id_t temp_buf , unsigned int nb_reg);
 static inline void insert_pop_pseudo_stack_list(void *drcontext , reg_id_t *reg_to_pop_list , _instr_list_t *bb , instr_t *instr , reg_id_t buffer_reg , reg_id_t temp_buf , unsigned int nb_reg);
 
+//Function to treat each block of instructions to instrument
+static dr_emit_flags_t app2app_bb_event(   void *drcontext,        //Context
+                                            void *tag,              // Unique identifier of the block
+                                            instrlist_t *bb,        // Linked list of the instructions 
+                                            bool for_trace,         //TODO
+                                            bool translating);      //TODO
+
+//Function to treat each block of instructions to get the symbols
+static dr_emit_flags_t symbol_lookup_event(   void *drcontext,        //Context
+                                            void *tag,              // Unique identifier of the block
+                                            instrlist_t *bb,        // Linked list of the instructions 
+                                            bool for_trace,         //TODO
+                                            bool translating,       //TODO
+                                            OUT void** user_data);
+
+static void module_load_handler(void* drcontext, const module_data_t* module, bool loaded)
+{
+    dr_module_set_should_instrument(module->handle, shouldInstrumentModule(module));
+    //dr_printf("%s %d\n", dr_module_preferred_name(module), dr_module_should_instrument(module->handle));
+}    
 
 // Main function to setup the dynamoRIO client
 DR_EXPORT void dr_client_main(  client_id_t id, // client ID
                                 int argc,   
                                 const char *argv[])
 {
+    drsym_init(0);
+    symbol_lookup_config_from_args(argc, argv);
+    interflop_client_mode_t client_mode = get_client_mode();
+    if(client_mode == IFP_CLIENT_HELP)
+    {
+        dr_abort_with_code(0);
+        return;
+    }
+
     // Init DynamoRIO MGR extension ()
     drmgr_init();
+    
     
     // Define the functions to be called before exiting this client program
     dr_register_exit_event(event_exit);
 
     // Define the function to executed to treat each instructions block
-    drmgr_register_bb_app2app_event(event_basic_block, NULL);
+    //drmgr_register_bb_app2app_event(event_basic_block, NULL);
 
-    drmgr_register_bb_instrumentation_event(runtime,NULL,NULL);
+    //drmgr_register_bb_instrumentation_event(runtime,NULL,NULL);
 
     interflop_verrou_configure(VR_RANDOM , nullptr);
 
@@ -133,6 +167,17 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
     drreg_options.do_not_sum_slots=false;
     drreg_options.error_callback=NULL;
     drreg_init(&drreg_options);
+    
+    if(client_mode == IFP_CLIENT_GENERATE)
+    {
+        drmgr_register_bb_instrumentation_event(symbol_lookup_event, NULL, NULL);
+    }else
+    {
+        drmgr_register_module_load_event(module_load_handler);
+        drmgr_register_bb_app2app_event(app2app_bb_event, NULL);
+    }
+    interflop_verrou_configure(VR_RANDOM , nullptr);
+    
 }
 
 static void event_exit(void)
@@ -140,8 +185,12 @@ static void event_exit(void)
     drmgr_unregister_tls_field(tls_result);
     drmgr_unregister_tls_field(tls_stack);
 
+    if(get_client_mode() == IFP_CLIENT_GENERATE)
+    {
+        write_symbols_to_file();
+    }
     drmgr_exit();
-    drreg_exit();
+    drsym_exit();
 }
 
 static void thread_init(void *dr_context) {
@@ -485,20 +534,23 @@ inline void insert_corresponding_vect_call(void* drcontext, instrlist_t *bb, ins
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t *bb, bool for_trace, bool translating)
+static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t *bb, bool for_trace, bool translating)
 {
     instr_t *instr, *next_instr;
     instr_t *instr2 , *next_instr2;
     OPERATION_CATEGORY oc;
+    if(!needsToInstrument(bb))
+    {
+        return DR_EMIT_DEFAULT;
+    }
 
     bool display = false;
     bool display_after = false;
     bool saveSRC0 = false, saveSRC1 = false, saveYMM0 = false, saveYMM1 = false, saveZMM0 = false , saveZMM1 = false;
 
-    for(instr = instrlist_first(bb); instr != NULL; instr = next_instr)
+    for(instr = instrlist_first_app(bb); instr != NULL; instr = next_instr)
     {
-        next_instr = instr_get_next(instr);
-
+        next_instr = instr_get_next_app(instr);
         oc = ifp_get_operation_category(instr);
 
         if(oc)
@@ -870,14 +922,27 @@ static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-static dr_emit_flags_t runtime(void *drcontext, void *tag, instrlist_t *bb, bool for_trace, bool translating, void **user_data) {
-    /*instr_t *instr, *next_instr;
-    for(instr = instrlist_first(bb); instr != NULL; instr = next_instr)
-    {
-        next_instr = instr_get_next(instr);
-        //dr_printf("BUFFER ADDRESS IN REGISTER : %p\tREAL BUFFER ADDRESS : %p\n",buffer_address_reg,*dbuffer_ind);
-        dr_print_instr(drcontext, STDERR, instr, "RUNTIME Found : ");
+static dr_emit_flags_t symbol_lookup_event(void *drcontext, void *tag, instrlist_t *bb, bool for_trace, bool translating, OUT void** user_data)
+{
+    instr_t *instr, *next_instr;
+    OPERATION_CATEGORY oc;
+    
+    bool already_found_fp_op = false;
 
-    }*/
+    for(instr = instrlist_first_app(bb); instr != NULL; instr = next_instr)
+    {
+        next_instr = instr_get_next_app(instr);
+        oc = ifp_get_operation_category(instr);
+        if(oc)
+        {
+            dr_print_instr(drcontext, STDERR, instr, "Found : ");
+            if(!already_found_fp_op)
+            {
+                already_found_fp_op=true;
+                logSymbol(bb);
+            }
+        }
+
+    }
     return DR_EMIT_DEFAULT;
 }
