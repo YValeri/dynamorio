@@ -231,22 +231,22 @@ void insert_restore_floating_reg(void *drcontext , instrlist_t *bb , instr_t *in
 void insert_move_operands_to_tls_scalar(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc, bool is_double) {
 
     // ****** FIRST OPERAND *****
-    if(IS_REG(SRC(instr,0)) ) {
-        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(DR_REG_OP_B_ADDR, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), SRC(instr,0) , SRC(instr,0)), bb, instr);
-    }
-    else if(OP_IS_BASE_DISP(SRC(instr,0)) || OP_IS_REL_ADDR(SRC(instr,0))) {
+    if(OP_IS_BASE_DISP(SRC(instr,0)) || OP_IS_REL_ADDR(SRC(instr,0))) {
         translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_XMM_BUFFER) , SRC(instr,0) , SRC(instr,0)), bb, instr);
         translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(DR_REG_OP_B_ADDR, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), OP_REG(DR_REG_XMM_BUFFER) , OP_REG(DR_REG_XMM_BUFFER)), bb, instr);
     }
+    else if(IS_REG(SRC(instr,0)) ) {
+        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(DR_REG_OP_B_ADDR, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), SRC(instr,0) , SRC(instr,0)), bb, instr);
+    }
 
         // ****** SECOND OPERAND *****
-    if(IS_REG(SRC(instr,1)) ) {
-        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(DR_REG_OP_A_ADDR, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), SRC(instr,1) , SRC(instr,1)), bb, instr);
-    }
-    else if(OP_IS_BASE_DISP(SRC(instr,1)) || OP_IS_REL_ADDR(SRC(instr,1))) {
+    if(OP_IS_BASE_DISP(SRC(instr,1)) || OP_IS_REL_ADDR(SRC(instr,1))) {
         translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_XMM_BUFFER) , SRC(instr,1) , SRC(instr,1)), bb, instr);
         translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(DR_REG_OP_A_ADDR, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), OP_REG(DR_REG_XMM_BUFFER) , OP_REG(DR_REG_XMM_BUFFER)), bb, instr);
     }   
+    else if(IS_REG(SRC(instr,1)) ) {
+        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(DR_REG_OP_A_ADDR, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), SRC(instr,1) , SRC(instr,1)), bb, instr);
+    } 
 }
 
 //######################################################################################################################################################################################
