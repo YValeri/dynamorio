@@ -30,7 +30,7 @@ namespace Interflop
     };
     template<typename FTYPE>
     struct Op{};
-
+ 
     template<>
     struct Op<double>{
         static double add(double a, double b)
