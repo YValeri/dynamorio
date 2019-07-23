@@ -119,6 +119,6 @@ void insert_call(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_
 
 void insert_set_result_in_corresponding_register(void *drcontext , instrlist_t *bb , instr_t *instr, bool is_double , bool is_scalar);
 
-void insert_opnd_base_disp_to_tls(void *drcontext , opnd_t opnd_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc);
+void insert_opnd_base_disp_to_tls_packed(void *drcontext , opnd_t opnd_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc);
 
 #endif
