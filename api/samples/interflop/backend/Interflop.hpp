@@ -1,9 +1,33 @@
+#pragma once
 #include "interflop_backend_interface.h"
+
+#include "interflop_verrou.h"
 
 namespace Interflop
 {
-    struct interflop_backend_interface_t config;
-    void* context;
+    class Backend{
+    public:
+    static Backend& getInstance(){
+        static Backend instance;
+        return instance;
+    }
+
+
+    private:
+    Backend(){interface = interflop_verrou_init(&context);};
+    ~Backend()= default;
+    Backend(const Backend&)= delete;
+    Backend& operator=(const Backend&)= delete;
+
+    template<typename T>
+    friend class Op;
+
+
+    // Context & Interface, as defined by the Interflop standard
+    void *context;
+    interflop_backend_interface_t interface;
+    
+    };
     template<typename FTYPE>
     struct Op{};
 
@@ -12,25 +36,25 @@ namespace Interflop
         static double add(double a, double b)
         {
             double res;
-            config.interflop_add_double(a,b,&res, context);
+            Backend::getInstance().interface.interflop_add_double(a,b,&res, Backend::getInstance().context);
             return res;
         }
         static double sub(double a, double b)
         {
             double res;
-            config.interflop_sub_double(a,b,&res, context);
+            Backend::getInstance().interface.interflop_sub_double(a,b,&res,Backend::getInstance().context);
             return res;
         }
         static double mul(double a, double b)
         {
             double res;
-            config.interflop_mul_double(a,b,&res, context);
+            Backend::getInstance().interface.interflop_mul_double(a,b,&res,Backend::getInstance().context);
             return res;
         }
         static double div(double a, double b)
         {
             double res;
-            config.interflop_div_double(a,b,&res, context);
+            Backend::getInstance().interface.interflop_div_double(a,b,&res,Backend::getInstance().context);
             return res;
         }
     };
@@ -40,25 +64,25 @@ namespace Interflop
         static float add(float a, float b)
         {
             float res;
-            config.interflop_add_float(a,b,&res, context);
+            Backend::getInstance().interface.interflop_add_float(a,b,&res,Backend::getInstance().context);
             return res;
         }
         static float sub(float a, float b)
         {
             float res;
-            config.interflop_sub_float(a,b,&res, context);
+            Backend::getInstance().interface.interflop_sub_float(a,b,&res,Backend::getInstance().context);
             return res;
         }
         static float mul(float a, float b)
         {
             float res;
-            config.interflop_mul_float(a,b,&res, context);
+            Backend::getInstance().interface.interflop_mul_float(a,b,&res,Backend::getInstance().context);
             return res;
         }
         static float div(float a, float b)
         {
             float res;
-            config.interflop_div_float(a,b,&res, context);
+            Backend::getInstance().interface.interflop_div_float(a,b,&res,Backend::getInstance().context);
             return res;
         }
     };

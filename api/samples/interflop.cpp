@@ -15,7 +15,7 @@
 #include "interflop/symbol_config.hpp"
 #include "interflop/interflop_client.h"
 #include "interflop/backend/interflop_verrou.h"
-#include "backend/Interflop.hpp"
+#include "interflop/backend/Interflop.hpp"
                                         
 static void event_exit(void);
 
