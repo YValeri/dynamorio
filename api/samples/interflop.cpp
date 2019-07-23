@@ -3,18 +3,19 @@
  */
 
 #include "dr_api.h"
-#include "../include/dr_ir_opcodes.h"
-#include "../include/dr_ir_opnd.h"
+#include "dr_ir_opcodes.h"
+#include "dr_ir_opnd.h"
 #include "drreg.h"
 #include "drmgr.h"
 #include "drsyms.h"
 #include "interflop/interflop_operations.hpp"
-#include "interflop/interflop_compute.hpp"
 #include <vector>
 #include <string>
 
 #include "interflop/symbol_config.hpp"
-#include "interflop/interflop_client.h"    
+#include "interflop/interflop_client.h"
+#include "interflop/backend/interflop_verrou.h"
+#include "backend/Interflop.hpp"
                                         
 static void event_exit(void);
 

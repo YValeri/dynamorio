@@ -3,3 +3,9 @@ build/
 .idea/
 cmake-build-debug/
 CMakeLists.txt
+Debug/
+*.sln
+*.v12.suo
+*.vcxproj
+*.vcxproj.filters
+*.sdf

@@ -7,7 +7,6 @@
 
 #include "dr_api.h"
 #include "drmgr.h"
-#include "backend/backend.hxx"
 #include "interflop_operations.hpp"
 
 #ifndef MAX_OPND_SIZE_BYTES
