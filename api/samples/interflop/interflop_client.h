@@ -45,7 +45,7 @@
 #define SRC(instr,n) instr_get_src((instr),(n))
 #define DST(instr,n) instr_get_dst((instr),(n))
 #define MOVE_FLOATING(is_double, drcontext , dest , srcd , srcs) (is_double) ? INSTR_CREATE_movsd((drcontext) , (dest) , (srcd)) : INSTR_CREATE_movss((drcontext) , (dest), (srcs))
-#define MOVE_FLOATING_REG(is_ymm , drcontext , dest , src) (is_ymm) ? INSTR_CREATE_vmovsd((drcontext) , (dest) , (src)) : INSTR_CREATE_movsd((drcontext) , (dest) , (src))
+#define MOVE_FLOATING_REG(is_ymm , drcontext , dest , src) (is_ymm) ? INSTR_CREATE_vmovupd((drcontext) , (dest) , (src)) : INSTR_CREATE_movupd((drcontext) , (dest) , (src))
 
 /* CREATE OPND */
 #define OP_REG(reg_id) opnd_create_reg((reg_id))

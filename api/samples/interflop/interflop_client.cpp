@@ -37,23 +37,25 @@ struct interflop_backend {
             res = FN(vect_a[i],vect_b[i]);
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
         }   
-/*
-        dr_printf("Vect size : %d\n",vect_size);
-        dr_printf("Nb elem : %d\n",nb_elem);
 
-        dr_printf("A : %p\nB : %p\n",vect_a , vect_b);
+        #ifdef DEBUG
+            dr_printf("Vect size : %d\n",vect_size);
+            dr_printf("Nb elem : %d\n",nb_elem);
 
-        dr_printf("A : ");
-        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_a)+i)));
-        dr_printf("\n");
-        dr_printf("B : ");
-        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_b)+i)));
-        dr_printf("\n");
-        
-        dr_printf("A op B : ");
-        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(GET_TLS(dr_get_current_drcontext(), tls_result))+i)));
-        dr_printf("\n\n");
-*/
+            dr_printf("A : %p\nB : %p\n",vect_a , vect_b);
+
+            dr_printf("A : ");
+            for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_a)+i)));
+            dr_printf("\n");
+            dr_printf("B : ");
+            for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_b)+i)));
+            dr_printf("\n");
+            
+            dr_printf("A op B : ");
+            for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(GET_TLS(dr_get_current_drcontext(), tls_result))+i)));
+            dr_printf("\n\n");
+        #endif
+
     }
 };
 
@@ -81,12 +83,8 @@ void insert_pop_pseudo_stack(void *drcontext , reg_id_t reg, instrlist_t *bb , i
     // ****************************************************************************
     if(IS_GPR(reg))
         translate_insert(XINST_CREATE_load(drcontext, OP_REG(reg) , OP_BASE_DISP(buffer_reg , 0 , reg_get_size(reg))) , bb , instr); 
-    else if(IS_XMM(reg))
-        translate_insert(INSTR_CREATE_movupd(drcontext, OP_REG(reg), OP_BASE_DISP(buffer_reg , 0 , reg_get_size(reg))) , bb , instr);
-    else if(IS_YMM(reg) || IS_ZMM(reg))
-            translate_insert(INSTR_CREATE_vmovupd(drcontext, OP_REG(reg), OP_BASE_DISP(buffer_reg , 0 , reg_get_size(reg))) , bb , instr);
     else 
-        dr_fprintf(STDERR, "LOAD ERROR\n");
+        translate_insert(MOVE_FLOATING_REG((IS_YMM(reg) || IS_ZMM(reg)) , drcontext , OP_REG(reg) , OP_BASE_DISP(buffer_reg , 0 , reg_get_size(reg))), bb , instr);
 
     // ****************************************************************************
     // Update tls field with the new address
@@ -111,13 +109,8 @@ void insert_pop_pseudo_stack_list(void *drcontext , reg_id_t *reg_to_pop_list , 
         offset -= REG_SIZE(reg_to_pop_list[i]);
         if(IS_GPR(reg_to_pop_list[i]))
             translate_insert(XINST_CREATE_load(drcontext, OP_REG(reg_to_pop_list[i]) , OP_BASE_DISP(buffer_reg , offset , reg_get_size(reg_to_pop_list[i]))) , bb , instr); 
-        else if(IS_XMM(reg_to_pop_list[i]))
-            translate_insert(INSTR_CREATE_movupd(drcontext, OP_REG(reg_to_pop_list[i]), OP_BASE_DISP(buffer_reg , offset , reg_get_size(reg_to_pop_list[i]))) , bb , instr);
-        else if(IS_YMM(reg_to_pop_list[i]) || IS_ZMM(reg_to_pop_list[i]))
-            translate_insert(INSTR_CREATE_vmovupd(drcontext, OP_REG(reg_to_pop_list[i]), OP_BASE_DISP(buffer_reg , offset , reg_get_size(reg_to_pop_list[i]))) , bb , instr);
         else 
-            dr_fprintf(STDERR, "LOAD ERROR\n");
-
+            translate_insert(MOVE_FLOATING_REG((IS_YMM(reg_to_pop_list[i]) || IS_ZMM(reg_to_pop_list[i])) , drcontext , OP_REG(reg_to_pop_list[i]) , OP_BASE_DISP(buffer_reg , offset , reg_get_size(reg_to_pop_list[i]))), bb , instr);
     }
 
     // ****************************************************************************
@@ -147,13 +140,9 @@ void insert_push_pseudo_stack(void *drcontext , reg_id_t reg_to_push, instrlist_
     // ****************************************************************************
     if(IS_GPR(reg_to_push))
         translate_insert(XINST_CREATE_store(drcontext , OP_BASE_DISP(buffer_reg , 0 , reg_get_size(reg_to_push)) , OP_REG(reg_to_push)) , bb , instr); 
-    else if(IS_XMM(reg_to_push))
-        translate_insert(INSTR_CREATE_movupd(drcontext, OP_BASE_DISP(buffer_reg , 0 , reg_get_size(reg_to_push)), OP_REG(reg_to_push)) , bb , instr);
-    else if(IS_YMM(reg_to_push) || IS_ZMM(reg_to_push))
-        translate_insert(INSTR_CREATE_vmovupd(drcontext, OP_BASE_DISP(buffer_reg , 0 , reg_get_size(reg_to_push)), OP_REG(reg_to_push)) , bb , instr);
     else 
-        dr_fprintf(STDERR, "STORE ERROR\n");
-
+        translate_insert(MOVE_FLOATING_REG((IS_YMM(reg_to_push) || IS_ZMM(reg_to_push)) , drcontext , OP_BASE_DISP(buffer_reg , 0 , reg_get_size(reg_to_push)) , OP_REG(reg_to_push)), bb , instr);
+   
     // ****************************************************************************
     // Increment the register containing the address of the top of the stack
     // ****************************************************************************
@@ -181,12 +170,8 @@ void insert_push_pseudo_stack_list(void *drcontext , reg_id_t *reg_to_push_list 
     for(unsigned int i = 0 ; i < nb_reg ; i++) {
         if(IS_GPR(reg_to_push_list[i]))
             translate_insert(XINST_CREATE_store(drcontext , OP_BASE_DISP(buffer_reg , offset , reg_get_size(reg_to_push_list[i])) , OP_REG(reg_to_push_list[i])) , bb , instr); 
-        else if(IS_XMM(reg_to_push_list[i]))
-            translate_insert(INSTR_CREATE_movupd(drcontext, OP_BASE_DISP(buffer_reg , offset , reg_get_size(reg_to_push_list[i])),  OP_REG(reg_to_push_list[i])) , bb , instr);
-        else if(IS_YMM(reg_to_push_list[i]) || IS_ZMM(reg_to_push_list[i]))
-            translate_insert(INSTR_CREATE_vmovupd(drcontext, OP_BASE_DISP(buffer_reg , offset , reg_get_size(reg_to_push_list[i])),  OP_REG(reg_to_push_list[i])) , bb , instr);
-        else
-            dr_fprintf(STDERR, "STORE ERROR\n");
+        else 
+            translate_insert(MOVE_FLOATING_REG((IS_YMM(reg_to_push_list[i]) || IS_ZMM(reg_to_push_list[i])) , drcontext , OP_BASE_DISP(buffer_reg , offset , reg_get_size(reg_to_push_list[i])) , OP_REG(reg_to_push_list[i])), bb , instr);
 
         offset += REG_SIZE(reg_to_push_list[i]);
     }
