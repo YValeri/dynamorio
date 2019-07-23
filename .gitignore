@@ -9,3 +9,4 @@ Debug/
 *.vcxproj
 *.vcxproj.filters
 *.sdf
+dynamoro_prog_test/*.out

@@ -20,9 +20,11 @@
 #ifdef WINDOWS
     #define DR_REG_OP_A_ADDR DR_REG_XCX
     #define DR_REG_OP_B_ADDR DR_REG_XDX
+    #define DR_REG_RES_ADDR DR_REG_XDI
 #else
     #define DR_REG_OP_A_ADDR DR_REG_XDI
     #define DR_REG_OP_B_ADDR DR_REG_XSI
+    #define DR_REG_RES_ADDR DR_REG_XDI
 #endif
 
 
@@ -44,7 +46,7 @@
 #define SRC(instr,n) instr_get_src((instr),(n))
 #define DST(instr,n) instr_get_dst((instr),(n))
 #define MOVE_FLOATING(is_double, drcontext , dest , srcd , srcs) (is_double) ? INSTR_CREATE_movsd((drcontext) , (dest) , (srcd)) : INSTR_CREATE_movss((drcontext) , (dest), (srcs))
-#define MOVE_FLOATING_REG(is_ymm , drcontext , dest , src) (is_ymm) ? INSTR_CREATE_vmovsd((drcontext) , (dest) , (src)) : INSTR_CREATE_movsd((drcontext) , (dest) , (src))
+#define MOVE_FLOATING_REG(is_avx , drcontext , dest , src) (is_avx) ? INSTR_CREATE_vmovupd((drcontext) , (dest) , (src)) : INSTR_CREATE_movupd((drcontext) , (dest) , (src))
 
 /* CREATE OPND */
 #define OP_REG(reg_id) opnd_create_reg((reg_id))
@@ -116,5 +118,6 @@ void insert_call(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_
 
 void insert_set_result_in_corresponding_register(void *drcontext , instrlist_t *bb , instr_t *instr, bool is_double , bool is_scalar);
 
+void insert_opnd_base_disp_to_tls_packed(void *drcontext , opnd_t opnd_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc);
 
 #endif
