@@ -1,5 +1,8 @@
 #include "interflop_client.h"
 
+static reg_id_t GPR_REG[] = {DR_REG_XDI , DR_REG_XSI , DR_REG_XAX , DR_REG_XBP , DR_REG_XSP , DR_REG_XBX , DR_REG_R8, DR_REG_R9, DR_REG_R10, DR_REG_R11, DR_REG_R12, DR_REG_R13, DR_REG_R14, DR_REG_R15};
+static reg_id_t GPR_REG_REVERSE[] = {DR_REG_R15, DR_REG_R14, DR_REG_R13, DR_REG_R12, DR_REG_R11, DR_REG_R10, DR_REG_R9, DR_REG_R8, DR_REG_XBX , DR_REG_XSP , DR_REG_XBP , DR_REG_XAX , DR_REG_XSI , DR_REG_XDI};
+
 static reg_id_t XMM_REG[] = {DR_REG_XMM0, DR_REG_XMM1, DR_REG_XMM2, DR_REG_XMM3, DR_REG_XMM4, DR_REG_XMM5, DR_REG_XMM6, DR_REG_XMM7, DR_REG_XMM8, DR_REG_XMM9, DR_REG_XMM10, DR_REG_XMM11, DR_REG_XMM12, DR_REG_XMM13, DR_REG_XMM14, DR_REG_XMM15};
 static reg_id_t XMM_REG_REVERSE[] = {DR_REG_XMM15, DR_REG_XMM14, DR_REG_XMM13, DR_REG_XMM12, DR_REG_XMM11, DR_REG_XMM10, DR_REG_XMM9, DR_REG_XMM8, DR_REG_XMM7, DR_REG_XMM6, DR_REG_XMM5, DR_REG_XMM4, DR_REG_XMM3, DR_REG_XMM2, DR_REG_XMM1, DR_REG_XMM0};
 
@@ -253,17 +256,17 @@ void insert_move_operands_to_tls_scalar(void *drcontext , instrlist_t *bb , inst
 void insert_move_operands_to_tls_packed(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc) {
     
     // ****** FIRST OPERAND *****
-    if(IS_REG(SRC(instr,0)))
-        translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(SRC(instr,0))) || IS_ZMM(GET_REG(SRC(instr,0)))) , drcontext , OP_BASE_DISP(DR_REG_OP_B_ADDR, 0, reg_get_size(GET_REG(SRC(instr,0)))) , SRC(instr,0)), bb , instr);
-    else if(OP_IS_BASE_DISP(SRC(instr,0))) 
+    if(OP_IS_BASE_DISP(SRC(instr,0))) 
         insert_opnd_base_disp_to_tls_packed(drcontext , SRC(instr,0) , DR_REG_OP_B_ADDR , bb , instr , oc);
-
-
+    else if(IS_REG(SRC(instr,0)))
+        translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(SRC(instr,0))) || IS_ZMM(GET_REG(SRC(instr,0)))) , drcontext , OP_BASE_DISP(DR_REG_OP_B_ADDR, 0, reg_get_size(GET_REG(SRC(instr,0)))) , SRC(instr,0)), bb , instr);
+     
     // ****** SECOND OPERAND *****
-    if(IS_REG(SRC(instr,1)))
-        translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(SRC(instr,1))) || IS_ZMM(GET_REG(SRC(instr,1)))) , drcontext , OP_BASE_DISP(DR_REG_OP_A_ADDR, 0, reg_get_size(GET_REG(SRC(instr,1)))) , SRC(instr,1)), bb , instr);
-    else if(OP_IS_BASE_DISP(SRC(instr,1)))
+    if(OP_IS_BASE_DISP(SRC(instr,1)))
         insert_opnd_base_disp_to_tls_packed(drcontext , SRC(instr,1) , DR_REG_OP_A_ADDR , bb , instr , oc);  
+    else if(IS_REG(SRC(instr,1)))
+        translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(SRC(instr,1))) || IS_ZMM(GET_REG(SRC(instr,1)))) , drcontext , OP_BASE_DISP(DR_REG_OP_A_ADDR, 0, reg_get_size(GET_REG(SRC(instr,1)))) , SRC(instr,1)), bb , instr);
+     
 }
 
 //######################################################################################################################################################################################
