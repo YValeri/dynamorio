@@ -2,43 +2,11 @@
 
 extern "C" {
 #include "interflop.h"
+#include "../backend_verrou/interflop_verrou.h"
+
 }
 
 namespace Interflop {
-
-// Singleton pattern
-class Backend
-{
-public:
-  static Backend& get() {
-    // Instantiated on first use
-    // & guaranteed to be destroyed.
-    static Backend instance;
-    return instance;
-  }
-
-  // Avoid accidentally copying the singleton
-  Backend(Backend const&)         = delete;
-  void operator=(Backend const&)  = delete;
-
-  // Base operations provided by the backend
-  //
-  // (easier to have as an external class as it is templated by the base
-  // precision)
-  template <typename T>
-  friend class Op;
-
-private:
-  // Constructor
-  Backend() {
-    interface = interflop_init (&context);
-  }
-
-  // Context & Interface, as defined by the Interflop standard
-  void *context;
-  interflop_backend_interface_t interface;
-};
-
 
 
 // Base backend operations are only defined for the IEEE-754 single- and
