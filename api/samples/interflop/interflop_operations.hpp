@@ -11,24 +11,24 @@
  * The other flags are masks to easily detect the operation, the type and the SIMD size.
 */
 
-#define IFP_OP_OTHER       0b00000000000000000          //Other operations, those that don't concern us
-#define IFP_OP_DOUBLE      0b00000000000000001          //Operation between doubles
-#define IFP_OP_FLOAT       0b00000000000000010          //Operation between floats
-#define IFP_OP_PACKED      0b00000000000000100          //Operation between vectors
-#define IFP_OP_SCALAR      0b00000000000001000          //Operation between scalars
-#define IFP_OP_ADD         0b00000000000010000          //Addition
-#define IFP_OP_SUB         0b00000000000100000          //Substraction
-#define IFP_OP_MUL         0b00000000001000000          //Multiplication
-#define IFP_OP_DIV         0b00000000010000000          //Division
-#define IFP_OP_FMA         0b00000000100000000          //Fused Multiply Add
-#define IFP_OP_FMS         0b00000001000000000          //Fused Multiply Sub
-#define IFP_OP_132         0b00000010000000000          //Order of FMA/FMS : a * c + b
-#define IFP_OP_213         0b00000100000000000          //Order of FMA/FMS : b * a + c
-#define IFP_OP_231         0b00001000000000000          //Order of FMA/FMS : b * c + a
-#define IFP_OP_NEG         0b00010000000000000          //Negated FMA/FMS
-#define IFP_OP_128         0b00100000000000000          //Operation between vectors of length 128
-#define IFP_OP_256         0b01000000000000000          //Operation between vectors of length 256
-#define IFP_OP_512         0b10000000000000000          //Operation between vectors of length 512
+#define IFP_OP_OTHER        0       // 0b00000000000000000          //Other operations, those that don't concern us
+#define IFP_OP_DOUBLE       1       // 0b00000000000000001          //Operation between doubles
+#define IFP_OP_FLOAT        2       // 0b00000000000000010          //Operation between floats
+#define IFP_OP_PACKED       4       // 0b00000000000000100          //Operation between vectors
+#define IFP_OP_SCALAR       8       // 0b00000000000001000          //Operation between scalars
+#define IFP_OP_ADD          16      // 0b00000000000010000          //Addition
+#define IFP_OP_SUB          32      // 0b00000000000100000          //Substraction
+#define IFP_OP_MUL          64      // 0b00000000001000000          //Multiplication
+#define IFP_OP_DIV          128     // 0b00000000010000000          //Division
+#define IFP_OP_FMA          256     // 0b00000000100000000          //Fused Multiply Add
+#define IFP_OP_FMS          512     // 0b00000001000000000          //Fused Multiply Sub
+#define IFP_OP_132          1024    // 0b00000010000000000          //Order of FMA/FMS : a * c + b
+#define IFP_OP_213          2048    // 0b00000100000000000          //Order of FMA/FMS : b * a + c
+#define IFP_OP_231          4096    // 0b00001000000000000          //Order of FMA/FMS : b * c + a
+#define IFP_OP_NEG          8192    // 0b00010000000000000          //Negated FMA/FMS
+#define IFP_OP_128          16384   // 0b00100000000000000          //Operation between vectors of length 128
+#define IFP_OP_256          32768   // 0b01000000000000000          //Operation between vectors of length 256
+#define IFP_OP_512          65536   // 0b10000000000000000          //Operation between vectors of length 512
 
 #define IFP_OP_MASK        0b11111111111110000          //Mask to get the Operation
 #define IFP_OP_TYPE_MASK   0b00011111111110000          //Mask to get the type of the operation
