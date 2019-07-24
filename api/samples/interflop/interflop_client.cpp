@@ -1,8 +1,5 @@
 #include "interflop_client.h"
 
-static reg_id_t GPR_REG[] = {DR_REG_XDI, DR_REG_XSI, DR_REG_XAX, DR_REG_XBP, DR_REG_XSP, DR_REG_XBX, DR_REG_R8, DR_REG_R9, DR_REG_R10, DR_REG_R11, DR_REG_R12, DR_REG_R13, DR_REG_R14, DR_REG_R15};
-static reg_id_t GPR_REG_REVERSE[] = {DR_REG_R15, DR_REG_R14, DR_REG_R13, DR_REG_R12, DR_REG_R11, DR_REG_R10, DR_REG_R9, DR_REG_R8, DR_REG_XBX, DR_REG_XSP, DR_REG_XBP, DR_REG_XAX, DR_REG_XSI, DR_REG_XDI};
-
 static reg_id_t XMM_REG[] = {DR_REG_XMM0, DR_REG_XMM1, DR_REG_XMM2, DR_REG_XMM3, DR_REG_XMM4, DR_REG_XMM5, DR_REG_XMM6, DR_REG_XMM7, DR_REG_XMM8, DR_REG_XMM9, DR_REG_XMM10, DR_REG_XMM11, DR_REG_XMM12, DR_REG_XMM13, DR_REG_XMM14, DR_REG_XMM15};
 static reg_id_t XMM_REG_REVERSE[] = {DR_REG_XMM15, DR_REG_XMM14, DR_REG_XMM13, DR_REG_XMM12, DR_REG_XMM11, DR_REG_XMM10, DR_REG_XMM9, DR_REG_XMM8, DR_REG_XMM7, DR_REG_XMM6, DR_REG_XMM5, DR_REG_XMM4, DR_REG_XMM3, DR_REG_XMM2, DR_REG_XMM1, DR_REG_XMM0};
 
@@ -79,16 +76,31 @@ void insert_pop_pseudo_stack(void *drcontext, reg_id_t reg, instrlist_t *bb, ins
     // ****************************************************************************
     // Decrement the register containing the address of the top of the stack
     // ****************************************************************************
-    translate_insert(INSTR_CREATE_sub(drcontext, OP_REG(buffer_reg), OP_INT(REG_SIZE(reg))), bb, instr);
-
+    translate_insert(XINST_CREATE_sub(drcontext, OP_REG(buffer_reg), OP_INT(REG_SIZE(reg))), bb, instr);
     // ****************************************************************************
     // Load the value in the defined register
     // ****************************************************************************
     if(IS_GPR(reg))
-        translate_insert(XINST_CREATE_load(drcontext, OP_REG(reg), OP_BASE_DISP(buffer_reg, 0, reg_get_size(reg))), bb, instr); 
+        translate_insert(
+            XINST_CREATE_load(drcontext, 
+                OP_REG(reg), 
+                OP_BASE_DISP(buffer_reg, 0, reg_get_size(reg))), 
+            bb, instr); 
     else 
-        translate_insert(MOVE_FLOATING_REG((IS_YMM(reg) || IS_ZMM(reg)), drcontext, OP_REG(reg), OP_BASE_DISP(buffer_reg, 0, reg_get_size(reg))), bb, instr);
-
+#if defined(X86)
+        translate_insert(
+            MOVE_FLOATING_REG((IS_YMM(reg) || IS_ZMM(reg)), 
+                drcontext, OP_REG(reg), 
+                OP_BASE_DISP(buffer_reg, 0, reg_get_size(reg))), 
+            bb, instr);
+#elif defined(AARCH64)
+        translate_insert(
+            INSTR_CREATE_ld1_multi_1(drcontext,
+                OP_REG(reg),
+                OP_BASE_DISP(buffer_reg, 0, OPSZ_2),
+                OPND_CREATE_DOUBLE()), 
+            bb, instr);
+#endif
     // ****************************************************************************
     // Update tls field with the new address
     // ****************************************************************************
@@ -111,15 +123,33 @@ void insert_pop_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_pop_list, in
     for(unsigned int i = 0 ; i < nb_reg ; i++) {
         offset -= REG_SIZE(reg_to_pop_list[i]);
         if(IS_GPR(reg_to_pop_list[i]))
-            translate_insert(XINST_CREATE_load(drcontext, OP_REG(reg_to_pop_list[i]), OP_BASE_DISP(buffer_reg, offset, reg_get_size(reg_to_pop_list[i]))), bb, instr); 
+            translate_insert(
+                XINST_CREATE_load(drcontext, 
+                    OP_REG(reg_to_pop_list[i]), 
+                    OP_BASE_DISP(buffer_reg, offset, reg_get_size(reg_to_pop_list[i]))), 
+                bb, instr); 
         else 
-            translate_insert(MOVE_FLOATING_REG((IS_YMM(reg_to_pop_list[i]) || IS_ZMM(reg_to_pop_list[i])), drcontext, OP_REG(reg_to_pop_list[i]), OP_BASE_DISP(buffer_reg, offset, reg_get_size(reg_to_pop_list[i]))), bb, instr);
+#if defined(X86)
+            translate_insert(
+                MOVE_FLOATING_REG(
+                    (IS_YMM(reg_to_pop_list[i]) || IS_ZMM(reg_to_pop_list[i])), 
+                    drcontext, OP_REG(reg_to_pop_list[i]), 
+                    OP_BASE_DISP(buffer_reg, offset, reg_get_size(reg_to_pop_list[i]))), 
+                bb, instr);
+#elif defined(AARCH64)
+            translate_insert(
+                INSTR_CREATE_ld1_multi_1(drcontext,
+                    OP_REG(reg_to_pop_list[i])
+                    OP_BASE_DISP(buffer_reg, offset, OPSZ_2),
+                    OPND_CREATE_DOUBLE()), 
+                bb, instr);
+#endif
     }
 
     // ****************************************************************************
     // Decrement the register containing the address of the top of the stack
     // ****************************************************************************
-    translate_insert(INSTR_CREATE_add(drcontext, OP_REG(buffer_reg), OP_INT(offset)), bb, instr);
+    translate_insert(XINST_CREATE_add(drcontext, OP_REG(buffer_reg), OP_INT(offset)), bb, instr);
 
     // ****************************************************************************
     // Update tls field with the new address
@@ -142,14 +172,28 @@ void insert_push_pseudo_stack(void *drcontext, reg_id_t reg_to_push, instrlist_t
     // Store the value of the register to save
     // ****************************************************************************
     if(IS_GPR(reg_to_push))
-        translate_insert(XINST_CREATE_store(drcontext, OP_BASE_DISP(buffer_reg, 0, reg_get_size(reg_to_push)), OP_REG(reg_to_push)), bb, instr); 
+        translate_insert(
+            XINST_CREATE_store(drcontext, 
+                OP_BASE_DISP(buffer_reg, 0, reg_get_size(reg_to_push)), 
+                OP_REG(reg_to_push)), bb, instr); 
     else 
-        translate_insert(MOVE_FLOATING_REG((IS_YMM(reg_to_push) || IS_ZMM(reg_to_push)), drcontext, OP_BASE_DISP(buffer_reg, 0, reg_get_size(reg_to_push)), OP_REG(reg_to_push)), bb, instr);
+#if defined(X86)
+        translate_insert(
+            MOVE_FLOATING_REG((IS_YMM(reg_to_push) || IS_ZMM(reg_to_push)), 
+                drcontext, OP_BASE_DISP(buffer_reg, 0, reg_get_size(reg_to_push)), 
+                OP_REG(reg_to_push)), bb, instr);
+#elif defined(AARCH64)
+        translate_insert(
+            INSTR_CREATE_st1_multi_1(drcontext,
+                OP_BASE_DISP(buffer_reg, 0, OPSZ_2),
+                OP_REG(reg_to_push), OPND_CREATE_DOUBLE()), 
+            bb, instr);
+#endif
    
     // ****************************************************************************
     // Increment the register containing the address of the top of the stack
     // ****************************************************************************
-    translate_insert(INSTR_CREATE_add(drcontext, OP_REG(buffer_reg), OP_INT(REG_SIZE(reg_to_push))), bb, instr); 
+    translate_insert(XINST_CREATE_add(drcontext, OP_REG(buffer_reg), OP_INT(REG_SIZE(reg_to_push))), bb, instr);
 
     // ****************************************************************************
     // Update tls field with the new address
@@ -172,9 +216,26 @@ void insert_push_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_push_list, 
 
     for(unsigned int i = 0 ; i < nb_reg ; i++) {
         if(IS_GPR(reg_to_push_list[i]))
-            translate_insert(XINST_CREATE_store(drcontext, OP_BASE_DISP(buffer_reg, offset, reg_get_size(reg_to_push_list[i])), OP_REG(reg_to_push_list[i])), bb, instr); 
+            translate_insert(
+                XINST_CREATE_store(
+                    drcontext, 
+                    OP_BASE_DISP(buffer_reg, offset, reg_get_size(reg_to_push_list[i])), 
+                    OP_REG(reg_to_push_list[i])), bb, instr);
         else 
-            translate_insert(MOVE_FLOATING_REG((IS_YMM(reg_to_push_list[i]) || IS_ZMM(reg_to_push_list[i])), drcontext, OP_BASE_DISP(buffer_reg, offset, reg_get_size(reg_to_push_list[i])), OP_REG(reg_to_push_list[i])), bb, instr);
+#if defined(X86)
+            translate_insert(
+                MOVE_FLOATING_REG(
+                    (IS_YMM(reg_to_push_list[i]) || IS_ZMM(reg_to_push_list[i])), 
+                    drcontext, 
+                    OP_BASE_DISP(buffer_reg, offset, reg_get_size(reg_to_push_list[i])), 
+                    OP_REG(reg_to_push_list[i])), bb, instr);
+#elif defined(AARCH64)
+            translate_insert(
+                INSTR_CREATE_st1_multi_1(drcontext,
+                    OP_BASE_DISP(buffer_reg, offset, OPSZ_2),
+                    OP_REG(reg_to_push_list[i]), OPND_CREATE_DOUBLE()), 
+                bb, instr);
+#endif
 
         offset += REG_SIZE(reg_to_push_list[i]);
     }
@@ -319,13 +380,17 @@ void insert_opnd_base_disp_to_tls_packed(void *drcontext, opnd_t opnd_src, reg_i
     }
 #elif defined(AARCH64)
     if(ifp_is_128(oc)) {
-        translate_insert(INSTR_CREATE_ld1_multi_1(drcontext,
-            OP_REG(DR_REG_MULTIPLE), 
-            OP_BASE_DISP(opnd_get_base(opnd_src), opnd_get_disp(opnd_src), OPSZ_2),
-            OPND_CREATE_DOUBLE()));
-        translate_insert(INSTR_CREATE_st1_multi_1(drcontext,
-            OP_BASE_DISP(base_dst, 0, OPSZ_2),
-            OP_REG(DR_REG_MULTIPLE), OPND_CREATE_DOUBLE()));
+        translate_insert(
+            INSTR_CREATE_ld1_multi_1(drcontext,
+                OP_REG(DR_REG_MULTIPLE), 
+                OP_BASE_DISP(opnd_get_base(opnd_src), opnd_get_disp(opnd_src), OPSZ_2),
+                OPND_CREATE_DOUBLE()), 
+            bb, instr);
+        translate_insert(
+            INSTR_CREATE_st1_multi_1(drcontext,
+                OP_BASE_DISP(base_dst, 0, OPSZ_2),
+                OP_REG(DR_REG_MULTIPLE), OPND_CREATE_DOUBLE()), 
+            bb, instr);
     }else
         DR_ASSERT(false, "Other sizes not available on AArch64.");
 
@@ -419,10 +484,12 @@ void insert_set_result_in_corresponding_register(void *drcontext, instrlist_t *b
                 OP_BASE_DISP(DR_REG_RES_ADDR, 0, reg_get_size(GET_REG(DST(instr,0))))), 
             bb, instr);
 #elif defined(AARCH64)
-        translate_insert(INSTR_CREATE_ld1_multi_1(drcontext,
-            DST(instr, 0), 
-            OP_BASE_DISP(DR_REG_RES_ADDR, 0, OPSZ_2),
-            OPND_CREATE_DOUBLE()));
+        translate_insert(
+            INSTR_CREATE_ld1_multi_1(drcontext,
+                DST(instr, 0), 
+                OP_BASE_DISP(DR_REG_RES_ADDR, 0, OPSZ_2),
+                OPND_CREATE_DOUBLE()), 
+            bb, instr);
 #endif
     }
 }
