@@ -3,7 +3,7 @@
 static unsigned int getPackedSizeFlag(instr_t* instr)
 {
     int n = instr_num_srcs(instr);
-    int maxSize=0;
+    uint maxSize=0;
     for(int i=0; i<n; i++)
     {
         uint curr_size = opnd_size_in_bytes(opnd_get_size(instr_get_src(instr, i))); 
