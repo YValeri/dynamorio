@@ -71,12 +71,15 @@
 /* CREATE OPND */
 #define OP_REG(reg_id) opnd_create_reg((reg_id))
 #define OP_INT(val) opnd_create_immed_int((val), OPSZ_4)
-#define OP_REL_ADDR(addr) opnd_create_rel_addr((addr), OPSZ_8)
 
 #if defined(X86)
+	#define OP_REL_ADDR(addr) \
+		opnd_create_rel_addr((addr), OPSZ_8)
 	#define OP_BASE_DISP(base,disp,size) \
 		opnd_create_base_disp((base), DR_REG_NULL, 0, (disp), (size))
 #elif defined(AARCH64)
+	#define OP_REL_ADDR(addr) \
+		opnd_create_rel_addr((addr), OPSZ_2)
 	#define OP_BASE_DISP(base, disp, size) \
 		opnd_create_base_disp_aarch64((base), DR_REG_NULL, 0, false, (disp), 0, (size))
 #endif
@@ -121,9 +124,13 @@
 
 typedef byte SLOT;
 
-#define NB_XMM_REG 16
-#define NB_YMM_REG 16
-#define NB_ZMM_REG 32
+#if defined(X86)
+	#define NB_XMM_REG 16
+	#define NB_YMM_REG 16
+	#define NB_ZMM_REG 32
+#elif defined(AARCH64)
+	#define NB_Q_REG 32
+#endif
 
 int get_index_tls_result();
 int get_index_tls_op_A();
