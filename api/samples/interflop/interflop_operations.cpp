@@ -1,5 +1,30 @@
 #include "interflop_operations.hpp"
 
+static unsigned int getPackedSizeFlag(instr_t* instr)
+{
+    int n = instr_num_srcs(instr);
+    int maxSize=0;
+    for(int i=0; i<n; i++)
+    {
+        uint curr_size = opnd_size_in_bytes(opnd_get_size(instr_get_src(instr, i))); 
+        if(curr_size > maxSize)
+        {
+            maxSize = curr_size;
+        }
+    }
+    switch(maxSize)
+    {
+        case 16:
+        return IFP_OP_128;
+        case 32:
+        return IFP_OP_256;
+        case 64:
+        return IFP_OP_512;
+        default:
+        return 0;
+    }
+}
+
 enum OPERATION_CATEGORY ifp_get_operation_category(instr_t* instr)
 {
     //TODO Need to complete
@@ -61,28 +86,28 @@ enum OPERATION_CATEGORY ifp_get_operation_category(instr_t* instr)
         // ###### AVX ######
 
         case OP_vaddpd: //AVX packed double add
-        return IFP_PADDD_256;
+        return (OPERATION_CATEGORY)(IFP_PADDD | getPackedSizeFlag(instr));
 
         case OP_vaddps: //AVX packed float add
-        return IFP_PADDS_256;
+        return (OPERATION_CATEGORY)(IFP_PADDS | getPackedSizeFlag(instr));
 
         case OP_vsubps: //AVX packed float sub
-        return IFP_PSUBS_256;
+        return (OPERATION_CATEGORY)(IFP_PSUBS | getPackedSizeFlag(instr));
 
         case OP_vsubpd: //AVX packet double sub
-        return IFP_PSUBD_256;
+        return (OPERATION_CATEGORY)(IFP_PSUBD | getPackedSizeFlag(instr));
 
         case OP_vmulps: //AVX packed float mul
-        return IFP_PMULS_256;
+        return (OPERATION_CATEGORY)(IFP_PMULS | getPackedSizeFlag(instr));
 
         case OP_vmulpd: //AVX packet double mul
-        return IFP_PMULD_256;
+        return (OPERATION_CATEGORY)(IFP_PMULD | getPackedSizeFlag(instr));
 
         case OP_vdivps: //AVX packed float div
-        return IFP_PDIVS_256;
+        return (OPERATION_CATEGORY)(IFP_PDIVS | getPackedSizeFlag(instr));
 
         case OP_vdivpd: //AVX packet double div
-        return IFP_PDIVD_256;
+        return (OPERATION_CATEGORY)(IFP_PDIVD | getPackedSizeFlag(instr));
 
         // ###### UNSUPPORTED ######
 
