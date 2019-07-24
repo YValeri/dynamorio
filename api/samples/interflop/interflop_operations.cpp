@@ -116,7 +116,8 @@ enum OPERATION_CATEGORY ifp_get_operation_category(instr_t* instr)
         return IFP_UNSUPPORTED;
 
 #elif defined(AARCH64)
-
+        case OP_fadd:
+        return IFP_ADDD;
 #endif
 
         default:
