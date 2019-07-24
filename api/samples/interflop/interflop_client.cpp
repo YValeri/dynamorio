@@ -289,9 +289,14 @@ void insert_move_operands_to_tls(void *drcontext , instrlist_t *bb , instr_t *in
 
 
 void insert_opnd_base_disp_to_tls_packed(void *drcontext , opnd_t opnd_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc) {
+#if defined(X86)
     if(ifp_is_128(oc)) {
-        translate_insert(INSTR_CREATE_movupd(drcontext , OP_REG(DR_REG_XMM_BUFFER) , OP_BASE_DISP(opnd_get_base(opnd_src) , opnd_get_disp(opnd_src), reg_get_size(DR_REG_XMM_BUFFER))) , bb  , instr);
-        translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_XMM_BUFFER)) , OP_REG(DR_REG_XMM_BUFFER)) , bb  , instr);
+        translate_insert(INSTR_CREATE_movupd(drcontext,
+            OP_REG(DR_REG_XMM_BUFFER), OP_BASE_DISP(opnd_get_base(opnd_src),
+                opnd_get_disp(opnd_src), reg_get_size(DR_REG_XMM_BUFFER))), bb, instr);
+        translate_insert(INSTR_CREATE_movupd(drcontext, 
+            OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_XMM_BUFFER)), 
+            OP_REG(DR_REG_XMM_BUFFER)), bb, instr);
     }
     else if(ifp_is_256(oc)) {
         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_BASE_DISP(opnd_get_base(opnd_src) , opnd_get_disp(opnd_src), reg_get_size(DR_REG_YMM_BUFFER))) , bb  , instr);
@@ -301,6 +306,21 @@ void insert_opnd_base_disp_to_tls_packed(void *drcontext , opnd_t opnd_src , reg
         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM_BUFFER) , OP_BASE_DISP(opnd_get_base(opnd_src) , opnd_get_disp(opnd_src), reg_get_size(DR_REG_ZMM_BUFFER))) , bb  , instr);
         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_ZMM_BUFFER)) , OP_REG(DR_REG_ZMM_BUFFER)) , bb  , instr);
     }
+#elif defined(AARCH64)
+    if(ifp_is_128(oc)) {
+        translate_insert(INSTR_CREATE_ld1_multi_1(drcontext,
+            OP_REG(DR_REG_MULTIPLE), 
+            OP_BASE_DISP(opnd_get_base(opnd_src), opnd_get_disp(opnd_src), OPSZ_2),
+            OPND_CREATE_DOUBLE()));
+        translate_insert(INSTR_CREATE_st1_multi_1(drcontext,
+            opnd_create_base_disp_aarch64(base_dst, DR_REG_NULL, 0, false, 0, 0, OPSZ_2),
+            OP_REG(DR_REG_MULTIPLE), OPND_CREATE_DOUBLE()));
+    }else
+        DR_ASSERT(false, "Other sizes not available on AArch64.");
+
+#else
+    DR_ASSERT(false, "Not implemented !");
+#endif
 }
 
 //######################################################################################################################################################################################
