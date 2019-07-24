@@ -59,6 +59,8 @@
 #define IS_REG(opnd) opnd_is_reg((opnd))
 #define OP_IS_BASE_DISP(opnd) opnd_is_base_disp((opnd))
 #define OP_IS_REL_ADDR(opnd) opnd_is_rel_addr((opnd))
+#define OP_IS_ABS_ADDR(opnd) opnd_is_abs_addr((opnd))
+#define OP_IS_ADDR(opnd) (OP_IS_REL_ADDR((opnd)) || OP_IS_ABS_ADDR((opnd)))
 
 /* TESTS REG */
 #define IS_GPR(reg) reg_is_gpr((reg))
@@ -66,9 +68,9 @@
 #define IS_YMM(reg) reg_is_strictly_ymm((reg))
 #define IS_ZMM(reg) reg_is_strictly_zmm((reg))
 
-/* REG MANIPULATION */
-#define GET_REG(opnd) opnd_get_reg((opnd))
-
+/* OPND GET VALUE */
+#define GET_REG(opnd) opnd_get_reg((opnd)) /* if opnd is a register */
+#define GET_ADDR(opnd) opnd_get_addr((opnd)) /*if opnd is an address */
 
 /* TLS OPERATIONS */
 #define GET_TLS(drcontext,tls) drmgr_get_tls_field((drcontext) , (tls))
@@ -108,9 +110,9 @@ void insert_pop_pseudo_stack_list(void *drcontext , reg_id_t *reg_to_pop_list , 
 void insert_push_pseudo_stack(void *drcontext , reg_id_t reg_to_push, instrlist_t *bb , instr_t *instr , reg_id_t buffer_reg, reg_id_t temp_buf);
 void insert_push_pseudo_stack_list(void *drcontext , reg_id_t *reg_to_push_list , instrlist_t *bb , instr_t *instr , reg_id_t buffer_reg , reg_id_t temp_buf , unsigned int nb_reg);
 
-void insert_move_operands_to_tls_scalar(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc, bool is_double);
-void insert_move_operands_to_tls_packed(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc);
-void insert_move_operands_to_tls(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc, bool is_double);
+void insert_move_operands_to_tls_memory_scalar(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc, bool is_double);
+void insert_move_operands_to_tls_memory_packed(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc);
+void insert_move_operands_to_tls_memory(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc, bool is_double);
 
 void insert_save_floating_reg(void *drcontext , instrlist_t *bb , instr_t *instr , reg_id_t buffer_reg , reg_id_t scratch);
 void insert_restore_floating_reg(void *drcontext , instrlist_t *bb , instr_t *instr , reg_id_t buffer_reg , reg_id_t scratch);
@@ -119,6 +121,7 @@ void insert_call(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_
 
 void insert_set_result_in_corresponding_register(void *drcontext , instrlist_t *bb , instr_t *instr, bool is_double , bool is_scalar);
 
-void insert_opnd_base_disp_to_tls_packed(void *drcontext , opnd_t opnd_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc);
+void insert_opnd_base_disp_to_tls_memory_packed(void *drcontext , opnd_t opnd_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc);
+void insert_opnd_addr_to_tls_memory_packed(void *drcontext , opnd_t addr_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc);
 
 #endif

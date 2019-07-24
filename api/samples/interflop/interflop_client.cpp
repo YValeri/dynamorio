@@ -1,8 +1,5 @@
 #include "interflop_client.h"
 
-static reg_id_t GPR_REG[] = {DR_REG_XDI , DR_REG_XSI , DR_REG_XAX , DR_REG_XBP , DR_REG_XSP , DR_REG_XBX , DR_REG_R8, DR_REG_R9, DR_REG_R10, DR_REG_R11, DR_REG_R12, DR_REG_R13, DR_REG_R14, DR_REG_R15};
-static reg_id_t GPR_REG_REVERSE[] = {DR_REG_R15, DR_REG_R14, DR_REG_R13, DR_REG_R12, DR_REG_R11, DR_REG_R10, DR_REG_R9, DR_REG_R8, DR_REG_XBX , DR_REG_XSP , DR_REG_XBP , DR_REG_XAX , DR_REG_XSI , DR_REG_XDI};
-
 static reg_id_t XMM_REG[] = {DR_REG_XMM0, DR_REG_XMM1, DR_REG_XMM2, DR_REG_XMM3, DR_REG_XMM4, DR_REG_XMM5, DR_REG_XMM6, DR_REG_XMM7, DR_REG_XMM8, DR_REG_XMM9, DR_REG_XMM10, DR_REG_XMM11, DR_REG_XMM12, DR_REG_XMM13, DR_REG_XMM14, DR_REG_XMM15};
 static reg_id_t XMM_REG_REVERSE[] = {DR_REG_XMM15, DR_REG_XMM14, DR_REG_XMM13, DR_REG_XMM12, DR_REG_XMM11, DR_REG_XMM10, DR_REG_XMM9, DR_REG_XMM8, DR_REG_XMM7, DR_REG_XMM6, DR_REG_XMM5, DR_REG_XMM4, DR_REG_XMM3, DR_REG_XMM2, DR_REG_XMM1, DR_REG_XMM0};
 
@@ -228,77 +225,87 @@ void insert_restore_floating_reg(void *drcontext , instrlist_t *bb , instr_t *in
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-void insert_move_operands_to_tls_scalar(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc, bool is_double) {
+void insert_move_operands_to_tls_memory_scalar(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc, bool is_double) {
 
-    // ****** FIRST OPERAND *****
-    if(OP_IS_BASE_DISP(SRC(instr,0)) || OP_IS_REL_ADDR(SRC(instr,0))) {
-        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_XMM_BUFFER) , SRC(instr,0) , SRC(instr,0)), bb, instr);
-        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(DR_REG_OP_B_ADDR, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), OP_REG(DR_REG_XMM_BUFFER) , OP_REG(DR_REG_XMM_BUFFER)), bb, instr);
-    }
-    else if(IS_REG(SRC(instr,0)) ) {
-        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(DR_REG_OP_B_ADDR, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), SRC(instr,0) , SRC(instr,0)), bb, instr);
-    }
+    reg_id_t reg_op_addr[] = {DR_REG_OP_B_ADDR, DR_REG_OP_A_ADDR};
 
-        // ****** SECOND OPERAND *****
-    if(OP_IS_BASE_DISP(SRC(instr,1)) || OP_IS_REL_ADDR(SRC(instr,1))) {
-        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_XMM_BUFFER) , SRC(instr,1) , SRC(instr,1)), bb, instr);
-        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(DR_REG_OP_A_ADDR, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), OP_REG(DR_REG_XMM_BUFFER) , OP_REG(DR_REG_XMM_BUFFER)), bb, instr);
-    }   
-    else if(IS_REG(SRC(instr,1)) ) {
-        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(DR_REG_OP_A_ADDR, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), SRC(instr,1) , SRC(instr,1)), bb, instr);
-    } 
+    for(int i = 0 ; i < 2 ; i++) {
+        if(OP_IS_BASE_DISP(SRC(instr,i)) || OP_IS_ADDR(SRC(instr,i))) {
+            translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_XMM_BUFFER) , SRC(instr,i) , SRC(instr,i)), bb, instr);
+            translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(reg_op_addr[i], 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), OP_REG(DR_REG_XMM_BUFFER) , OP_REG(DR_REG_XMM_BUFFER)), bb, instr);
+        }
+        else if(IS_REG(SRC(instr,i)) ) {
+            translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(reg_op_addr[i], 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), SRC(instr,i) , SRC(instr,i)), bb, instr);
+        }
+    }
 }
 
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-void insert_move_operands_to_tls_packed(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc) {
-    
-    // ****** FIRST OPERAND *****
-    if(OP_IS_BASE_DISP(SRC(instr,0))) 
-        insert_opnd_base_disp_to_tls_packed(drcontext , SRC(instr,0) , DR_REG_OP_B_ADDR , bb , instr , oc);
-    else if(IS_REG(SRC(instr,0)))
-        translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(SRC(instr,0))) || IS_ZMM(GET_REG(SRC(instr,0)))) , drcontext , OP_BASE_DISP(DR_REG_OP_B_ADDR, 0, reg_get_size(GET_REG(SRC(instr,0)))) , SRC(instr,0)), bb , instr);
-     
-    // ****** SECOND OPERAND *****
-    if(OP_IS_BASE_DISP(SRC(instr,1)))
-        insert_opnd_base_disp_to_tls_packed(drcontext , SRC(instr,1) , DR_REG_OP_A_ADDR , bb , instr , oc);  
-    else if(IS_REG(SRC(instr,1)))
-        translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(SRC(instr,1))) || IS_ZMM(GET_REG(SRC(instr,1)))) , drcontext , OP_BASE_DISP(DR_REG_OP_A_ADDR, 0, reg_get_size(GET_REG(SRC(instr,1)))) , SRC(instr,1)), bb , instr);
-     
+void insert_move_operands_to_tls_memory_packed(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc) {
+
+    reg_id_t reg_op_addr[] = {DR_REG_OP_B_ADDR, DR_REG_OP_A_ADDR};
+
+    for(int i = 0 ; i < 2 ; i++) {
+        if(OP_IS_ADDR(SRC(instr,i)))
+            insert_opnd_addr_to_tls_memory_packed(drcontext , SRC(instr,i), reg_op_addr[i] , bb , instr, oc);
+        else if(OP_IS_BASE_DISP(SRC(instr,i))) 
+            insert_opnd_base_disp_to_tls_memory_packed(drcontext , SRC(instr,i) , reg_op_addr[i] , bb , instr , oc);
+        else if(IS_REG(SRC(instr,i)))
+            translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(SRC(instr,i))) || IS_ZMM(GET_REG(SRC(instr,i)))) , drcontext , OP_BASE_DISP(reg_op_addr[i], 0, reg_get_size(GET_REG(SRC(instr,i)))) , SRC(instr,i)), bb , instr);
+    }
 }
 
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-void insert_move_operands_to_tls(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc, bool is_double) {
+void insert_move_operands_to_tls_memory(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc, bool is_double) {
     INSERT_READ_TLS(drcontext , tls_op_A , bb , instr , DR_REG_OP_A_ADDR);
     INSERT_READ_TLS(drcontext , tls_op_B , bb , instr , DR_REG_OP_B_ADDR);
 
     if(ifp_is_scalar(oc)) 
-        insert_move_operands_to_tls_scalar(drcontext , bb , instr , oc, is_double);
+        insert_move_operands_to_tls_memory_scalar(drcontext , bb , instr , oc, is_double);
     else 
-        insert_move_operands_to_tls_packed(drcontext , bb , instr , oc);
+        insert_move_operands_to_tls_memory_packed(drcontext , bb , instr , oc);
 }
 
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-
-void insert_opnd_base_disp_to_tls_packed(void *drcontext , opnd_t opnd_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc) {
+void insert_opnd_addr_to_tls_memory_packed(void *drcontext , opnd_t addr_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc) {
     if(ifp_is_128(oc)) {
-        translate_insert(INSTR_CREATE_movupd(drcontext , OP_REG(DR_REG_XMM_BUFFER) , OP_BASE_DISP(opnd_get_base(opnd_src) , opnd_get_disp(opnd_src), reg_get_size(DR_REG_XMM_BUFFER))) , bb  , instr);
+        translate_insert(INSTR_CREATE_movupd(drcontext , OP_REG(DR_REG_XMM_BUFFER) , OP_REL_ADDR(GET_ADDR(addr_src))) , bb  , instr);
         translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_XMM_BUFFER)) , OP_REG(DR_REG_XMM_BUFFER)) , bb  , instr);
     }
     else if(ifp_is_256(oc)) {
-        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_BASE_DISP(opnd_get_base(opnd_src) , opnd_get_disp(opnd_src), reg_get_size(DR_REG_YMM_BUFFER))) , bb  , instr);
+        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_REL_ADDR(GET_ADDR(addr_src))) , bb  , instr);
         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_YMM_BUFFER)) , OP_REG(DR_REG_YMM_BUFFER)) , bb  , instr);
     }
     else { /* 512 */
-        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM_BUFFER) , OP_BASE_DISP(opnd_get_base(opnd_src) , opnd_get_disp(opnd_src), reg_get_size(DR_REG_ZMM_BUFFER))) , bb  , instr);
+        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM_BUFFER) , OP_REL_ADDR(GET_ADDR(addr_src))) , bb  , instr);
+        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_ZMM_BUFFER)) , OP_REG(DR_REG_ZMM_BUFFER)) , bb  , instr);
+    }
+}
+
+//######################################################################################################################################################################################
+//######################################################################################################################################################################################
+//######################################################################################################################################################################################
+
+void insert_opnd_base_disp_to_tls_memory_packed(void *drcontext , opnd_t base_disp_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc) {
+    if(ifp_is_128(oc)) {
+        translate_insert(INSTR_CREATE_movupd(drcontext , OP_REG(DR_REG_XMM_BUFFER) , OP_BASE_DISP(opnd_get_base(base_disp_src) , opnd_get_disp(base_disp_src), reg_get_size(DR_REG_XMM_BUFFER))) , bb  , instr);
+        translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_XMM_BUFFER)) , OP_REG(DR_REG_XMM_BUFFER)) , bb  , instr);
+    }
+    else if(ifp_is_256(oc)) {
+        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_BASE_DISP(opnd_get_base(base_disp_src) , opnd_get_disp(base_disp_src), reg_get_size(DR_REG_YMM_BUFFER))) , bb  , instr);
+        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_YMM_BUFFER)) , OP_REG(DR_REG_YMM_BUFFER)) , bb  , instr);
+    }
+    else { /* 512 */
+        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM_BUFFER) , OP_BASE_DISP(opnd_get_base(base_disp_src) , opnd_get_disp(base_disp_src), reg_get_size(DR_REG_ZMM_BUFFER))) , bb  , instr);
         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_ZMM_BUFFER)) , OP_REG(DR_REG_ZMM_BUFFER)) , bb  , instr);
     }
 }
@@ -370,10 +377,8 @@ void insert_call(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_
 void insert_set_result_in_corresponding_register(void *drcontext , instrlist_t *bb , instr_t *instr, bool is_double , bool is_scalar) {
     INSERT_READ_TLS(drcontext , tls_result , bb , instr , DR_REG_RES_ADDR);
     
-    if(is_scalar) {
+    if(is_scalar)
         translate_insert(MOVE_FLOATING(is_double , drcontext , DST(instr,0) , OP_BASE_DISP(DR_REG_RES_ADDR, 0, OPSZ(DOUBLE_SIZE)) , OP_BASE_DISP(DR_REG_RES_ADDR,0,OPSZ(FLOAT_SIZE))), bb , instr);     
-    }
-    else { /* PACKED */
+    else  /* PACKED */
         translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(DST(instr,0))) || IS_ZMM(GET_REG(DST(instr,0)))) , drcontext , DST(instr,0) , OP_BASE_DISP(DR_REG_RES_ADDR , 0 , reg_get_size(GET_REG(DST(instr,0))))), bb , instr);
-    }
 }
