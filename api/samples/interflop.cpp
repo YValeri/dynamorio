@@ -64,7 +64,7 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
     dr_register_exit_event(event_exit);
 
     //Configure verrou in random rounding mode
-    interflop_verrou_configure(VR_RANDOM , nullptr);
+    interflop_verrou_configure(VR_RANDOM, nullptr);
 
     
     set_index_tls_result(drmgr_register_tls_field());
@@ -108,17 +108,17 @@ static void event_exit(void)
 }
 
 static void thread_init(void *dr_context) {
-    SET_TLS(dr_context , get_index_tls_result() ,dr_thread_alloc(dr_context , MAX_OPND_SIZE_BYTES));
-    SET_TLS(dr_context , get_index_tls_stack() , dr_thread_alloc(dr_context , SIZE_STACK*sizeof(SLOT)));
-    SET_TLS(dr_context , get_index_tls_op_A() , dr_thread_alloc(dr_context , MAX_OPND_SIZE_BYTES));
-    SET_TLS(dr_context , get_index_tls_op_B() , dr_thread_alloc(dr_context , MAX_OPND_SIZE_BYTES));
+    SET_TLS(dr_context, get_index_tls_result(),dr_thread_alloc(dr_context, MAX_OPND_SIZE_BYTES));
+    SET_TLS(dr_context, get_index_tls_stack(), dr_thread_alloc(dr_context, SIZE_STACK*sizeof(SLOT)));
+    SET_TLS(dr_context, get_index_tls_op_A(), dr_thread_alloc(dr_context, MAX_OPND_SIZE_BYTES));
+    SET_TLS(dr_context, get_index_tls_op_B(), dr_thread_alloc(dr_context, MAX_OPND_SIZE_BYTES));
 }
 
 static void thread_exit(void *dr_context) {
-    dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_stack()) , SIZE_STACK*sizeof(SLOT));
-    dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_result()) , MAX_OPND_SIZE_BYTES);
-    dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_op_A()) , MAX_OPND_SIZE_BYTES);
-    dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_op_B()) , MAX_OPND_SIZE_BYTES);
+    dr_thread_free(dr_context, GET_TLS(dr_context, get_index_tls_stack()), SIZE_STACK*sizeof(SLOT));
+    dr_thread_free(dr_context, GET_TLS(dr_context, get_index_tls_result()), MAX_OPND_SIZE_BYTES);
+    dr_thread_free(dr_context, GET_TLS(dr_context, get_index_tls_op_A()), MAX_OPND_SIZE_BYTES);
+    dr_thread_free(dr_context, GET_TLS(dr_context, get_index_tls_op_B()), MAX_OPND_SIZE_BYTES);
 }
 
 
@@ -126,60 +126,61 @@ static void thread_exit(void *dr_context) {
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
+#if defined(X86)
 static void print() {
     void *context = dr_get_current_drcontext();
     dr_mcontext_t mcontext;
     mcontext.flags = DR_MC_ALL;
     mcontext.size = sizeof(mcontext);
 
-    dr_get_mcontext(context , &mcontext);
+    dr_get_mcontext(context, &mcontext);
 
-    byte rdi[8] , rbp[8], rsp[8],rax[8] , rsi[8], rbx[8] , rdx[8], rcx[8],
-         edi[4] , ebp[4] , esp[4] , eax[4] , esi[4] , ebx[4] , edx[4] , ecx[4],
-         xmm[16] , xmm1[16], xmm2[16], xmm3[16] , xmm4[16],
-         ymm[32] , ymm1[32];
+    byte rdi[8], rbp[8], rsp[8],rax[8], rsi[8], rbx[8], rdx[8], rcx[8],
+         edi[4], ebp[4], esp[4], eax[4], esi[4], ebx[4], edx[4], ecx[4],
+         xmm[16], xmm1[16], xmm2[16], xmm3[16], xmm4[16],
+         ymm[32], ymm1[32];
     
-    reg_get_value_ex(DR_REG_RDI , &mcontext , rdi);
-    reg_get_value_ex(DR_REG_RBP , &mcontext , rbp);
-    reg_get_value_ex(DR_REG_RSP , &mcontext , rsp);
-    reg_get_value_ex(DR_REG_RAX , &mcontext , rax);
-    reg_get_value_ex(DR_REG_RSI , &mcontext , rsi);
-    reg_get_value_ex(DR_REG_RBX , &mcontext , rbx);
-    reg_get_value_ex(DR_REG_RDX , &mcontext , rdx);
-    reg_get_value_ex(DR_REG_RCX , &mcontext , rcx);
+    reg_get_value_ex(DR_REG_RDI, &mcontext, rdi);
+    reg_get_value_ex(DR_REG_RBP, &mcontext, rbp);
+    reg_get_value_ex(DR_REG_RSP, &mcontext, rsp);
+    reg_get_value_ex(DR_REG_RAX, &mcontext, rax);
+    reg_get_value_ex(DR_REG_RSI, &mcontext, rsi);
+    reg_get_value_ex(DR_REG_RBX, &mcontext, rbx);
+    reg_get_value_ex(DR_REG_RDX, &mcontext, rdx);
+    reg_get_value_ex(DR_REG_RCX, &mcontext, rcx);
 
-    reg_get_value_ex(DR_REG_EDI , &mcontext , edi);
-    reg_get_value_ex(DR_REG_EBP , &mcontext , ebp);
-    reg_get_value_ex(DR_REG_ESP , &mcontext , esp);
-    reg_get_value_ex(DR_REG_EAX , &mcontext , eax);
-    reg_get_value_ex(DR_REG_ESI , &mcontext , esi);
-    reg_get_value_ex(DR_REG_EBX , &mcontext , ebx);
-    reg_get_value_ex(DR_REG_EDX , &mcontext , edx);
-    reg_get_value_ex(DR_REG_ECX , &mcontext , ecx);
+    reg_get_value_ex(DR_REG_EDI, &mcontext, edi);
+    reg_get_value_ex(DR_REG_EBP, &mcontext, ebp);
+    reg_get_value_ex(DR_REG_ESP, &mcontext, esp);
+    reg_get_value_ex(DR_REG_EAX, &mcontext, eax);
+    reg_get_value_ex(DR_REG_ESI, &mcontext, esi);
+    reg_get_value_ex(DR_REG_EBX, &mcontext, ebx);
+    reg_get_value_ex(DR_REG_EDX, &mcontext, edx);
+    reg_get_value_ex(DR_REG_ECX, &mcontext, ecx);
 
-    reg_get_value_ex(DR_REG_XMM0 , &mcontext , xmm);
-    reg_get_value_ex(DR_REG_XMM1 , &mcontext , xmm1);
-    reg_get_value_ex(DR_REG_XMM2 , &mcontext , xmm2);
-    reg_get_value_ex(DR_REG_XMM3 , &mcontext , xmm3);
-    reg_get_value_ex(DR_REG_XMM4 , &mcontext , xmm4);
+    reg_get_value_ex(DR_REG_XMM0, &mcontext, xmm);
+    reg_get_value_ex(DR_REG_XMM1, &mcontext, xmm1);
+    reg_get_value_ex(DR_REG_XMM2, &mcontext, xmm2);
+    reg_get_value_ex(DR_REG_XMM3, &mcontext, xmm3);
+    reg_get_value_ex(DR_REG_XMM4, &mcontext, xmm4);
 
-    reg_get_value_ex(DR_REG_YMM0 , &mcontext , ymm);
-    reg_get_value_ex(DR_REG_YMM1 , &mcontext , ymm1);
+    reg_get_value_ex(DR_REG_YMM0, &mcontext, ymm);
+    reg_get_value_ex(DR_REG_YMM1, &mcontext, ymm1);
 
     dr_printf("*****************************************************************************************************************************\n\n");
 
-    dr_printf("RDI : %02X \nEDI : %02X\nRDI : %e\n\n",*((uint64 *)rdi) , *((unsigned int*)edi), *((double*)rdi));
-    dr_printf("RAX : %02X \nEAX : %02X\nRAX : %e\n\n",*((uint64 *)rax) , *((unsigned int*)eax), *((double*)rax));
-    dr_printf("RBP : %02X \nEBP : %02X\nRBP : %e\n\n",*((uint64 *)rbp) , *((unsigned int*)ebp), *((double*)rbp));    
-    dr_printf("RSP : %02X \nESP : %02X\nRSP : %e\n\n",*((uint64 *)rsp) , *((unsigned int*)esp), *((double*)rsp));
-    dr_printf("RSI : %02X \nESI : %02X\nRSI : %e\n\n",*((uint64 *)rsi) , *((unsigned int*)esi), *((double*)rsi));
-    dr_printf("RBX : %02X \nEBX : %02X\nRBX : %e\n\n",*((uint64 *)rbx) , *((unsigned int*)ebx), *((double*)rbx));
-    dr_printf("RDX : %02X \nEDX : %02X\nRDX : %e\n\n",*((uint64 *)rdx) , *((unsigned int*)edx), *((double*)rdx));
-    dr_printf("RCX : %02X \nECX : %02X\nRCX : %e\n\n",*((uint64 *)rcx) , *((unsigned int*)ecx), *((double*)rcx));
+    dr_printf("RDI : %02X \nEDI : %02X\nRDI : %e\n\n",*((uint64 *)rdi), *((unsigned int*)edi), *((double*)rdi));
+    dr_printf("RAX : %02X \nEAX : %02X\nRAX : %e\n\n",*((uint64 *)rax), *((unsigned int*)eax), *((double*)rax));
+    dr_printf("RBP : %02X \nEBP : %02X\nRBP : %e\n\n",*((uint64 *)rbp), *((unsigned int*)ebp), *((double*)rbp));    
+    dr_printf("RSP : %02X \nESP : %02X\nRSP : %e\n\n",*((uint64 *)rsp), *((unsigned int*)esp), *((double*)rsp));
+    dr_printf("RSI : %02X \nESI : %02X\nRSI : %e\n\n",*((uint64 *)rsi), *((unsigned int*)esi), *((double*)rsi));
+    dr_printf("RBX : %02X \nEBX : %02X\nRBX : %e\n\n",*((uint64 *)rbx), *((unsigned int*)ebx), *((double*)rbx));
+    dr_printf("RDX : %02X \nEDX : %02X\nRDX : %e\n\n",*((uint64 *)rdx), *((unsigned int*)edx), *((double*)rdx));
+    dr_printf("RCX : %02X \nECX : %02X\nRCX : %e\n\n",*((uint64 *)rcx), *((unsigned int*)ecx), *((double*)rcx));
     
     /*
     for(int i = 0 ; i < NB_XMM_REG ; i++) {
-        reg_get_value_ex(XMM_REG[i] , &mcontext , xmm);
+        reg_get_value_ex(XMM_REG[i], &mcontext, xmm);
         dr_printf("XMM%d : ",i);
         for(int k = 0 ; k < 4 ; k++) dr_printf("%e ",*(float*)&(xmm[4*k]));
         dr_printf("\n");
@@ -208,6 +209,7 @@ static void print() {
     dr_printf("\n");
     dr_printf("*****************************************************************************************************************************\n\n");
 }
+#endif
 
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
@@ -234,7 +236,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
 
             
             //#ifdef DEBUG
-                dr_print_instr(drcontext, STDERR, instr , "II : ");
+                dr_print_instr(drcontext, STDERR, instr, "II : ");
             //#endif
 
             // ****************************************************************************
@@ -242,30 +244,42 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             // ****************************************************************************
             reg_id_t buffer_reg  = DR_BUFFER_REG, scratch = DR_SCRATCH_REG;
 
-            dr_save_reg(drcontext , bb , instr , buffer_reg , SPILL_SLOT_BUFFER_REG);
-            dr_save_reg(drcontext , bb , instr , scratch , SPILL_SLOT_SCRATCH_REG);
+            dr_save_reg(drcontext, bb, instr, buffer_reg, SPILL_SLOT_BUFFER_REG);
+            dr_save_reg(drcontext, bb, instr, scratch, SPILL_SLOT_SCRATCH_REG);
         
             // ****************************************************************************
             // save processor flags
             // ****************************************************************************
-            dr_save_arith_flags(drcontext , bb , instr , SPILL_SLOT_ARITH_FLAG);
+            dr_save_arith_flags(drcontext, bb, instr, SPILL_SLOT_ARITH_FLAG);
 
             // ****************************************************************************
             // push general purpose registers on pseudo stack 
             // All GPR except DR_BUFFER_REG and DR_SCRATCH_REG
             // ****************************************************************************
-            reg_id_t topush_reg[] = {DR_REG_XDI , DR_REG_XSI , DR_REG_XAX , DR_REG_XBP , DR_REG_XSP , DR_REG_XBX , DR_REG_R8, DR_REG_R9, DR_REG_R10, DR_REG_R11, DR_REG_R12, DR_REG_R13, DR_REG_R14, DR_REG_R15};
-            insert_push_pseudo_stack_list(drcontext , topush_reg , bb , instr , buffer_reg , scratch , 14);
+#if defined(X86)
+            reg_id_t topush_reg[] = {DR_REG_XDI, DR_REG_XSI, DR_REG_XAX, DR_REG_XBP, DR_REG_XSP, DR_REG_XBX, DR_REG_R8, DR_REG_R9, DR_REG_R10, DR_REG_R11, DR_REG_R12, DR_REG_R13, DR_REG_R14, DR_REG_R15};
+#elif defined(AARCH64)
+            reg_id_t topush_reg[] = {
+                DR_REG_X0, DR_REG_X1, DR_REG_X2, DR_REG_X3, DR_REG_X4,
+                DR_REG_X5, DR_REG_X6, DR_REG_X7, DR_REG_X8, DR_REG_X9,
+                DR_REG_X10, DR_REG_X11, DR_REG_X12, DR_REG_X13, DR_REG_X14, 
+                DR_REG_X15, DR_REG_X16, DR_REG_X17, DR_REG_X18, DR_REG_X19,
+                DR_REG_X20, DR_REG_X21, DR_REG_X22, DR_REG_X23, DR_REG_X24,
+                DR_REG_X25, DR_REG_X26, DR_REG_X27, DR_REG_X28, DR_REG_X29,
+                DR_REG_X30, DR_REG_XSP, DR_REG_XZR
+            };
+#endif
+            insert_push_pseudo_stack_list(drcontext, topush_reg, bb, instr, buffer_reg, scratch, 14);
 
             // ****************************************************************************
             // Push all ZMM/YMM/XMM registers
             // ****************************************************************************
-            insert_save_floating_reg(drcontext , bb , instr , buffer_reg , scratch);
+            insert_save_floating_reg(drcontext, bb, instr, buffer_reg, scratch);
 
             // ****************************************************************************
             // ***** Move operands to thread local memory 
             // ****************************************************************************
-            insert_move_operands_to_tls_memory(drcontext , bb , instr , oc, is_double);
+            insert_move_operands_to_tls_memory(drcontext, bb, instr, oc, is_double);
             // ****************************************************************************
             // ****************************************************************************
             // ****************************************************************************
@@ -273,12 +287,12 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             // ***** Sub stack pointer to handle the case where XSP is equal to XBP and XSP doesn't match the top of the stack *****
             // ***** Otherwise the call will erase data when pushing the return address *****
             // ***** If the gap is greater than 32 bytes, the program may crash !!!!!!!!!!!!!!! *****
-            translate_insert(INSTR_CREATE_sub(drcontext , OP_REG(DR_REG_XSP) , OP_INT(32)) , bb , instr);
+            translate_insert(XINST_CREATE_sub(drcontext, OP_REG(DR_REG_XSP), OP_INT(32)), bb, instr);
 
             //****************************************************************************
             // ***** CALL *****
             // ****************************************************************************
-            insert_call(drcontext , bb , instr , oc , is_double);
+            insert_call(drcontext, bb, instr, oc, is_double);
             // ****************************************************************************
             // ****************************************************************************
             // ****************************************************************************
@@ -286,29 +300,41 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             // ****************************************************************************
             // Restore all ZMM/YMM/XMM registers 
             // ****************************************************************************
-            insert_restore_floating_reg(drcontext , bb , instr , buffer_reg , scratch);
+            insert_restore_floating_reg(drcontext, bb, instr, buffer_reg, scratch);
             
             // ****************************************************************************
             // Set the result in the corresponding register
             // ****************************************************************************  
-            insert_set_result_in_corresponding_register(drcontext , bb , instr , is_double , is_scalar);
+            insert_set_result_in_corresponding_register(drcontext, bb, instr, is_double, is_scalar);
 
             // ****************************************************************************
             // pop general purpose registers on pseudo stack 
             // All GPR except DR_BUFFER_REG and DR_SCRATCH_REG
             // ****************************************************************************
-            reg_id_t topop_reg[] = {DR_REG_R15, DR_REG_R14, DR_REG_R13, DR_REG_R12, DR_REG_R11, DR_REG_R10, DR_REG_R9, DR_REG_R8, DR_REG_XBX , DR_REG_XSP , DR_REG_XBP , DR_REG_XAX , DR_REG_XSI , DR_REG_XDI};
-            insert_pop_pseudo_stack_list(drcontext , topop_reg , bb , instr , buffer_reg , scratch , 14);
+#if defined(X86)
+            reg_id_t topop_reg[] = {DR_REG_R15, DR_REG_R14, DR_REG_R13, DR_REG_R12, DR_REG_R11, DR_REG_R10, DR_REG_R9, DR_REG_R8, DR_REG_XBX, DR_REG_XSP, DR_REG_XBP, DR_REG_XAX, DR_REG_XSI, DR_REG_XDI};
+#elif defined(AARCH64)
+            reg_id_t topop_reg[] = {
+                DR_REG_XZR, DR_REG_XSP, DR_REG_X30, DR_REG_X29, DR_REG_X28,
+                DR_REG_X27, DR_REG_X26, DR_REG_X25, DR_REG_X24, DR_REG_X23,
+                DR_REG_X22, DR_REG_X21, DR_REG_X20, DR_REG_X19, DR_REG_X18,
+                DR_REG_X17, DR_REG_X16, DR_REG_X15, DR_REG_X14, DR_REG_X13,
+                DR_REG_X12, DR_REG_X11, DR_REG_X10, DR_REG_X9, DR_REG_X8, 
+                DR_REG_X7, DR_REG_X6, DR_REG_X5, DR_REG_X4, DR_REG_X3, 
+                DR_REG_X2, DR_REG_X1, DR_REG_X0
+            };
+#endif
+            insert_pop_pseudo_stack_list(drcontext, topop_reg, bb, instr, buffer_reg, scratch, 14);
 
             // ****************************************************************************
             // Restore processor flags
             // ****************************************************************************
-            dr_restore_arith_flags(drcontext , bb , instr , SPILL_SLOT_ARITH_FLAG);
+            dr_restore_arith_flags(drcontext, bb, instr, SPILL_SLOT_ARITH_FLAG);
            
             // Restore registers
             // ****************************************************************************
-            dr_restore_reg(drcontext , bb , instr , buffer_reg , SPILL_SLOT_BUFFER_REG);
-            dr_restore_reg(drcontext , bb , instr , scratch , SPILL_SLOT_SCRATCH_REG);
+            dr_restore_reg(drcontext, bb, instr, buffer_reg, SPILL_SLOT_BUFFER_REG);
+            dr_restore_reg(drcontext, bb, instr, scratch, SPILL_SLOT_SCRATCH_REG);
 
             // ****************************************************************************
             // Remove original instruction
