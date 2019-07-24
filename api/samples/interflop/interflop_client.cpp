@@ -57,6 +57,12 @@ struct interflop_backend {
         constexpr int nb_elem = vect_size/sizeof(FTYPE);
 
         FTYPE res;
+
+
+        dr_printf("Vect size : %d\n",vect_size);
+        dr_printf("Nb elem : %d\n",nb_elem);
+
+        dr_printf("A : %f\nB : %f\n",vect_a[0], vect_b[0]);
         
         for(int i = 0 ; i < nb_elem ; i++) {
             res = FN(vect_a[i],vect_b[i]);
