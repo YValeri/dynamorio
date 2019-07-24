@@ -28,8 +28,8 @@ struct interflop_backend {
 
     static void apply(FTYPE *vect_a,  FTYPE *vect_b) {
        
-        constexpr int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
-        constexpr int nb_elem = vect_size/sizeof(FTYPE);
+        static const int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
+        static const int nb_elem = vect_size/sizeof(FTYPE);
 
         FTYPE res;
         
@@ -366,7 +366,7 @@ void insert_call(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_
                 insert_corresponding_vect_call<float,Interflop::Op<float>::div>(drcontext , bb , instr, oc);
         break;
         default:
-            ERROR("ERROR OPERATION NOT FOUND !");
+            PRINT_ERROR_MESSAGE("ERROR OPERATION NOT FOUND !");
     }
 }
 

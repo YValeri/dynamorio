@@ -4,22 +4,22 @@
 #include "dr_api.h"
 #include "dr_ir_opcodes.h"
 
-#define IFP_OP_OTHER       0b00000000000
-#define IFP_OP_DOUBLE      0b00000000001
-#define IFP_OP_FLOAT       0b00000000010
-#define IFP_OP_PACKED      0b00000000100
-#define IFP_OP_SCALAR      0b00000001000
-#define IFP_OP_ADD         0b00000010000
-#define IFP_OP_SUB         0b00000100000
-#define IFP_OP_MUL         0b00001000000
-#define IFP_OP_DIV         0b00010000000
-#define IFP_OP_128         0b00100000000
-#define IFP_OP_256         0b01000000000
-#define IFP_OP_512         0b10000000000
+#define IFP_OP_OTHER       0
+#define IFP_OP_DOUBLE      1
+#define IFP_OP_FLOAT       2
+#define IFP_OP_PACKED      4
+#define IFP_OP_SCALAR      8
+#define IFP_OP_ADD         16
+#define IFP_OP_SUB         32
+#define IFP_OP_MUL         64
+#define IFP_OP_DIV         128
+#define IFP_OP_128         256
+#define IFP_OP_256         512
+#define IFP_OP_512         1024
 
-#define IFP_OP_MASK        0b11111110000
-#define IFP_OP_TYPE_MASK   0b00011110000
-#define IFP_SIMD_TYPE_MASK 0b11100000000
+#define IFP_OP_MASK        2032
+#define IFP_OP_TYPE_MASK   240
+#define IFP_SIMD_TYPE_MASK 1792
 
 // For operations that are unsupported for the moment
 #define IFP_OP_UNSUPPORTED IFP_OP_OTHER
@@ -90,47 +90,47 @@ enum OPERATION_CATEGORY ifp_get_operation_category(instr_t* instr);
 
 inline bool ifp_is_double(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_DOUBLE;
+    return (oc & IFP_OP_DOUBLE) != 0;
 }
 inline bool ifp_is_float(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_FLOAT;
+    return (oc & IFP_OP_FLOAT) != 0;
 }
 inline bool ifp_is_packed(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_PACKED;
+    return (oc & IFP_OP_PACKED) != 0;
 }
 inline bool ifp_is_scalar(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_SCALAR;
+    return (oc & IFP_OP_SCALAR) != 0;
 }
 inline bool ifp_is_add(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_ADD;
+    return (oc & IFP_OP_ADD) != 0;
 }
 inline bool ifp_is_sub(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_SUB;
+    return (oc & IFP_OP_SUB) != 0;
 }
 inline bool ifp_is_mul(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_MUL;
+    return (oc & IFP_OP_MUL) != 0;
 }
 inline bool ifp_is_div(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_DIV;
+    return (oc & IFP_OP_DIV) != 0;
 }
 inline bool ifp_is_128(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_128;
+    return (oc & IFP_OP_128) != 0;
 }
 inline bool ifp_is_256(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_256;
+    return (oc & IFP_OP_256) != 0;
 }
 inline bool ifp_is_512(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_512;
+    return (oc & IFP_OP_512) != 0;
 }
 
 #endif // INTERFLOP_OPERATION_HEADER

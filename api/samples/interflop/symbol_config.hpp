@@ -68,6 +68,9 @@ typedef struct _lookup_entry_t
     {
         if(lookup == IFP_LOOKUP_MODULE || (total && symbols.empty()))
         {
+            #ifdef WINDOWS
+            return range.contains(pc);
+            #else
             //Either we are looking for the whole module, or for a symbol in a total module without symbols as exceptions
             if(contiguous)
             {
@@ -85,6 +88,7 @@ typedef struct _lookup_entry_t
                 }
                 return false;
             }
+            #endif
         }else
         {
             //We are looking at a symbol
@@ -111,10 +115,12 @@ typedef struct _lookup_entry_t
     }
     std::string name; /** Name of the module */
     addr_range_t range; /** Full range of the module \note If the module isn't contiguous, an app_pc in this range may not be in the module*/
-    bool contiguous; /** True if the module is contiguous (always true on Windows, most of the time on Linux, sometimes in MacOS)*/
     bool total; /** True if the module should be considered in its entirety*/
-    std::vector<addr_range_t> segments; /** Ranges of app_pc for each segment of the module*/
     std::vector<symbol_entry_t> symbols; /** Symbols of interest of the module */
+#ifndef WINDOWS
+    bool contiguous; /** True if the module is contiguous (always true on Windows, most of the time on Linux, sometimes in MacOS)*/
+    std::vector<addr_range_t> segments; /** Ranges of app_pc for each segment of the module*/
+#endif //WINDOWS
 } lookup_entry_t;
 
 /**

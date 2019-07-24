@@ -15,7 +15,7 @@
 #define MAX_OPND_SIZE_BYTES 512 
 #endif
 
-#define ERROR(message) dr_fprintf(STDERR, "%s\n" , (message));
+#define PRINT_ERROR_MESSAGE(message) dr_fprintf(STDERR, "%s\n" , (message));
 
 
 #ifdef WINDOWS

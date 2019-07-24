@@ -270,6 +270,7 @@ static void lookup_or_load_module(const module_data_t* module)
         lentry.range.start = module->start;
         lentry.range.end = module->end;
         lentry.total = mentry.all_symbols;
+        #ifndef WINDOWS
         lentry.contiguous = module->contiguous;
         //When a module isn't continuous (sometimes on Linux, often on MacOS), we need to remember the bounds of each segment
         if(!lentry.contiguous)
@@ -279,6 +280,7 @@ static void lookup_or_load_module(const module_data_t* module)
                 lentry.segments.emplace_back(module->segments[i].start, module->segments[i].end);
             }
         }
+        #endif //WINDOWS
         //When the module isn't total, or there can be exceptions to the total module, we need to register each symbol
         if(!lentry.total || interflop_client_mode == IFP_CLIENT_BL_WL)
         {

@@ -140,7 +140,7 @@ if (WIN32)
   # disable the warning "unreferenced formal parameter" #4100
   # disable the warning "conditional expression is constant" #4127
   # disable the warning "cast from function pointer to data pointer" #4054
-  set(CL_CFLAGS "/GS- /wd4100 /wd4127 /wd4054")
+  set(CL_CFLAGS "/GS- /wd4100 /wd4127 /wd4054 /wd4505 /wd4512 /wd4244")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CL_CFLAGS}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CL_CFLAGS}")
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
@@ -245,9 +245,11 @@ add_sample_client(inline      "inline.c"        "drmgr;drcontainers")
 add_sample_client(inscount    "inscount.cpp"    "drmgr;droption")
 add_sample_client(opcodes     "opcodes.c"       "drmgr;drreg;drx")
 add_sample_client(stl_test    "stl_test.cpp"    "")
-
+if(WIN32)
+add_sample_client(interflop    "interflop.cpp;interflop/interflop_operations.cpp;interflop/backend_verrou/interflop_verrou.cxx;interflop/symbol_config.cpp;interflop/interflop_client.cpp"  "drmgr;drreg;drsyms")
+else(WIN32)
 add_sample_client(interflop    "interflop.cpp;interflop/interflop_operations.cpp;interflop/backend_verrou/interflop_verrou.cxx;interflop/symbol_config.cpp;interflop/interflop_client.cpp"  "drmgr;drreg;drsyms;mpfr")
-
+endif(WIN32)
 # add utils.h for installation  # NON-PUBLIC
 set(srcs ${srcs} "utils.h")     # NON-PUBLIC
 

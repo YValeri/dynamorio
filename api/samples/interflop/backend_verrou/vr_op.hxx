@@ -597,7 +597,11 @@ public:
     const RealType & c(p.arg3);
     return vr_fma(a,b,c);
 #else
+#ifdef WINDOWS
+  return NAN;
+#else
     return 0./0.;
+#endif
 #endif
   };
 
