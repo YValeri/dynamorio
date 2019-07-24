@@ -5886,7 +5886,7 @@ dr_save_arith_flags(void *drcontext, instrlist_t *ilist, instr_t *where,
                     dr_spill_slot_t slot)
 {
     reg_id_t reg = IF_X86_ELSE(DR_REG_XAX, DR_REG_R0);
-    CLIENT_ASSERT(IF_X86_ELSE(true, false), "X86-only");
+    //CLIENT_ASSERT(IF_X86_ELSE(true, false), "X86-only");
     CLIENT_ASSERT(drcontext != NULL, "dr_save_arith_flags: drcontext cannot be NULL");
     CLIENT_ASSERT(drcontext != GLOBAL_DCONTEXT,
                   "dr_save_arith_flags: drcontext is invalid");
@@ -5901,7 +5901,7 @@ dr_restore_arith_flags(void *drcontext, instrlist_t *ilist, instr_t *where,
                        dr_spill_slot_t slot)
 {
     reg_id_t reg = IF_X86_ELSE(DR_REG_XAX, DR_REG_R0);
-    CLIENT_ASSERT(IF_X86_ELSE(true, false), "X86-only");
+    //CLIENT_ASSERT(IF_X86_ELSE(true, false), "X86-only");
     CLIENT_ASSERT(drcontext != NULL, "dr_restore_arith_flags: drcontext cannot be NULL");
     CLIENT_ASSERT(drcontext != GLOBAL_DCONTEXT,
                   "dr_restore_arith_flags: drcontext is invalid");
