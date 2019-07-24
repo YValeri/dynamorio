@@ -41,7 +41,7 @@ struct interflop_backend {
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
         }   
 
-        #ifdef DEBUG
+        /*#ifdef DEBUG
             dr_printf("Vect size : %d\n",vect_size);
             dr_printf("Nb elem : %d\n",nb_elem);
 
@@ -57,7 +57,7 @@ struct interflop_backend {
             dr_printf("A op B : ");
             for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(GET_TLS(dr_get_current_drcontext(), tls_result))+i)));
             dr_printf("\n\n");
-        #endif
+        #endif*/
 
     }
 };
