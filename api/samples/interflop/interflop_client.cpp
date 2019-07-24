@@ -1,7 +1,7 @@
 #include "interflop_client.h"
 
-static reg_id_t GPR_REG[] = {DR_REG_XDI , DR_REG_XSI , DR_REG_XAX , DR_REG_XBP , DR_REG_XSP , DR_REG_XBX , DR_REG_R8, DR_REG_R9, DR_REG_R10, DR_REG_R11, DR_REG_R12, DR_REG_R13, DR_REG_R14, DR_REG_R15};
-static reg_id_t GPR_REG_REVERSE[] = {DR_REG_R15, DR_REG_R14, DR_REG_R13, DR_REG_R12, DR_REG_R11, DR_REG_R10, DR_REG_R9, DR_REG_R8, DR_REG_XBX , DR_REG_XSP , DR_REG_XBP , DR_REG_XAX , DR_REG_XSI , DR_REG_XDI};
+static reg_id_t GPR_REG[] = {DR_REG_XDI, DR_REG_XSI, DR_REG_XAX, DR_REG_XBP, DR_REG_XSP, DR_REG_XBX, DR_REG_R8, DR_REG_R9, DR_REG_R10, DR_REG_R11, DR_REG_R12, DR_REG_R13, DR_REG_R14, DR_REG_R15};
+static reg_id_t GPR_REG_REVERSE[] = {DR_REG_R15, DR_REG_R14, DR_REG_R13, DR_REG_R12, DR_REG_R11, DR_REG_R10, DR_REG_R9, DR_REG_R8, DR_REG_XBX, DR_REG_XSP, DR_REG_XBP, DR_REG_XAX, DR_REG_XSI, DR_REG_XDI};
 
 static reg_id_t XMM_REG[] = {DR_REG_XMM0, DR_REG_XMM1, DR_REG_XMM2, DR_REG_XMM3, DR_REG_XMM4, DR_REG_XMM5, DR_REG_XMM6, DR_REG_XMM7, DR_REG_XMM8, DR_REG_XMM9, DR_REG_XMM10, DR_REG_XMM11, DR_REG_XMM12, DR_REG_XMM13, DR_REG_XMM14, DR_REG_XMM15};
 static reg_id_t XMM_REG_REVERSE[] = {DR_REG_XMM15, DR_REG_XMM14, DR_REG_XMM13, DR_REG_XMM12, DR_REG_XMM11, DR_REG_XMM10, DR_REG_XMM9, DR_REG_XMM8, DR_REG_XMM7, DR_REG_XMM6, DR_REG_XMM5, DR_REG_XMM4, DR_REG_XMM3, DR_REG_XMM2, DR_REG_XMM1, DR_REG_XMM0};
@@ -26,7 +26,7 @@ void set_index_tls_op_A(int new_tls_value) {tls_op_A = new_tls_value;}
 void set_index_tls_op_B(int new_tls_value) {tls_op_B = new_tls_value;}
 void set_index_tls_stack(int new_tls_value) {tls_stack = new_tls_value;}
 
-template <typename FTYPE , FTYPE (*FN)(FTYPE, FTYPE) , int SIMD_TYPE = IFP_OP_SCALAR>
+template <typename FTYPE, FTYPE (*FN)(FTYPE, FTYPE), int SIMD_TYPE = IFP_OP_SCALAR>
 struct interflop_backend {
 
     static void apply(FTYPE *vect_a,  FTYPE *vect_b) {
@@ -38,14 +38,14 @@ struct interflop_backend {
         
         for(int i = 0 ; i < nb_elem ; i++) {
             res = FN(vect_a[i],vect_b[i]);
-            *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
+            *(((FTYPE*)GET_TLS(dr_get_current_drcontext(), tls_result))+i) = res;
         }   
 
         #ifdef DEBUG
             dr_printf("Vect size : %d\n",vect_size);
             dr_printf("Nb elem : %d\n",nb_elem);
 
-            dr_printf("A : %p\nB : %p\n",vect_a , vect_b);
+            dr_printf("A : %p\nB : %p\n",vect_a, vect_b);
 
             dr_printf("A : ");
             for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_a)+i)));
@@ -69,112 +69,112 @@ void translate_insert(instr_t* newinstr, instrlist_t* ilist, instr_t* instr)
     instrlist_preinsert(ilist,instr, newinstr);
 }
 
-void insert_pop_pseudo_stack(void *drcontext , reg_id_t reg, instrlist_t *bb , instr_t *instr , reg_id_t buffer_reg, reg_id_t temp_buf) {
+void insert_pop_pseudo_stack(void *drcontext, reg_id_t reg, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t temp_buf) {
     
     // ****************************************************************************
     // Retrieve top of the stack address in register buffer_reg
     // ****************************************************************************
-    INSERT_READ_TLS(drcontext , tls_stack , bb , instr , buffer_reg);
+    INSERT_READ_TLS(drcontext, tls_stack, bb, instr, buffer_reg);
 
     // ****************************************************************************
     // Decrement the register containing the address of the top of the stack
     // ****************************************************************************
-    translate_insert(INSTR_CREATE_sub(drcontext , OP_REG(buffer_reg) , OP_INT(REG_SIZE(reg))) , bb , instr);
+    translate_insert(INSTR_CREATE_sub(drcontext, OP_REG(buffer_reg), OP_INT(REG_SIZE(reg))), bb, instr);
 
     // ****************************************************************************
     // Load the value in the defined register
     // ****************************************************************************
     if(IS_GPR(reg))
-        translate_insert(XINST_CREATE_load(drcontext, OP_REG(reg) , OP_BASE_DISP(buffer_reg , 0 , reg_get_size(reg))) , bb , instr); 
+        translate_insert(XINST_CREATE_load(drcontext, OP_REG(reg), OP_BASE_DISP(buffer_reg, 0, reg_get_size(reg))), bb, instr); 
     else 
-        translate_insert(MOVE_FLOATING_REG((IS_YMM(reg) || IS_ZMM(reg)) , drcontext , OP_REG(reg) , OP_BASE_DISP(buffer_reg , 0 , reg_get_size(reg))), bb , instr);
+        translate_insert(MOVE_FLOATING_REG((IS_YMM(reg) || IS_ZMM(reg)), drcontext, OP_REG(reg), OP_BASE_DISP(buffer_reg, 0, reg_get_size(reg))), bb, instr);
 
     // ****************************************************************************
     // Update tls field with the new address
     // ****************************************************************************
-    INSERT_WRITE_TLS(drcontext , tls_stack , bb , instr , buffer_reg , temp_buf);
+    INSERT_WRITE_TLS(drcontext, tls_stack, bb, instr, buffer_reg, temp_buf);
 }
 
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-void insert_pop_pseudo_stack_list(void *drcontext , reg_id_t *reg_to_pop_list , instrlist_t *bb , instr_t *instr , reg_id_t buffer_reg , reg_id_t temp_buf , unsigned int nb_reg) {
+void insert_pop_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_pop_list, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t temp_buf, unsigned int nb_reg) {
     
     // ****************************************************************************
     // Retrieve top of the stack address in register buffer_reg
     // ****************************************************************************
-    INSERT_READ_TLS(drcontext , tls_stack , bb , instr , buffer_reg);
+    INSERT_READ_TLS(drcontext, tls_stack, bb, instr, buffer_reg);
 
     int offset = 0;
 
     for(unsigned int i = 0 ; i < nb_reg ; i++) {
         offset -= REG_SIZE(reg_to_pop_list[i]);
         if(IS_GPR(reg_to_pop_list[i]))
-            translate_insert(XINST_CREATE_load(drcontext, OP_REG(reg_to_pop_list[i]) , OP_BASE_DISP(buffer_reg , offset , reg_get_size(reg_to_pop_list[i]))) , bb , instr); 
+            translate_insert(XINST_CREATE_load(drcontext, OP_REG(reg_to_pop_list[i]), OP_BASE_DISP(buffer_reg, offset, reg_get_size(reg_to_pop_list[i]))), bb, instr); 
         else 
-            translate_insert(MOVE_FLOATING_REG((IS_YMM(reg_to_pop_list[i]) || IS_ZMM(reg_to_pop_list[i])) , drcontext , OP_REG(reg_to_pop_list[i]) , OP_BASE_DISP(buffer_reg , offset , reg_get_size(reg_to_pop_list[i]))), bb , instr);
+            translate_insert(MOVE_FLOATING_REG((IS_YMM(reg_to_pop_list[i]) || IS_ZMM(reg_to_pop_list[i])), drcontext, OP_REG(reg_to_pop_list[i]), OP_BASE_DISP(buffer_reg, offset, reg_get_size(reg_to_pop_list[i]))), bb, instr);
     }
 
     // ****************************************************************************
     // Decrement the register containing the address of the top of the stack
     // ****************************************************************************
-    translate_insert(INSTR_CREATE_add(drcontext , OP_REG(buffer_reg) , OP_INT(offset)) , bb , instr);
+    translate_insert(INSTR_CREATE_add(drcontext, OP_REG(buffer_reg), OP_INT(offset)), bb, instr);
 
     // ****************************************************************************
     // Update tls field with the new address
     // ****************************************************************************
-    INSERT_WRITE_TLS(drcontext , tls_stack , bb , instr , buffer_reg , temp_buf);
+    INSERT_WRITE_TLS(drcontext, tls_stack, bb, instr, buffer_reg, temp_buf);
 }
 
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-void insert_push_pseudo_stack(void *drcontext , reg_id_t reg_to_push, instrlist_t *bb , instr_t *instr , reg_id_t buffer_reg, reg_id_t temp_buf) {
+void insert_push_pseudo_stack(void *drcontext, reg_id_t reg_to_push, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t temp_buf) {
  
     // ****************************************************************************
     // Retrieve top of the stack address in register buffer_reg
     // ****************************************************************************
-    INSERT_READ_TLS(drcontext , tls_stack , bb , instr , buffer_reg);
+    INSERT_READ_TLS(drcontext, tls_stack, bb, instr, buffer_reg);
 
     // ****************************************************************************
     // Store the value of the register to save
     // ****************************************************************************
     if(IS_GPR(reg_to_push))
-        translate_insert(XINST_CREATE_store(drcontext , OP_BASE_DISP(buffer_reg , 0 , reg_get_size(reg_to_push)) , OP_REG(reg_to_push)) , bb , instr); 
+        translate_insert(XINST_CREATE_store(drcontext, OP_BASE_DISP(buffer_reg, 0, reg_get_size(reg_to_push)), OP_REG(reg_to_push)), bb, instr); 
     else 
-        translate_insert(MOVE_FLOATING_REG((IS_YMM(reg_to_push) || IS_ZMM(reg_to_push)) , drcontext , OP_BASE_DISP(buffer_reg , 0 , reg_get_size(reg_to_push)) , OP_REG(reg_to_push)), bb , instr);
+        translate_insert(MOVE_FLOATING_REG((IS_YMM(reg_to_push) || IS_ZMM(reg_to_push)), drcontext, OP_BASE_DISP(buffer_reg, 0, reg_get_size(reg_to_push)), OP_REG(reg_to_push)), bb, instr);
    
     // ****************************************************************************
     // Increment the register containing the address of the top of the stack
     // ****************************************************************************
-    translate_insert(INSTR_CREATE_add(drcontext , OP_REG(buffer_reg) , OP_INT(REG_SIZE(reg_to_push))) , bb , instr); 
+    translate_insert(INSTR_CREATE_add(drcontext, OP_REG(buffer_reg), OP_INT(REG_SIZE(reg_to_push))), bb, instr); 
 
     // ****************************************************************************
     // Update tls field with the new address
     // ****************************************************************************
-    INSERT_WRITE_TLS(drcontext , tls_stack , bb , instr , buffer_reg , temp_buf);
+    INSERT_WRITE_TLS(drcontext, tls_stack, bb, instr, buffer_reg, temp_buf);
 }
 
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-void insert_push_pseudo_stack_list(void *drcontext , reg_id_t *reg_to_push_list , instrlist_t *bb , instr_t *instr , reg_id_t buffer_reg , reg_id_t temp_buf , unsigned int nb_reg) {
+void insert_push_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_push_list, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t temp_buf, unsigned int nb_reg) {
     
     // ****************************************************************************
     // Retrieve top of the stack address in register buffer_reg
     // ****************************************************************************
-    INSERT_READ_TLS(drcontext , tls_stack , bb , instr , buffer_reg);
+    INSERT_READ_TLS(drcontext, tls_stack, bb, instr, buffer_reg);
 
     int offset=0;
 
     for(unsigned int i = 0 ; i < nb_reg ; i++) {
         if(IS_GPR(reg_to_push_list[i]))
-            translate_insert(XINST_CREATE_store(drcontext , OP_BASE_DISP(buffer_reg , offset , reg_get_size(reg_to_push_list[i])) , OP_REG(reg_to_push_list[i])) , bb , instr); 
+            translate_insert(XINST_CREATE_store(drcontext, OP_BASE_DISP(buffer_reg, offset, reg_get_size(reg_to_push_list[i])), OP_REG(reg_to_push_list[i])), bb, instr); 
         else 
-            translate_insert(MOVE_FLOATING_REG((IS_YMM(reg_to_push_list[i]) || IS_ZMM(reg_to_push_list[i])) , drcontext , OP_BASE_DISP(buffer_reg , offset , reg_get_size(reg_to_push_list[i])) , OP_REG(reg_to_push_list[i])), bb , instr);
+            translate_insert(MOVE_FLOATING_REG((IS_YMM(reg_to_push_list[i]) || IS_ZMM(reg_to_push_list[i])), drcontext, OP_BASE_DISP(buffer_reg, offset, reg_get_size(reg_to_push_list[i])), OP_REG(reg_to_push_list[i])), bb, instr);
 
         offset += REG_SIZE(reg_to_push_list[i]);
     }
@@ -182,12 +182,12 @@ void insert_push_pseudo_stack_list(void *drcontext , reg_id_t *reg_to_push_list 
     // ****************************************************************************
     // Increment the register containing the address of the top of the stack
     // ****************************************************************************
-    translate_insert(INSTR_CREATE_add(drcontext , OP_REG(buffer_reg) , OP_INT(offset)) , bb , instr); 
+    translate_insert(XINST_CREATE_add(drcontext, OP_REG(buffer_reg), OP_INT(offset)), bb, instr);
 
     // ****************************************************************************
     // Update tls field with the new address
     // ****************************************************************************
-    INSERT_WRITE_TLS(drcontext , tls_stack , bb , instr , buffer_reg , temp_buf);
+    INSERT_WRITE_TLS(drcontext, tls_stack, bb, instr, buffer_reg, temp_buf);
 }
 
 //######################################################################################################################################################################################
@@ -195,15 +195,15 @@ void insert_push_pseudo_stack_list(void *drcontext , reg_id_t *reg_to_push_list 
 //######################################################################################################################################################################################
 
 
-void insert_save_floating_reg(void *drcontext , instrlist_t *bb , instr_t *instr , reg_id_t buffer_reg , reg_id_t scratch) {
+void insert_save_floating_reg(void *drcontext, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t scratch) {
     if(AVX_512_SUPPORTED) {
-        insert_push_pseudo_stack_list(drcontext , ZMM_REG , bb , instr , buffer_reg , scratch , NB_ZMM_REG);
+        insert_push_pseudo_stack_list(drcontext, ZMM_REG, bb, instr, buffer_reg, scratch, NB_ZMM_REG);
     }
     else if(AVX_2_SUPPORTED) {
-        insert_push_pseudo_stack_list(drcontext , YMM_REG , bb , instr , buffer_reg , scratch , NB_YMM_REG);
+        insert_push_pseudo_stack_list(drcontext, YMM_REG, bb, instr, buffer_reg, scratch, NB_YMM_REG);
     }
     else { /* SSE only */
-        insert_push_pseudo_stack_list(drcontext , XMM_REG , bb , instr , buffer_reg , scratch , NB_XMM_REG);
+        insert_push_pseudo_stack_list(drcontext, XMM_REG, bb, instr, buffer_reg, scratch, NB_XMM_REG);
     }
 }
 
@@ -212,15 +212,15 @@ void insert_save_floating_reg(void *drcontext , instrlist_t *bb , instr_t *instr
 //######################################################################################################################################################################################
 
 
-void insert_restore_floating_reg(void *drcontext , instrlist_t *bb , instr_t *instr , reg_id_t buffer_reg , reg_id_t scratch) {
+void insert_restore_floating_reg(void *drcontext, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t scratch) {
     if(AVX_512_SUPPORTED) {
-        insert_pop_pseudo_stack_list(drcontext , ZMM_REG_REVERSE , bb , instr , buffer_reg , scratch , NB_ZMM_REG);
+        insert_pop_pseudo_stack_list(drcontext, ZMM_REG_REVERSE, bb, instr, buffer_reg, scratch, NB_ZMM_REG);
     }
     else if(AVX_2_SUPPORTED){
-        insert_pop_pseudo_stack_list(drcontext , YMM_REG_REVERSE , bb , instr , buffer_reg , scratch , NB_YMM_REG); 
+        insert_pop_pseudo_stack_list(drcontext, YMM_REG_REVERSE, bb, instr, buffer_reg, scratch, NB_YMM_REG); 
     }
     else { /* SSE only */
-        insert_pop_pseudo_stack_list(drcontext , XMM_REG_REVERSE , bb , instr , buffer_reg , scratch , NB_XMM_REG); 
+        insert_pop_pseudo_stack_list(drcontext, XMM_REG_REVERSE, bb, instr, buffer_reg, scratch, NB_XMM_REG); 
     }
 }
 
@@ -228,59 +228,70 @@ void insert_restore_floating_reg(void *drcontext , instrlist_t *bb , instr_t *in
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-void insert_move_operands_to_tls_scalar(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc, bool is_double) {
+void insert_move_operands_to_tls_scalar(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double) {
 
+#if defined(X86)
     // ****** FIRST OPERAND *****
     if(OP_IS_BASE_DISP(SRC(instr,0)) || OP_IS_REL_ADDR(SRC(instr,0))) {
-        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_XMM_BUFFER) , SRC(instr,0) , SRC(instr,0)), bb, instr);
-        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(DR_REG_OP_B_ADDR, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), OP_REG(DR_REG_XMM_BUFFER) , OP_REG(DR_REG_XMM_BUFFER)), bb, instr);
+        translate_insert(MOVE_FLOATING(is_double, drcontext, OP_REG(DR_REG_XMM_BUFFER), SRC(instr,0), SRC(instr,0)), bb, instr);
+        translate_insert(MOVE_FLOATING(is_double, drcontext, OP_BASE_DISP(DR_REG_OP_B_ADDR, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), OP_REG(DR_REG_XMM_BUFFER), OP_REG(DR_REG_XMM_BUFFER)), bb, instr);
     }
     else if(IS_REG(SRC(instr,0)) ) {
-        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(DR_REG_OP_B_ADDR, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), SRC(instr,0) , SRC(instr,0)), bb, instr);
+        translate_insert(MOVE_FLOATING(is_double, drcontext, OP_BASE_DISP(DR_REG_OP_B_ADDR, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), SRC(instr,0), SRC(instr,0)), bb, instr);
     }
 
         // ****** SECOND OPERAND *****
     if(OP_IS_BASE_DISP(SRC(instr,1)) || OP_IS_REL_ADDR(SRC(instr,1))) {
-        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_XMM_BUFFER) , SRC(instr,1) , SRC(instr,1)), bb, instr);
-        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(DR_REG_OP_A_ADDR, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), OP_REG(DR_REG_XMM_BUFFER) , OP_REG(DR_REG_XMM_BUFFER)), bb, instr);
+        translate_insert(MOVE_FLOATING(is_double, drcontext, OP_REG(DR_REG_XMM_BUFFER), SRC(instr,1), SRC(instr,1)), bb, instr);
+        translate_insert(MOVE_FLOATING(is_double, drcontext, OP_BASE_DISP(DR_REG_OP_A_ADDR, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), OP_REG(DR_REG_XMM_BUFFER), OP_REG(DR_REG_XMM_BUFFER)), bb, instr);
     }   
     else if(IS_REG(SRC(instr,1)) ) {
-        translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(DR_REG_OP_A_ADDR, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), SRC(instr,1) , SRC(instr,1)), bb, instr);
-    } 
+        translate_insert(MOVE_FLOATING(is_double, drcontext, OP_BASE_DISP(DR_REG_OP_A_ADDR, 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), SRC(instr,1), SRC(instr,1)), bb, instr);
+    }
+#elif defined(AARCH64)
+    //FAUT DEF ICI
+#endif 
 }
 
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-void insert_move_operands_to_tls_packed(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc) {
+void insert_move_operands_to_tls_packed(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc) {
     
     // ****** FIRST OPERAND *****
     if(OP_IS_BASE_DISP(SRC(instr,0))) 
-        insert_opnd_base_disp_to_tls_packed(drcontext , SRC(instr,0) , DR_REG_OP_B_ADDR , bb , instr , oc);
+        insert_opnd_base_disp_to_tls_packed(drcontext, SRC(instr,0), DR_REG_OP_B_ADDR, bb, instr, oc);
     else if(IS_REG(SRC(instr,0)))
-        translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(SRC(instr,0))) || IS_ZMM(GET_REG(SRC(instr,0)))) , drcontext , OP_BASE_DISP(DR_REG_OP_B_ADDR, 0, reg_get_size(GET_REG(SRC(instr,0)))) , SRC(instr,0)), bb , instr);
-     
+#if defined(X86)
+        translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(SRC(instr,0))) || IS_ZMM(GET_REG(SRC(instr,0)))), drcontext, OP_BASE_DISP(DR_REG_OP_B_ADDR, 0, reg_get_size(GET_REG(SRC(instr,0)))), SRC(instr,0)), bb, instr);
+#elif defined(AARCH64)
+    //FAUT DEF ICI
+#endif    
+
     // ****** SECOND OPERAND *****
     if(OP_IS_BASE_DISP(SRC(instr,1)))
-        insert_opnd_base_disp_to_tls_packed(drcontext , SRC(instr,1) , DR_REG_OP_A_ADDR , bb , instr , oc);  
+        insert_opnd_base_disp_to_tls_packed(drcontext, SRC(instr,1), DR_REG_OP_A_ADDR, bb, instr, oc);  
     else if(IS_REG(SRC(instr,1)))
-        translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(SRC(instr,1))) || IS_ZMM(GET_REG(SRC(instr,1)))) , drcontext , OP_BASE_DISP(DR_REG_OP_A_ADDR, 0, reg_get_size(GET_REG(SRC(instr,1)))) , SRC(instr,1)), bb , instr);
-     
+#if defined(X86)
+        translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(SRC(instr,1))) || IS_ZMM(GET_REG(SRC(instr,1)))), drcontext, OP_BASE_DISP(DR_REG_OP_A_ADDR, 0, reg_get_size(GET_REG(SRC(instr,1)))), SRC(instr,1)), bb, instr);
+#elif defined(AARCH64)
+    //FAUT DEF ICI
+#endif 
 }
 
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-void insert_move_operands_to_tls(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc, bool is_double) {
-    INSERT_READ_TLS(drcontext , tls_op_A , bb , instr , DR_REG_OP_A_ADDR);
-    INSERT_READ_TLS(drcontext , tls_op_B , bb , instr , DR_REG_OP_B_ADDR);
+void insert_move_operands_to_tls(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double) {
+    INSERT_READ_TLS(drcontext, tls_op_A, bb, instr, DR_REG_OP_A_ADDR);
+    INSERT_READ_TLS(drcontext, tls_op_B, bb, instr, DR_REG_OP_B_ADDR);
 
     if(ifp_is_scalar(oc)) 
-        insert_move_operands_to_tls_scalar(drcontext , bb , instr , oc, is_double);
+        insert_move_operands_to_tls_scalar(drcontext, bb, instr, oc, is_double);
     else 
-        insert_move_operands_to_tls_packed(drcontext , bb , instr , oc);
+        insert_move_operands_to_tls_packed(drcontext, bb, instr, oc);
 }
 
 //######################################################################################################################################################################################
@@ -288,7 +299,7 @@ void insert_move_operands_to_tls(void *drcontext , instrlist_t *bb , instr_t *in
 //######################################################################################################################################################################################
 
 
-void insert_opnd_base_disp_to_tls_packed(void *drcontext , opnd_t opnd_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc) {
+void insert_opnd_base_disp_to_tls_packed(void *drcontext, opnd_t opnd_src, reg_id_t base_dst, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc) {
 #if defined(X86)
     if(ifp_is_128(oc)) {
         translate_insert(INSTR_CREATE_movupd(drcontext,
@@ -299,12 +310,12 @@ void insert_opnd_base_disp_to_tls_packed(void *drcontext , opnd_t opnd_src , reg
             OP_REG(DR_REG_XMM_BUFFER)), bb, instr);
     }
     else if(ifp_is_256(oc)) {
-        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_BASE_DISP(opnd_get_base(opnd_src) , opnd_get_disp(opnd_src), reg_get_size(DR_REG_YMM_BUFFER))) , bb  , instr);
-        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_YMM_BUFFER)) , OP_REG(DR_REG_YMM_BUFFER)) , bb  , instr);
+        translate_insert(INSTR_CREATE_vmovupd(drcontext, OP_REG(DR_REG_YMM_BUFFER), OP_BASE_DISP(opnd_get_base(opnd_src), opnd_get_disp(opnd_src), reg_get_size(DR_REG_YMM_BUFFER))), bb , instr);
+        translate_insert(INSTR_CREATE_vmovupd(drcontext, OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_YMM_BUFFER)), OP_REG(DR_REG_YMM_BUFFER)), bb , instr);
     }
     else { /* 512 */
-        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM_BUFFER) , OP_BASE_DISP(opnd_get_base(opnd_src) , opnd_get_disp(opnd_src), reg_get_size(DR_REG_ZMM_BUFFER))) , bb  , instr);
-        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_ZMM_BUFFER)) , OP_REG(DR_REG_ZMM_BUFFER)) , bb  , instr);
+        translate_insert(INSTR_CREATE_vmovupd(drcontext, OP_REG(DR_REG_ZMM_BUFFER), OP_BASE_DISP(opnd_get_base(opnd_src), opnd_get_disp(opnd_src), reg_get_size(DR_REG_ZMM_BUFFER))), bb , instr);
+        translate_insert(INSTR_CREATE_vmovupd(drcontext, OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_ZMM_BUFFER)), OP_REG(DR_REG_ZMM_BUFFER)), bb , instr);
     }
 #elif defined(AARCH64)
     if(ifp_is_128(oc)) {
@@ -313,7 +324,7 @@ void insert_opnd_base_disp_to_tls_packed(void *drcontext , opnd_t opnd_src , reg
             OP_BASE_DISP(opnd_get_base(opnd_src), opnd_get_disp(opnd_src), OPSZ_2),
             OPND_CREATE_DOUBLE()));
         translate_insert(INSTR_CREATE_st1_multi_1(drcontext,
-            opnd_create_base_disp_aarch64(base_dst, DR_REG_NULL, 0, false, 0, 0, OPSZ_2),
+            OP_BASE_DISP(base_dst, 0, OPSZ_2),
             OP_REG(DR_REG_MULTIPLE), OPND_CREATE_DOUBLE()));
     }else
         DR_ASSERT(false, "Other sizes not available on AArch64.");
@@ -327,22 +338,22 @@ void insert_opnd_base_disp_to_tls_packed(void *drcontext , opnd_t opnd_src , reg
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-template <typename FTYPE , FTYPE (*FN)(FTYPE, FTYPE)>
+template <typename FTYPE, FTYPE (*FN)(FTYPE, FTYPE)>
 void insert_corresponding_vect_call(void* drcontext, instrlist_t *bb, instr_t* instr,OPERATION_CATEGORY oc)
 {
     switch(oc & IFP_SIMD_TYPE_MASK)
     {
         case IFP_OP_128:
-            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_128>::apply , 0);
+            dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, FN, IFP_OP_128>::apply, 0);
         break;
         case IFP_OP_256:
-            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_256>::apply , 0);
+            dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, FN, IFP_OP_256>::apply, 0);
         break;
         case IFP_OP_512:
-            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_512>::apply , 0);
+            dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, FN, IFP_OP_512>::apply, 0);
         break;
         default: /*SCALAR */
-            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN>::apply , 0);
+            dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, FN>::apply, 0);
     }
 }
 
@@ -350,33 +361,33 @@ void insert_corresponding_vect_call(void* drcontext, instrlist_t *bb, instr_t* i
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-void insert_call(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc , bool is_double) {
+void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double) {
     
     switch (oc & IFP_OP_TYPE_MASK)
     {
         case IFP_OP_ADD:
             if(is_double)
-                insert_corresponding_vect_call<double,Interflop::Op<double>::add>(drcontext , bb , instr, oc);
+                insert_corresponding_vect_call<double,Interflop::Op<double>::add>(drcontext, bb, instr, oc);
             else
-                insert_corresponding_vect_call<float,Interflop::Op<float>::add>(drcontext , bb , instr, oc);
+                insert_corresponding_vect_call<float,Interflop::Op<float>::add>(drcontext, bb, instr, oc);
         break;
         case IFP_OP_SUB:
             if(is_double)
-                insert_corresponding_vect_call<double,Interflop::Op<double>::sub>(drcontext , bb , instr, oc);
+                insert_corresponding_vect_call<double,Interflop::Op<double>::sub>(drcontext, bb, instr, oc);
             else
-                insert_corresponding_vect_call<float,Interflop::Op<float>::sub>(drcontext , bb , instr, oc);
+                insert_corresponding_vect_call<float,Interflop::Op<float>::sub>(drcontext, bb, instr, oc);
         break;
         case IFP_OP_MUL:
             if(is_double)
-                insert_corresponding_vect_call<double,Interflop::Op<double>::mul>(drcontext , bb , instr, oc);
+                insert_corresponding_vect_call<double,Interflop::Op<double>::mul>(drcontext, bb, instr, oc);
             else
-                insert_corresponding_vect_call<float,Interflop::Op<float>::mul>(drcontext , bb , instr, oc);
+                insert_corresponding_vect_call<float,Interflop::Op<float>::mul>(drcontext, bb, instr, oc);
         break;
         case IFP_OP_DIV:
             if(is_double)
-                insert_corresponding_vect_call<double,Interflop::Op<double>::div>(drcontext , bb , instr, oc);
+                insert_corresponding_vect_call<double,Interflop::Op<double>::div>(drcontext, bb, instr, oc);
             else
-                insert_corresponding_vect_call<float,Interflop::Op<float>::div>(drcontext , bb , instr, oc);
+                insert_corresponding_vect_call<float,Interflop::Op<float>::div>(drcontext, bb, instr, oc);
         break;
         default:
             ERROR("ERROR OPERATION NOT FOUND !");
@@ -387,13 +398,31 @@ void insert_call(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-void insert_set_result_in_corresponding_register(void *drcontext , instrlist_t *bb , instr_t *instr, bool is_double , bool is_scalar) {
-    INSERT_READ_TLS(drcontext , tls_result , bb , instr , DR_REG_RES_ADDR);
+void insert_set_result_in_corresponding_register(void *drcontext, instrlist_t *bb, instr_t *instr, bool is_double, bool is_scalar) {
+    INSERT_READ_TLS(drcontext, tls_result, bb, instr, DR_REG_RES_ADDR);
     
     if(is_scalar) {
-        translate_insert(MOVE_FLOATING(is_double , drcontext , DST(instr,0) , OP_BASE_DISP(DR_REG_RES_ADDR, 0, OPSZ(DOUBLE_SIZE)) , OP_BASE_DISP(DR_REG_RES_ADDR,0,OPSZ(FLOAT_SIZE))), bb , instr);     
+#if defined(X86)
+        translate_insert(
+            MOVE_FLOATING(is_double, drcontext, DST(instr, 0), 
+                OP_BASE_DISP(DR_REG_RES_ADDR, 0, OPSZ(DOUBLE_SIZE)), 
+                OP_BASE_DISP(DR_REG_RES_ADDR, 0, OPSZ(FLOAT_SIZE))), bb, instr);  
+#elif defined(AARCH64)
+    //FAUT DEF ICI
+#endif    
     }
     else { /* PACKED */
-        translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(DST(instr,0))) || IS_ZMM(GET_REG(DST(instr,0)))) , drcontext , DST(instr,0) , OP_BASE_DISP(DR_REG_RES_ADDR , 0 , reg_get_size(GET_REG(DST(instr,0))))), bb , instr);
+#if defined(X86)
+        translate_insert(
+            MOVE_FLOATING_REG((IS_YMM(GET_REG(DST(instr, 0))) || IS_ZMM(GET_REG(DST(instr, 0)))), 
+                drcontext, DST(instr, 0), 
+                OP_BASE_DISP(DR_REG_RES_ADDR, 0, reg_get_size(GET_REG(DST(instr,0))))), 
+            bb, instr);
+#elif defined(AARCH64)
+        translate_insert(INSTR_CREATE_ld1_multi_1(drcontext,
+            DST(instr, 0), 
+            OP_BASE_DISP(DR_REG_RES_ADDR, 0, OPSZ_2),
+            OPND_CREATE_DOUBLE()));
+#endif
     }
 }
