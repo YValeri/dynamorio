@@ -59,6 +59,8 @@
 #define IS_REG(opnd) opnd_is_reg((opnd))
 #define OP_IS_BASE_DISP(opnd) opnd_is_base_disp((opnd))
 #define OP_IS_REL_ADDR(opnd) opnd_is_rel_addr((opnd))
+#define OP_IS_ABS_ADDR(opnd) opnd_is_abs_addr((opnd))
+#define OP_IS_ADDR(opnd) (OP_IS_REL_ADDR((opnd)) || OP_IS_ABS_ADDR((opnd)))
 
 /* TESTS REG */
 #define IS_GPR(reg) reg_is_gpr((reg))

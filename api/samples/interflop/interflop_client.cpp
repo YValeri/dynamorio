@@ -230,7 +230,7 @@ void insert_move_operands_to_tls_scalar(void *drcontext , instrlist_t *bb , inst
     reg_id_t reg_op_addr[] = {DR_REG_OP_B_ADDR, DR_REG_OP_A_ADDR};
 
     for(int i = 0 ; i < 2 ; i++) {
-        if(OP_IS_BASE_DISP(SRC(instr,i)) || OP_IS_REL_ADDR(SRC(instr,i))) {
+        if(OP_IS_BASE_DISP(SRC(instr,i)) || OP_IS_ADDR(SRC(instr,i))) {
             translate_insert(MOVE_FLOATING(is_double , drcontext , OP_REG(DR_REG_XMM_BUFFER) , SRC(instr,i) , SRC(instr,i)), bb, instr);
             translate_insert(MOVE_FLOATING(is_double , drcontext , OP_BASE_DISP(reg_op_addr[i], 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), OP_REG(DR_REG_XMM_BUFFER) , OP_REG(DR_REG_XMM_BUFFER)), bb, instr);
         }
@@ -249,7 +249,9 @@ void insert_move_operands_to_tls_packed(void *drcontext , instrlist_t *bb , inst
     reg_id_t reg_op_addr[] = {DR_REG_OP_B_ADDR, DR_REG_OP_A_ADDR};
 
     for(int i = 0 ; i < 2 ; i++) {
-        if(OP_IS_BASE_DISP(SRC(instr,i))) 
+        if(OP_IS_ADDR(SRC(instr,i)))
+            insert_opnd_addr_to_tls_packed(drcontext , SRC(instr,i), reg_op_addr[i] , bb , instr);
+        else if(OP_IS_BASE_DISP(SRC(instr,i))) 
             insert_opnd_base_disp_to_tls_packed(drcontext , SRC(instr,i) , reg_op_addr[i] , bb , instr , oc);
         else if(IS_REG(SRC(instr,i)))
             translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(SRC(instr,i))) || IS_ZMM(GET_REG(SRC(instr,i)))) , drcontext , OP_BASE_DISP(reg_op_addr[i], 0, reg_get_size(GET_REG(SRC(instr,i)))) , SRC(instr,i)), bb , instr);
@@ -274,18 +276,25 @@ void insert_move_operands_to_tls(void *drcontext , instrlist_t *bb , instr_t *in
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
+void insert_opnd_addr_to_tls_packed(void *drcontext , opnd_t addr_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr) {
 
-void insert_opnd_base_disp_to_tls_packed(void *drcontext , opnd_t opnd_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc) {
+}
+
+//######################################################################################################################################################################################
+//######################################################################################################################################################################################
+//######################################################################################################################################################################################
+
+void insert_opnd_base_disp_to_tls_packed(void *drcontext , opnd_t base_disp_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc) {
     if(ifp_is_128(oc)) {
-        translate_insert(INSTR_CREATE_movupd(drcontext , OP_REG(DR_REG_XMM_BUFFER) , OP_BASE_DISP(opnd_get_base(opnd_src) , opnd_get_disp(opnd_src), reg_get_size(DR_REG_XMM_BUFFER))) , bb  , instr);
+        translate_insert(INSTR_CREATE_movupd(drcontext , OP_REG(DR_REG_XMM_BUFFER) , OP_BASE_DISP(opnd_get_base(base_disp_src) , opnd_get_disp(base_disp_src), reg_get_size(DR_REG_XMM_BUFFER))) , bb  , instr);
         translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_XMM_BUFFER)) , OP_REG(DR_REG_XMM_BUFFER)) , bb  , instr);
     }
     else if(ifp_is_256(oc)) {
-        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_BASE_DISP(opnd_get_base(opnd_src) , opnd_get_disp(opnd_src), reg_get_size(DR_REG_YMM_BUFFER))) , bb  , instr);
+        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_BASE_DISP(opnd_get_base(base_disp_src) , opnd_get_disp(base_disp_src), reg_get_size(DR_REG_YMM_BUFFER))) , bb  , instr);
         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_YMM_BUFFER)) , OP_REG(DR_REG_YMM_BUFFER)) , bb  , instr);
     }
     else { /* 512 */
-        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM_BUFFER) , OP_BASE_DISP(opnd_get_base(opnd_src) , opnd_get_disp(opnd_src), reg_get_size(DR_REG_ZMM_BUFFER))) , bb  , instr);
+        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM_BUFFER) , OP_BASE_DISP(opnd_get_base(base_disp_src) , opnd_get_disp(base_disp_src), reg_get_size(DR_REG_ZMM_BUFFER))) , bb  , instr);
         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_ZMM_BUFFER)) , OP_REG(DR_REG_ZMM_BUFFER)) , bb  , instr);
     }
 }
