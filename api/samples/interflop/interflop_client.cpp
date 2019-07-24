@@ -336,14 +336,14 @@ void insert_move_operands_to_tls_memory_scalar(void *drcontext, instrlist_t *bb,
             translate_insert(
                 XINST_CREATE_load_simd(
                     drcontext, 
-                    OP_REG(is_double?DR_REG_DOUBLE:OP_REG_FLOAT),
+                    OP_REG(is_double?DR_REG_DOUBLE:DR_REG_FLOAT),
                     SRC(instr,i)),
             bb, instr);
             translate_insert(
                 XINST_CREATE_store_simd(
                     drcontext, 
                     OP_BASE_DISP(reg_op_addr[i], 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)),
-                    OP_REG(is_double?DR_REG_DOUBLE:OP_REG_FLOAT)),
+                    OP_REG(is_double?DR_REG_DOUBLE:DR_REG_FLOAT)),
             bb, instr);
 #endif
         }

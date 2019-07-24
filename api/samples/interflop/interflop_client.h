@@ -81,7 +81,7 @@
 	#define OP_REL_ADDR(addr) \
 		opnd_create_rel_addr((addr), OPSZ_2)
 	#define OP_BASE_DISP(base, disp, size) \
-		opnd_create_base_disp_aarch64((base), DR_REG_NULL, DR_EXTEND_UXTB, false, (disp), DR_OPND_NEGATED-1, (size))
+		opnd_create_base_disp((base), DR_REG_NULL, 0, (disp), (size))
 #endif
 
 /* TESTS OPND */
