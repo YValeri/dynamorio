@@ -50,7 +50,10 @@ struct interflop_backend {
 
     static void apply(FTYPE *vect_a,  FTYPE *vect_b) {
        
-        constexpr int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
+        constexpr int vect_size = (SIMD_TYPE == IFP_OP_128) ? 
+            16 : (SIMD_TYPE == IFP_OP_256) ? 
+            32 : (SIMD_TYPE == IFP_OP_512) ? 
+            64 : sizeof(FTYPE);
         constexpr int nb_elem = vect_size/sizeof(FTYPE);
 
         FTYPE res;
@@ -111,7 +114,7 @@ void insert_pop_pseudo_stack(void *drcontext, reg_id_t reg, instrlist_t *bb, ins
     else 
 #if defined(X86)
         translate_insert(
-            MOVE_FLOATING_REG((IS_YMM(reg) || IS_ZMM(reg)), 
+            MOVE_FLOATING_PACKED((IS_YMM(reg) || IS_ZMM(reg)), 
                 drcontext, OP_REG(reg), 
                 OP_BASE_DISP(buffer_reg, 0, reg_get_size(reg))), 
             bb, instr);
@@ -153,7 +156,7 @@ void insert_pop_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_pop_list, in
         else 
 #if defined(X86)
             translate_insert(
-                MOVE_FLOATING_REG(
+                MOVE_FLOATING_PACKED(
                     (IS_YMM(reg_to_pop_list[i]) || IS_ZMM(reg_to_pop_list[i])), 
                     drcontext, OP_REG(reg_to_pop_list[i]), 
                     OP_BASE_DISP(buffer_reg, offset, reg_get_size(reg_to_pop_list[i]))), 
@@ -201,7 +204,7 @@ void insert_push_pseudo_stack(void *drcontext, reg_id_t reg_to_push, instrlist_t
     else 
 #if defined(X86)
         translate_insert(
-            MOVE_FLOATING_REG((IS_YMM(reg_to_push) || IS_ZMM(reg_to_push)), 
+            MOVE_FLOATING_PACKED((IS_YMM(reg_to_push) || IS_ZMM(reg_to_push)), 
                 drcontext, OP_BASE_DISP(buffer_reg, 0, reg_get_size(reg_to_push)), 
                 OP_REG(reg_to_push)), bb, instr);
 #elif defined(AARCH64)
@@ -246,7 +249,7 @@ void insert_push_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_push_list, 
         else 
 #if defined(X86)
             translate_insert(
-                MOVE_FLOATING_REG(
+                MOVE_FLOATING_PACKED(
                     (IS_YMM(reg_to_push_list[i]) || IS_ZMM(reg_to_push_list[i])), 
                     drcontext, 
                     OP_BASE_DISP(buffer_reg, offset, reg_get_size(reg_to_push_list[i])), 
@@ -324,17 +327,37 @@ void insert_move_operands_to_tls_memory_scalar(void *drcontext, instrlist_t *bb,
     reg_id_t reg_op_addr[] = {DR_REG_OP_B_ADDR, DR_REG_OP_A_ADDR};
 
     for(int i = 0 ; i < 2 ; i++) {
-#if defined(X86)
         if(OP_IS_BASE_DISP(SRC(instr,i)) || OP_IS_ADDR(SRC(instr,i))) {
-            translate_insert(MOVE_FLOATING(is_double, drcontext, OP_REG(DR_REG_XMM_BUFFER), SRC(instr,i), SRC(instr,i)), bb, instr);
-            translate_insert(MOVE_FLOATING(is_double, drcontext, OP_BASE_DISP(reg_op_addr[i], 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), OP_REG(DR_REG_XMM_BUFFER), OP_REG(DR_REG_XMM_BUFFER)), bb, instr);
+#if defined(X86)
+            translate_insert(MOVE_FLOATING_SCALAR(is_double, drcontext, OP_REG(DR_REG_XMM_BUFFER), SRC(instr,i), SRC(instr,i)), bb, instr);
+            translate_insert(MOVE_FLOATING_SCALAR(is_double, drcontext, OP_BASE_DISP(reg_op_addr[i], 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), OP_REG(DR_REG_XMM_BUFFER), OP_REG(DR_REG_XMM_BUFFER)), bb, instr);
+#elif defined(AARCH64)
+            translate_insert(
+                XINST_CREATE_load_simd(
+                    drcontext, 
+                    OP_REG(is_double?OP_REG_DOUBLE:OP_REG_FLOAT),
+                    SRC(instr,i)),
+            bb, instr);
+            translate_insert(
+                XINST_CREATE_store_simd(
+                    drcontext, 
+                    OP_BASE_DISP(reg_op_addr[i], 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)),
+                    OP_REG(is_double?OP_REG_DOUBLE:OP_REG_FLOAT)),
+            bb, instr);
+#endif
         }
         else if(IS_REG(SRC(instr,i)) ) {
-            translate_insert(MOVE_FLOATING(is_double, drcontext, OP_BASE_DISP(reg_op_addr[i], 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), SRC(instr,i), SRC(instr,i)), bb, instr);
-        }
+#if defined(X86)
+            translate_insert(MOVE_FLOATING_SCALAR(is_double, drcontext, OP_BASE_DISP(reg_op_addr[i], 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)), SRC(instr,i), SRC(instr,i)), bb, instr);
 #elif defined(AARCH64)
-//TODO:scalar
-#endif 
+            translate_insert(
+                XINST_CREATE_store_simd(
+                    drcontext, 
+                    OP_BASE_DISP(reg_op_addr[i], 0, is_double ? OPSZ(DOUBLE_SIZE) : OPSZ(FLOAT_SIZE)),
+                    SRC(instr,i)),
+            bb, instr);
+#endif
+        }
     }
 }
 
@@ -354,7 +377,7 @@ void insert_move_operands_to_tls_memory_packed(void *drcontext, instrlist_t *bb,
         else if(IS_REG(SRC(instr,i)))
 #if defined(X86)
             translate_insert(
-                MOVE_FLOATING_REG(
+                MOVE_FLOATING_PACKED(
                     (IS_YMM(GET_REG(SRC(instr,i))) || IS_ZMM(GET_REG(SRC(instr,i)))), 
                     drcontext, 
                     OP_BASE_DISP(reg_op_addr[i], 0, reg_get_size(GET_REG(SRC(instr,i)))), 
@@ -404,21 +427,17 @@ void insert_opnd_addr_to_tls_memory_packed(void *drcontext, opnd_t addr_src, reg
         translate_insert(INSTR_CREATE_vmovupd(drcontext, OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_ZMM_BUFFER)), OP_REG(DR_REG_ZMM_BUFFER)), bb, instr);
     }
 #elif defined(AARCH64)
-    if(ifp_is_128(oc)) {
-        translate_insert(
-            INSTR_CREATE_ld1_multi_1(drcontext,
-                OP_REG(DR_REG_MULTIPLE), 
-                OP_REL_ADDR(GET_ADDR(addr_src)),
-                OPND_CREATE_DOUBLE()), 
-            bb, instr);
-        translate_insert(
-            INSTR_CREATE_st1_multi_1(drcontext,
-                OP_BASE_DISP(base_dst, 0, OPSZ_2),
-                OP_REG(DR_REG_MULTIPLE), OPND_CREATE_DOUBLE()), 
-            bb, instr);
-    }else
-        DR_ASSERT(false, "Other sizes not available on AArch64.");
-
+    translate_insert(
+        INSTR_CREATE_ld1_multi_1(drcontext,
+            OP_REG(DR_REG_MULTIPLE), 
+            OP_REL_ADDR(GET_ADDR(addr_src)),
+            OPND_CREATE_DOUBLE()), 
+        bb, instr);
+    translate_insert(
+        INSTR_CREATE_st1_multi_1(drcontext,
+            OP_BASE_DISP(base_dst, 0, OPSZ_2),
+            OP_REG(DR_REG_MULTIPLE), OPND_CREATE_DOUBLE()), 
+        bb, instr);
 #else
     DR_ASSERT(false, "Not implemented !");
 #endif
@@ -447,21 +466,17 @@ void insert_opnd_base_disp_to_tls_memory_packed(void *drcontext, opnd_t base_dis
         translate_insert(INSTR_CREATE_vmovupd(drcontext, OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_ZMM_BUFFER)), OP_REG(DR_REG_ZMM_BUFFER)), bb, instr);
     }
 #elif defined(AARCH64)
-    if(ifp_is_128(oc)) {
-        translate_insert(
-            INSTR_CREATE_ld1_multi_1(drcontext,
-                OP_REG(DR_REG_MULTIPLE), 
-                OP_BASE_DISP(opnd_get_base(base_disp_src), opnd_get_disp(base_disp_src), OPSZ_2),
-                OPND_CREATE_DOUBLE()), 
-            bb, instr);
-        translate_insert(
-            INSTR_CREATE_st1_multi_1(drcontext,
-                OP_BASE_DISP(base_dst, 0, OPSZ_2),
-                OP_REG(DR_REG_MULTIPLE), OPND_CREATE_DOUBLE()), 
-            bb, instr);
-    }else
-        DR_ASSERT(false, "Other sizes not available on AArch64.");
-
+    translate_insert(
+        INSTR_CREATE_ld1_multi_1(drcontext,
+            OP_REG(DR_REG_MULTIPLE), 
+            OP_BASE_DISP(opnd_get_base(base_disp_src), opnd_get_disp(base_disp_src), OPSZ_2),
+            OPND_CREATE_DOUBLE()), 
+        bb, instr);
+    translate_insert(
+        INSTR_CREATE_st1_multi_1(drcontext,
+            OP_BASE_DISP(base_dst, 0, OPSZ_2),
+            OP_REG(DR_REG_MULTIPLE), OPND_CREATE_DOUBLE()), 
+        bb, instr);
 #else
     DR_ASSERT(false, "Not implemented !");
 #endif
@@ -537,17 +552,22 @@ void insert_set_result_in_corresponding_register(void *drcontext, instrlist_t *b
     if(is_scalar) {
 #if defined(X86)
         translate_insert(
-            MOVE_FLOATING(is_double, drcontext, DST(instr, 0), 
+            MOVE_FLOATING_SCALAR(is_double, drcontext, DST(instr, 0), 
                 OP_BASE_DISP(DR_REG_RES_ADDR, 0, OPSZ(DOUBLE_SIZE)), 
                 OP_BASE_DISP(DR_REG_RES_ADDR, 0, OPSZ(FLOAT_SIZE))), bb, instr);  
 #elif defined(AARCH64)
-//TODO: scalar
+        translate_insert(
+            XINST_CREATE_load_simd(
+                drcontext, 
+                DST(instr, 0),
+                OP_BASE_DISP(DR_REG_RES_ADDR, 0, (is_double)?OPSZ(DOUBLE_SIZE):OPSZ(FLOAT_SIZE))),
+        bb, instr);
 #endif    
     }
     else { /* PACKED */
 #if defined(X86)
         translate_insert(
-            MOVE_FLOATING_REG((IS_YMM(GET_REG(DST(instr, 0))) || IS_ZMM(GET_REG(DST(instr, 0)))), 
+            MOVE_FLOATING_PACKED((IS_YMM(GET_REG(DST(instr, 0))) || IS_ZMM(GET_REG(DST(instr, 0)))), 
                 drcontext, DST(instr, 0), 
                 OP_BASE_DISP(DR_REG_RES_ADDR, 0, reg_get_size(GET_REG(DST(instr,0))))), 
             bb, instr);
