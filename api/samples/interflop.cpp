@@ -266,7 +266,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             // ****************************************************************************
             // ***** Move operands to thread local memory 
             // ****************************************************************************
-            insert_move_operands_to_tls(drcontext , bb , instr , oc, is_double);
+            insert_move_operands_to_tls_memory(drcontext , bb , instr , oc, is_double);
             // ****************************************************************************
             // ****************************************************************************
             // ****************************************************************************
