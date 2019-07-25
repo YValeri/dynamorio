@@ -232,17 +232,17 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
         oc = ifp_get_operation_category(instr);
 
 
-        if(oc & (oc & IFP_OP_FUSED))
+        if(oc /*& !(oc & IFP_OP_FUSED)*/    )
         {
             bool is_double = oc & IFP_OP_DOUBLE;
             bool is_scalar = oc & IFP_OP_SCALAR;
 
             dr_print_instr(drcontext, STDERR, instr , "II : ");
-            dr_printf("Operation category : %u\n",oc);
+/*            dr_printf("Operation category : %u\n",oc);
             dr_print_opnd(drcontext , STDERR , SRC(instr,0) , "SRC 0 : ");
             dr_print_opnd(drcontext , STDERR , SRC(instr,1) , "SRC 1 : ");
             dr_print_opnd(drcontext , STDERR , SRC(instr,2) , "SRC 2 : ");
-
+*/
             #ifdef DEBUG
                 dr_print_instr(drcontext, STDERR, instr , "II : ");
             #endif
