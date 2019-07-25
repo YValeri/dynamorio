@@ -73,7 +73,6 @@ struct interflop_backend {
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
         }   
 
-   /* 
         dr_printf("Vect size : %d\n",vect_size);
         dr_printf("Nb elem : %d\n",nb_elem);
 
@@ -92,7 +91,7 @@ struct interflop_backend {
         dr_printf("A op B op C : ");
         for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(GET_TLS(dr_get_current_drcontext(), tls_result))+i)));
         dr_printf("\n\n");
-*/
+
     }
 };
 
@@ -398,6 +397,67 @@ void insert_move_operands_to_tls_memory_fused(void *drcontext , instrlist_t *bb 
             translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(SRC(instr,i))) || IS_ZMM(GET_REG(SRC(instr,i)))) , drcontext , OP_BASE_DISP(reg_op_addr[index[i]], 0, reg_get_size(GET_REG(SRC(instr,i)))) , SRC(instr,i)), bb , instr);
         }
     }
+
+    if(oc & IFP_OP_FMS) {
+        switch(oc & IFP_SIMD_TYPE_MASK) {
+            
+            case IFP_OP_128:
+                /* Retrieve value in tls field */
+                translate_insert(MOVE_FLOATING_REG(false , drcontext , OP_REG(DR_REG_XMM_BUFFER) , OP_BASE_DISP(DR_REG_OP_C_ADDR, 0 , reg_get_size(DR_REG_XMM_BUFFER))), bb , instr);
+
+                 /* Set second register to 0 */
+                translate_insert(INSTR_CREATE_xorpd(drcontext , OP_REG(DR_REG_XMM_BUFFER_2) , OP_REG(DR_REG_XMM_BUFFER_2)) , bb , instr);
+
+                /* Sub (0 - REG) to have the negation */
+                if(oc & IFP_OP_DOUBLE)
+                    translate_insert(INSTR_CREATE_vsubpd(drcontext , OP_REG(DR_REG_XMM_BUFFER) , OP_REG(DR_REG_XMM_BUFFER_2), OP_REG(DR_REG_XMM_BUFFER)), bb , instr);
+                else 
+                    translate_insert(INSTR_CREATE_vsubps(drcontext , OP_REG(DR_REG_XMM_BUFFER) , OP_REG(DR_REG_XMM_BUFFER_2), OP_REG(DR_REG_XMM_BUFFER)), bb , instr);
+                
+                /* Set the result in tls field */
+                translate_insert(MOVE_FLOATING_REG(false , drcontext, OP_BASE_DISP(DR_REG_OP_C_ADDR, 0 , reg_get_size(DR_REG_XMM_BUFFER)) , OP_REG(DR_REG_XMM_BUFFER)), bb , instr);
+            break;
+
+            case IFP_OP_256:   
+                /* Retrieve value in tls field */
+                translate_insert(MOVE_FLOATING_REG(true , drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_BASE_DISP(DR_REG_OP_C_ADDR, 0 , reg_get_size(DR_REG_YMM_BUFFER))), bb , instr);
+                
+                /* Set second register to 0 */
+                translate_insert(INSTR_CREATE_vxorpd(drcontext , OP_REG(DR_REG_YMM_BUFFER_2) , OP_REG(DR_REG_YMM_BUFFER_2), OP_REG(DR_REG_YMM_BUFFER_2)),bb , instr);
+                
+                /* Sub (0 - REG) to have the negation */
+                if(oc & IFP_OP_DOUBLE)
+                    translate_insert(INSTR_CREATE_vsubpd(drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_REG(DR_REG_YMM_BUFFER_2) , OP_REG(DR_REG_YMM_BUFFER)), bb , instr);
+                else 
+                    translate_insert(INSTR_CREATE_vsubps(drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_REG(DR_REG_YMM_BUFFER_2) , OP_REG(DR_REG_YMM_BUFFER)), bb , instr);
+                
+                /* Set the result in tls field */
+                translate_insert(MOVE_FLOATING_REG(true , drcontext , OP_BASE_DISP(DR_REG_OP_C_ADDR, 0 , reg_get_size(DR_REG_YMM_BUFFER)), OP_REG(DR_REG_YMM_BUFFER)), bb , instr);
+            break;
+
+            case IFP_OP_512:
+
+                 /* Retrieve value in tls field */
+                translate_insert(MOVE_FLOATING_REG(true , drcontext , OP_REG(DR_REG_ZMM_BUFFER) , OP_BASE_DISP(DR_REG_OP_C_ADDR, 0 , reg_get_size(DR_REG_ZMM_BUFFER))), bb , instr);
+                
+                /* Set second register to 0 */
+                translate_insert(INSTR_CREATE_vxorpd(drcontext , OP_REG(DR_REG_ZMM_BUFFER_2) , OP_REG(DR_REG_ZMM_BUFFER_2), OP_REG(DR_REG_ZMM_BUFFER_2)),bb , instr);
+                
+                /* Sub (0 - REG) to have the negation */
+                if(oc & IFP_OP_DOUBLE)
+                    translate_insert(INSTR_CREATE_vsubpd(drcontext , OP_REG(DR_REG_ZMM_BUFFER) , OP_REG(DR_REG_ZMM_BUFFER_2) , OP_REG(DR_REG_ZMM_BUFFER)), bb , instr);
+                else 
+                    translate_insert(INSTR_CREATE_vsubps(drcontext , OP_REG(DR_REG_ZMM_BUFFER) , OP_REG(DR_REG_ZMM_BUFFER_2) , OP_REG(DR_REG_ZMM_BUFFER)), bb , instr);
+                
+                /* Set the result in tls field */
+                translate_insert(MOVE_FLOATING_REG(true , drcontext , OP_BASE_DISP(DR_REG_OP_C_ADDR, 0 , reg_get_size(DR_REG_ZMM_BUFFER)), OP_REG(DR_REG_ZMM_BUFFER)), bb , instr);
+            break;
+
+
+            default: //SCALAR 
+            break;
+        }
+    } 
 }
 
 //######################################################################################################################################################################################

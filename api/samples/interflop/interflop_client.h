@@ -32,8 +32,13 @@
 
 
 #define DR_REG_XMM_BUFFER DR_REG_XMM15
+#define DR_REG_XMM_BUFFER_2 DR_REG_XMM14
+
 #define DR_REG_YMM_BUFFER DR_REG_YMM15
+#define DR_REG_YMM_BUFFER_2 DR_REG_YMM14
+
 #define DR_REG_ZMM_BUFFER DR_REG_ZMM31
+#define DR_REG_ZMM_BUFFER_2 DR_REG_ZMM30
 
 #define AVX_2_SUPPORTED (proc_has_feature(FEATURE_AVX2))
 #define AVX_512_SUPPORTED (proc_has_feature(FEATURE_AVX512F))
@@ -54,6 +59,7 @@
 /* CREATE OPND */
 #define OP_REG(reg_id) opnd_create_reg((reg_id))
 #define OP_INT(val) opnd_create_immed_int((val) , OPSZ_4)
+#define OP_INT64(val) opnd_create_immed_int64((val) , OPSZ_8)
 #define OP_BASE_DISP(base,disp,size) opnd_create_base_disp((base) , DR_REG_NULL , 0 , (disp) , (size))
 #define OP_REL_ADDR(addr) opnd_create_rel_addr((addr) , OPSZ_8)
 

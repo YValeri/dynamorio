@@ -228,14 +228,19 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
 
     for(instr = instrlist_first_app(bb); instr != NULL; instr = next_instr)
     {
+        //if(instr_get_opcode(instr) == OP_vfmadd231pd) instr_set_opcode(instr,OP_vfmsub231pd);
+        //if(instr_get_opcode(instr) == OP_vfmadd231ps) instr_set_opcode(instr,OP_vfmsub231ps);
+
         next_instr = instr_get_next_app(instr);
         oc = ifp_get_operation_category(instr);
 
 
-        if(oc /*& !(oc & IFP_OP_FUSED)*/    )
+        if(oc)
         {
             bool is_double = oc & IFP_OP_DOUBLE;
             bool is_scalar = oc & IFP_OP_SCALAR;
+
+            
 
             dr_print_instr(drcontext, STDERR, instr , "II : ");
 /*            dr_printf("Operation category : %u\n",oc);
