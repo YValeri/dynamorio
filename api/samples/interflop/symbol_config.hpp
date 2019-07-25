@@ -175,5 +175,7 @@ bool shouldInstrumentModule(const module_data_t* module);
  */
 void print_lookup();
 
+bool isDebug();
+
 #endif //SYMBOL_CONFIG_HEADER
 

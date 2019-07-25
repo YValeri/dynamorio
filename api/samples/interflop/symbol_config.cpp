@@ -33,6 +33,11 @@ static std::vector<module_entry> modules_vector;
 static std::vector<lookup_entry_t> lookup_vector;
 
 static bool whitelist_parsed=false;
+static bool debug_enabled=false;
+bool isDebug()
+{
+    return debug_enabled;
+}
 
 void print_lookup()
 {
@@ -557,81 +562,87 @@ void symbol_lookup_config_from_args(int argc, const char* argv[])
 {
     interflop_client_mode = IFP_CLIENT_DEFAULT;
     std::string blacklist_filename, whitelist_filename;
+    debug_enabled=false;
+    bool no_lookup_argument=false; //Defines if the no-lookup argument has been found, allows to distinguish from default
     for(int i=1; i<argc; i++)
     {
         std::string arg(argv[i]);
-        if(arg == "--no-lookup" || arg == "-n") //No lookup takes precedence over all other arguments
+        if(arg == "--debug" || arg == "-d")
         {
-            interflop_client_mode = IFP_CLIENT_NOLOOKUP;
-            break;
-        }else if(arg == "--whitelist" || arg == "-w") //Whitelist
+            debug_enabled=true;
+        }else if(interflop_client_mode != IFP_CLIENT_GENERATE && interflop_client_mode != IFP_CLIENT_HELP && !no_lookup_argument)
         {
-            if(interflop_client_mode == IFP_CLIENT_BL_ONLY || interflop_client_mode == IFP_CLIENT_BL_WL) //If we have a blacklist
+            if(arg == "--no-lookup" || arg == "-n") //No lookup takes precedence over all other arguments
             {
-                interflop_client_mode=IFP_CLIENT_BL_WL;
-            }else
+                interflop_client_mode = IFP_CLIENT_NOLOOKUP;
+                no_lookup_argument=true;
+            }else if(arg == "--whitelist" || arg == "-w") //Whitelist
             {
-                interflop_client_mode=IFP_CLIENT_WL_ONLY;
-            }
-            
-            if(++i < argc) //If the filename is precised
-            {
-                whitelist_filename=argv[i];
-            }else
-            {
-                dr_fprintf(STDERR, "Not enough arguments\n");
-                interflop_client_mode = IFP_CLIENT_HELP;
-                break;
-            }
-            
-        }else if(arg == "--blacklist" || arg == "-b") //Whitelist
-        {
-            if(interflop_client_mode == IFP_CLIENT_WL_ONLY || interflop_client_mode == IFP_CLIENT_BL_WL) //If we have a whitelist
-            {
-                interflop_client_mode=IFP_CLIENT_BL_WL;
-            }else
-            {
-                interflop_client_mode=IFP_CLIENT_BL_ONLY;
-            }
-            
-            if(++i < argc) //If the filename is precised
-            {
-                blacklist_filename=argv[i];
-            }else
-            {
-                dr_fprintf(STDERR, "Not enough arguments\n");
-                interflop_client_mode = IFP_CLIENT_HELP;
-                break;
-            }
-            
-        }else if(arg == "--generate" || arg == "-g")
-        {
-            interflop_client_mode = IFP_CLIENT_GENERATE;
-            if(++i < argc) //If the filename is precised
-            {
-                symbol_file.open(argv[i]);
-                if(symbol_file.fail())
+                if(interflop_client_mode == IFP_CLIENT_BL_ONLY || interflop_client_mode == IFP_CLIENT_BL_WL) //If we have a blacklist
                 {
-                    dr_fprintf(STDERR, "Can't open the generated file\n");
+                    interflop_client_mode=IFP_CLIENT_BL_WL;
+                }else
+                {
+                    interflop_client_mode=IFP_CLIENT_WL_ONLY;
+                }
+                
+                if(++i < argc) //If the filename is precised
+                {
+                    whitelist_filename=argv[i];
+                }else
+                {
+                    dr_fprintf(STDERR, "Not enough arguments\n");
                     interflop_client_mode = IFP_CLIENT_HELP;
                     break;
                 }
-            }else
+                
+            }else if(arg == "--blacklist" || arg == "-b") //Whitelist
             {
-                dr_fprintf(STDERR, "Not enough arguments\n");
+                if(interflop_client_mode == IFP_CLIENT_WL_ONLY || interflop_client_mode == IFP_CLIENT_BL_WL) //If we have a whitelist
+                {
+                    interflop_client_mode=IFP_CLIENT_BL_WL;
+                }else
+                {
+                    interflop_client_mode=IFP_CLIENT_BL_ONLY;
+                }
+                
+                if(++i < argc) //If the filename is precised
+                {
+                    blacklist_filename=argv[i];
+                }else
+                {
+                    dr_fprintf(STDERR, "Not enough arguments\n");
+                    interflop_client_mode = IFP_CLIENT_HELP;
+                    break;
+                }
+                
+            }else if(arg == "--generate" || arg == "-g")
+            {
+                interflop_client_mode = IFP_CLIENT_GENERATE;
+                if(++i < argc) //If the filename is precised
+                {
+                    symbol_file.open(argv[i]);
+                    if(symbol_file.fail())
+                    {
+                        dr_fprintf(STDERR, "Can't open the generated file\n");
+                        interflop_client_mode = IFP_CLIENT_HELP;
+                        break;
+                    }
+                }else
+                {
+                    dr_fprintf(STDERR, "Not enough arguments\n");
+                    interflop_client_mode = IFP_CLIENT_HELP;
+                    break;
+                }
+            }else if(arg == "--help" || arg == "-h")
+            {
                 interflop_client_mode = IFP_CLIENT_HELP;
                 break;
+            }else
+            {
+                DR_ASSERT_MSG(false, "Unknown command line option\n");
             }
-            break;
-        }else if(arg == "--help" || arg == "-h")
-        {
-            interflop_client_mode = IFP_CLIENT_HELP;
-            break;
-        }else
-        {
-            DR_ASSERT_MSG(false, "Unknown command line option\n");
         }
-        
     }
 
     std::ifstream  blacklist, whitelist;
