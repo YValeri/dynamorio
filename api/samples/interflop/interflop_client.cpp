@@ -275,6 +275,7 @@ void insert_push_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_push_list, 
     // ****************************************************************************
     // Increment the register containing the address of the top of the stack
     // ****************************************************************************
+    dr_printf("offset = %d\n", offset);
     translate_insert(XINST_CREATE_add(drcontext, OP_REG(buffer_reg), OP_INT(offset)), bb, instr);
 
     // ****************************************************************************
@@ -443,7 +444,8 @@ void insert_opnd_addr_to_tls_memory_packed(void *drcontext, opnd_t addr_src, reg
     translate_insert(
         INSTR_CREATE_st1_multi_1(drcontext,
             OP_BASE_DISP(base_dst, 0, OPSZ_2),
-            OP_REG(DR_REG_MULTIPLE), OPND_CREATE_DOUBLE()), 
+            OP_REG(DR_REG_MULTIPLE), 
+            OPND_CREATE_DOUBLE()), 
         bb, instr);
 #else
     DR_ASSERT(false, "Not implemented !");
@@ -482,7 +484,8 @@ void insert_opnd_base_disp_to_tls_memory_packed(void *drcontext, opnd_t base_dis
     translate_insert(
         INSTR_CREATE_st1_multi_1(drcontext,
             OP_BASE_DISP(base_dst, 0, OPSZ_2),
-            OP_REG(DR_REG_MULTIPLE), OPND_CREATE_DOUBLE()), 
+            OP_REG(DR_REG_MULTIPLE), 
+            OPND_CREATE_DOUBLE()), 
         bb, instr);
 #else
     DR_ASSERT(false, "Not implemented !");
