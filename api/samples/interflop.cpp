@@ -13,7 +13,41 @@
 #include <string>
 
 #include "interflop/symbol_config.hpp"
-#include "interflop/interflop_client.h"    
+#include "interflop/interflop_client.h"
+
+#if defined(X86)
+    static reg_id_t topush_reg[] = {
+        DR_REG_XDI, DR_REG_XSI, DR_REG_XAX, DR_REG_XBP, DR_REG_XSP,
+        DR_REG_XBX, DR_REG_R8, DR_REG_R9, DR_REG_R10, DR_REG_R11,
+        DR_REG_R12, DR_REG_R13, DR_REG_R14, DR_REG_R15
+    };
+    static reg_id_t topop_reg[] = {
+        DR_REG_R15, DR_REG_R14, DR_REG_R13, DR_REG_R12, DR_REG_R11,
+        DR_REG_R10, DR_REG_R9, DR_REG_R8, DR_REG_XBX, DR_REG_XSP,
+        DR_REG_XBP, DR_REG_XAX, DR_REG_XSI, DR_REG_XDI
+    };
+    #define NB_REG_SAVED 14
+#elif defined(AARCH64)
+    static reg_id_t topush_reg[] = {
+        DR_REG_X0, DR_REG_X1, DR_REG_X2, DR_REG_X3, DR_REG_X4,
+        DR_REG_X5, DR_REG_X6, DR_REG_X7, DR_REG_X8, DR_REG_X9,
+        DR_REG_X10, DR_REG_X11, DR_REG_X12, DR_REG_X13, DR_REG_X14, 
+        DR_REG_X15, DR_REG_X16, DR_REG_X17, DR_REG_X18, DR_REG_X19,
+        DR_REG_X20, DR_REG_X21, DR_REG_X22, DR_REG_X23, DR_REG_X24,
+        DR_REG_X25, DR_REG_X26, DR_REG_X27, DR_REG_X28, DR_REG_X29,
+        DR_REG_X30, DR_REG_XSP, DR_REG_XZR
+    };
+    static reg_id_t topop_reg[] = {
+        DR_REG_XZR, DR_REG_XSP, DR_REG_X30, DR_REG_X29, DR_REG_X28,
+        DR_REG_X27, DR_REG_X26, DR_REG_X25, DR_REG_X24, DR_REG_X23,
+        DR_REG_X22, DR_REG_X21, DR_REG_X20, DR_REG_X19, DR_REG_X18,
+        DR_REG_X17, DR_REG_X16, DR_REG_X15, DR_REG_X14, DR_REG_X13,
+        DR_REG_X12, DR_REG_X11, DR_REG_X10, DR_REG_X9, DR_REG_X8, 
+        DR_REG_X7, DR_REG_X6, DR_REG_X5, DR_REG_X4, DR_REG_X3, 
+        DR_REG_X2, DR_REG_X1, DR_REG_X0
+    };
+    #define NB_REG_SAVED 33
+#endif
                                         
 static void event_exit(void);
 
@@ -256,20 +290,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             // push general purpose registers on pseudo stack 
             // All GPR except DR_BUFFER_REG and DR_SCRATCH_REG
             // ****************************************************************************
-#if defined(X86)
-            reg_id_t topush_reg[] = {DR_REG_XDI, DR_REG_XSI, DR_REG_XAX, DR_REG_XBP, DR_REG_XSP, DR_REG_XBX, DR_REG_R8, DR_REG_R9, DR_REG_R10, DR_REG_R11, DR_REG_R12, DR_REG_R13, DR_REG_R14, DR_REG_R15};
-#elif defined(AARCH64)
-            reg_id_t topush_reg[] = {
-                DR_REG_X0, DR_REG_X1, DR_REG_X2, DR_REG_X3, DR_REG_X4,
-                DR_REG_X5, DR_REG_X6, DR_REG_X7, DR_REG_X8, DR_REG_X9,
-                DR_REG_X10, DR_REG_X11, DR_REG_X12, DR_REG_X13, DR_REG_X14, 
-                DR_REG_X15, DR_REG_X16, DR_REG_X17, DR_REG_X18, DR_REG_X19,
-                DR_REG_X20, DR_REG_X21, DR_REG_X22, DR_REG_X23, DR_REG_X24,
-                DR_REG_X25, DR_REG_X26, DR_REG_X27, DR_REG_X28, DR_REG_X29,
-                DR_REG_X30, DR_REG_XSP, DR_REG_XZR
-            };
-#endif
-            insert_push_pseudo_stack_list(drcontext, topush_reg, bb, instr, buffer_reg, scratch, 14);
+            insert_push_pseudo_stack_list(drcontext, topush_reg, bb, instr, buffer_reg, scratch, NB_REG_SAVED);
 
             // ****************************************************************************
             // Push all ZMM/YMM/XMM registers
@@ -311,20 +332,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             // pop general purpose registers on pseudo stack 
             // All GPR except DR_BUFFER_REG and DR_SCRATCH_REG
             // ****************************************************************************
-#if defined(X86)
-            reg_id_t topop_reg[] = {DR_REG_R15, DR_REG_R14, DR_REG_R13, DR_REG_R12, DR_REG_R11, DR_REG_R10, DR_REG_R9, DR_REG_R8, DR_REG_XBX, DR_REG_XSP, DR_REG_XBP, DR_REG_XAX, DR_REG_XSI, DR_REG_XDI};
-#elif defined(AARCH64)
-            reg_id_t topop_reg[] = {
-                DR_REG_XZR, DR_REG_XSP, DR_REG_X30, DR_REG_X29, DR_REG_X28,
-                DR_REG_X27, DR_REG_X26, DR_REG_X25, DR_REG_X24, DR_REG_X23,
-                DR_REG_X22, DR_REG_X21, DR_REG_X20, DR_REG_X19, DR_REG_X18,
-                DR_REG_X17, DR_REG_X16, DR_REG_X15, DR_REG_X14, DR_REG_X13,
-                DR_REG_X12, DR_REG_X11, DR_REG_X10, DR_REG_X9, DR_REG_X8, 
-                DR_REG_X7, DR_REG_X6, DR_REG_X5, DR_REG_X4, DR_REG_X3, 
-                DR_REG_X2, DR_REG_X1, DR_REG_X0
-            };
-#endif
-            insert_pop_pseudo_stack_list(drcontext, topop_reg, bb, instr, buffer_reg, scratch, 14);
+            insert_pop_pseudo_stack_list(drcontext, topop_reg, bb, instr, buffer_reg, scratch, NB_REG_SAVED);
 
             // ****************************************************************************
             // Restore processor flags
