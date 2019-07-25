@@ -48,6 +48,15 @@
     };
     #define NB_REG_SAVED 33
 #endif
+
+/*
+    ORIGINE POSSIBLE DU PROBLEME DU ADD AVEC X7 :
+    - problème dans la sauvegarde des registres et les tailles qui n'étaient pas concordantes
+    - problème par rapport à DR_BUFFER_REG qui est X7, changé en X17, voir si ça règle le soucis
+    - problème avec le add dans le fonction push stack list truc, qui fait faisait un add avec x7 et un offset
+        - peut-être que du au fait que la taille de la stack n'est plus un multiple de 16, et il aime pas
+
+*/
                                         
 static void event_exit(void);
 
@@ -293,7 +302,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             insert_push_pseudo_stack_list(drcontext, topush_reg, bb, instr, buffer_reg, scratch, NB_REG_SAVED);
 
             // ****************************************************************************
-            // Push all ZMM/YMM/XMM registers
+            // Push all Floating point registers
             // ****************************************************************************
             insert_save_floating_reg(drcontext, bb, instr, buffer_reg, scratch);
 
@@ -319,7 +328,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             // ****************************************************************************
 
             // ****************************************************************************
-            // Restore all ZMM/YMM/XMM registers 
+            // Restore all FLoating point registers 
             // ****************************************************************************
             insert_restore_floating_reg(drcontext, bb, instr, buffer_reg, scratch);
             

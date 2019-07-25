@@ -47,8 +47,8 @@
     #define DR_REG_FLOAT DR_REG_S31
     #define DR_REG_DOUBLE DR_REG_D31
 
-    #define DR_BUFFER_REG DR_REG_X7
-    #define DR_SCRATCH_REG DR_REG_X6
+    #define DR_BUFFER_REG DR_REG_X17
+    #define DR_SCRATCH_REG DR_REG_X16
 #endif
 
 #define SPILL_SLOT_BUFFER_REG SPILL_SLOT_1
