@@ -20,12 +20,14 @@
 #define IFP_OP_SUB          32      // 0b00000000000100000          //Substraction
 #define IFP_OP_MUL          64      // 0b00000000001000000          //Multiplication
 #define IFP_OP_DIV          128     // 0b00000000010000000          //Division
+
 #define IFP_OP_FMA          256     // 0b00000000100000000          //Fused Multiply Add : a * b + c 
 #define IFP_OP_FMS          512     // 0b00000001000000000          //Fused Multiply Sub : a * b - c
 #define IFP_OP_132          1024    // 0b00000010000000000          //Order of FMA/FMS : a * c + b
 #define IFP_OP_213          2048    // 0b00000100000000000          //Order of FMA/FMS : b * a + c
 #define IFP_OP_231          4096    // 0b00001000000000000          //Order of FMA/FMS : b * c + a
 #define IFP_OP_NEG          8192    // 0b00010000000000000          //Negated FMA/FMS
+
 #define IFP_OP_128          16384   // 0b00100000000000000          //Operation between vectors of length 128
 #define IFP_OP_256          32768   // 0b01000000000000000          //Operation between vectors of length 256
 #define IFP_OP_512          65536   // 0b10000000000000000          //Operation between vectors of length 512
@@ -33,7 +35,7 @@
 #define IFP_OP_MASK         131056  // 0b11111111111110000          //Mask to get the Operation
 #define IFP_OP_TYPE_MASK    16368   // 0b00011111111110000          //Mask to get the type of the operation
 #define IFP_SIMD_TYPE_MASK  114688  // 0b11100000000000000          //Mask to get the type of SIMD
-#define IFP_OP_FUSED        16128   // 0b00011111100000000
+#define IFP_OP_FUSED        768     // 0b00000001100000000
 
 // For operations that are unsupported for the moment
 #define IFP_OP_UNSUPPORTED IFP_OP_OTHER
@@ -65,11 +67,24 @@ enum OPERATION_CATEGORY{
     IFP_SUBD = IFP_OP_DOUBLE | IFP_OP_SCALAR | IFP_OP_SUB, 
     IFP_MULD = IFP_OP_DOUBLE | IFP_OP_SCALAR | IFP_OP_MUL, 
     IFP_DIVD = IFP_OP_DOUBLE | IFP_OP_SCALAR | IFP_OP_DIV,
+
+    //Packed float
+    IFP_PADDS = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_ADD,
+    IFP_PSUBS = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_SUB,
+    IFP_PMULS = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_MUL,
+    IFP_PDIVS = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_DIV,
+    //Packed double
+    IFP_PADDD = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_ADD,
+    IFP_PSUBD = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_SUB,
+    IFP_PMULD = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_MUL,
+    IFP_PDIVD = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_DIV,
+    
     //Packed float 128 bits
     IFP_PADDS_128 = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_ADD | IFP_OP_128, 
     IFP_PSUBS_128 = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_SUB | IFP_OP_128, 
     IFP_PMULS_128 = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_MUL | IFP_OP_128, 
     IFP_PDIVS_128 = IFP_OP_FLOAT | IFP_OP_PACKED | IFP_OP_DIV | IFP_OP_128,
+    
     //Packed double 128 bits
     IFP_PADDD_128 = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_ADD | IFP_OP_128, 
     IFP_PSUBD_128 = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_SUB | IFP_OP_128, 
@@ -95,6 +110,8 @@ enum OPERATION_CATEGORY{
     IFP_PSUBD_512 = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_SUB | IFP_OP_512, 
     IFP_PMULD_512 = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_MUL | IFP_OP_512, 
     IFP_PDIVD_512 = IFP_OP_DOUBLE | IFP_OP_PACKED | IFP_OP_DIV | IFP_OP_512,
+
+
 
     //Scalar FMA and FMS Float
     IFP_A132SS = IFP_OP_FLOAT | IFP_OP_SCALAR | IFP_OP_FMA | IFP_OP_132,

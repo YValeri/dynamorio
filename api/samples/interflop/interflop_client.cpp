@@ -29,7 +29,35 @@ void set_index_tls_stack(int new_tls_value) {tls_stack = new_tls_value;}
 template <typename FTYPE , FTYPE (*FN)(FTYPE, FTYPE) , int SIMD_TYPE = IFP_OP_SCALAR>
 struct interflop_backend {
 
-    static void apply(FTYPE *vect_a,  FTYPE *vect_b, FTYPE *vect_c) {
+    static void apply(FTYPE *vect_a,  FTYPE *vect_b) { 
+        constexpr int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
+        constexpr int nb_elem = vect_size/sizeof(FTYPE);
+
+        FTYPE res;
+        
+        for(int i = 0 ; i < nb_elem ; i++) {
+            res = FN(vect_a[i],vect_b[i]);
+            *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
+        }   
+
+        dr_printf("Vect size : %d\n",vect_size);
+        dr_printf("Nb elem : %d\n",nb_elem);
+
+        dr_printf("A : %p\nB : %p\n",vect_a , vect_b);
+
+        dr_printf("A : ");
+        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_a)+i)));
+        dr_printf("\n");
+        dr_printf("B : ");
+        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_b)+i)));
+        dr_printf("\n");
+        
+        dr_printf("A op B : ");
+        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(GET_TLS(dr_get_current_drcontext(), tls_result))+i)));
+        dr_printf("\n\n");
+    }
+
+    static void apply_fused(FTYPE *vect_a,  FTYPE *vect_b, FTYPE *vect_c) {
        
         constexpr int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
         constexpr int nb_elem = vect_size/sizeof(FTYPE);
@@ -41,29 +69,32 @@ struct interflop_backend {
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
         }   
 
-        //#ifdef DEBUG
-            dr_printf("Vect size : %d\n",vect_size);
-            dr_printf("Nb elem : %d\n",nb_elem);
+    
+        dr_printf("Vect size : %d\n",vect_size);
+        dr_printf("Nb elem : %d\n",nb_elem);
 
-            dr_printf("A : %p\nB : %p\nC : %p\n",vect_a , vect_b, vect_c);
+        dr_printf("A : %p\nB : %p\nC : %p\n",vect_a , vect_b, vect_c);
 
-            dr_printf("A : ");
-            for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_a)+i)));
-            dr_printf("\n");
-            dr_printf("B : ");
-            for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_b)+i)));
-            dr_printf("\n");
-            dr_printf("C : ");
-            for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_a)+i)));
-            dr_printf("\n");
-            
-            dr_printf("A op B : ");
-            for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(GET_TLS(dr_get_current_drcontext(), tls_result))+i)));
-            dr_printf("\n\n");
-        //#endif
+        dr_printf("A : ");
+        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_a)+i)));
+        dr_printf("\n");
+        dr_printf("B : ");
+        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_b)+i)));
+        dr_printf("\n");
+        dr_printf("C : ");
+        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_c)+i)));
+        dr_printf("\n");
+        
+        dr_printf("A op B : ");
+        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(GET_TLS(dr_get_current_drcontext(), tls_result))+i)));
+        dr_printf("\n\n");
 
     }
 };
+
+//######################################################################################################################################################################################
+//######################################################################################################################################################################################
+//######################################################################################################################################################################################
 
 void translate_insert(instr_t* newinstr, instrlist_t* ilist, instr_t* instr)
 {   
@@ -71,6 +102,10 @@ void translate_insert(instr_t* newinstr, instrlist_t* ilist, instr_t* instr)
     instr_set_app(newinstr);
     instrlist_preinsert(ilist,instr, newinstr);
 }
+
+//######################################################################################################################################################################################
+//######################################################################################################################################################################################
+//######################################################################################################################################################################################
 
 void insert_pop_pseudo_stack(void *drcontext , reg_id_t reg, instrlist_t *bb , instr_t *instr , reg_id_t buffer_reg, reg_id_t temp_buf) {
     
@@ -264,20 +299,6 @@ void insert_move_operands_to_tls_memory_packed(void *drcontext , instrlist_t *bb
     }
 }
 
-void insert_move_operands_to_tls_memory_fused(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc) {
-    
-    reg_id_t reg_op_addr[] = {DR_REG_OP_C_ADDR, DR_REG_OP_B_ADDR, DR_REG_OP_A_ADDR};
-
-    for(int i = 0 ; i < 3 ; i++) {
-        if(OP_IS_ADDR(SRC(instr,i)))
-            insert_opnd_addr_to_tls_memory_packed(drcontext , SRC(instr,i), reg_op_addr[i] , bb , instr, oc);
-        else if(OP_IS_BASE_DISP(SRC(instr,i))) 
-            insert_opnd_base_disp_to_tls_memory_packed(drcontext , SRC(instr,i) , reg_op_addr[i] , bb , instr , oc);
-        else if(IS_REG(SRC(instr,i)))
-            translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(SRC(instr,i))) || IS_ZMM(GET_REG(SRC(instr,i)))) , drcontext , OP_BASE_DISP(reg_op_addr[i], 0, reg_get_size(GET_REG(SRC(instr,i)))) , SRC(instr,i)), bb , instr);
-    }
-}
-
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
@@ -286,12 +307,13 @@ void insert_move_operands_to_tls_memory(void *drcontext , instrlist_t *bb , inst
     INSERT_READ_TLS(drcontext , tls_op_A , bb , instr , DR_REG_OP_A_ADDR);
     INSERT_READ_TLS(drcontext , tls_op_B , bb , instr , DR_REG_OP_B_ADDR);
 
-    if(oc & IFP_OP_SCALAR) 
+    if(oc & IFP_OP_SCALAR) {
         insert_move_operands_to_tls_memory_scalar(drcontext , bb , instr , oc, is_double);
-    else if(oc & IFP_OP_PACKED && !(oc & IFP_OP_FUSED))
+    }
+    else if(oc & IFP_OP_PACKED && !(oc & IFP_OP_FUSED)) {
         insert_move_operands_to_tls_memory_packed(drcontext , bb , instr , oc);
+    }
     else if(oc & IFP_OP_FUSED) {
-        dr_printf("MOVE OP FUSED\n");
         INSERT_READ_TLS(drcontext , tls_op_C , bb , instr , DR_REG_OP_C_ADDR);
         insert_move_operands_to_tls_memory_fused(drcontext , bb , instr , oc);
     }     
@@ -321,17 +343,42 @@ void insert_opnd_addr_to_tls_memory_packed(void *drcontext , opnd_t addr_src , r
 //######################################################################################################################################################################################
 
 void insert_opnd_base_disp_to_tls_memory_packed(void *drcontext , opnd_t base_disp_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc) {
+    dr_printf("Oc : %d\n",oc);
     if(ifp_is_128(oc)) {
+        dr_printf("Base disp is 128 !!!!\n");
         translate_insert(INSTR_CREATE_movupd(drcontext , OP_REG(DR_REG_XMM_BUFFER) , OP_BASE_DISP(opnd_get_base(base_disp_src) , opnd_get_disp(base_disp_src), reg_get_size(DR_REG_XMM_BUFFER))) , bb  , instr);
         translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_XMM_BUFFER)) , OP_REG(DR_REG_XMM_BUFFER)) , bb  , instr);
     }
     else if(ifp_is_256(oc)) {
+        dr_printf("Base disp is 256 !!!!\n");
         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_BASE_DISP(opnd_get_base(base_disp_src) , opnd_get_disp(base_disp_src), reg_get_size(DR_REG_YMM_BUFFER))) , bb  , instr);
         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_YMM_BUFFER)) , OP_REG(DR_REG_YMM_BUFFER)) , bb  , instr);
     }
-    else { /* 512 */
+    else if(ifp_is_512(oc)){ /* 512 */
+        dr_printf("Base disp is 512 !!!!\n");
         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_ZMM_BUFFER) , OP_BASE_DISP(opnd_get_base(base_disp_src) , opnd_get_disp(base_disp_src), reg_get_size(DR_REG_ZMM_BUFFER))) , bb  , instr);
         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_ZMM_BUFFER)) , OP_REG(DR_REG_ZMM_BUFFER)) , bb  , instr);
+    }
+}
+
+//######################################################################################################################################################################################
+//######################################################################################################################################################################################
+//######################################################################################################################################################################################
+
+void insert_move_operands_to_tls_memory_fused(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc) {
+    
+    reg_id_t reg_op_addr[] = {DR_REG_OP_C_ADDR, DR_REG_OP_B_ADDR, DR_REG_OP_A_ADDR};
+
+    for(int i = 0 ; i < 3 ; i++) {
+        if(OP_IS_ADDR(SRC(instr,i))) {
+            insert_opnd_addr_to_tls_memory_packed(drcontext , SRC(instr,i), reg_op_addr[i] , bb , instr, oc);
+        }
+        else if(OP_IS_BASE_DISP(SRC(instr,i))) {
+            insert_opnd_base_disp_to_tls_memory_packed(drcontext , SRC(instr,i) , reg_op_addr[i] , bb , instr , oc);
+        }
+        else if(IS_REG(SRC(instr,i))) {
+            translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(SRC(instr,i))) || IS_ZMM(GET_REG(SRC(instr,i)))) , drcontext , OP_BASE_DISP(reg_op_addr[i], 0, reg_get_size(GET_REG(SRC(instr,i)))) , SRC(instr,i)), bb , instr);
+        }
     }
 }
 
