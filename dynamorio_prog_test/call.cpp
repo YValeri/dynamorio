@@ -63,7 +63,10 @@ int main(int argc , char *argv[]) {
     }
     printf("\n");   
     
-    double DDDD[]  __attribute__ ((aligned(32))) = {10,100,1000,10000} , EEEE[]  __attribute__ ((aligned(32))) = {20,200,2000,20000} , FFFF[]  __attribute__ ((aligned(32))) = {0,0,0,0};
+    double  DDDD[]  __attribute__ ((aligned(32))) = {10,100,1000,10000} , 
+            EEEE[]  __attribute__ ((aligned(32))) = {20,200,2000,20000} , 
+            FFFF[]  __attribute__ ((aligned(32))) = {0,0,0,0} , 
+            GGGG[]  __attribute__ ((aligned(32))) = {0,0,0,0};
 
     __m256d vv1 = _mm256_load_pd(DDDD);
     __m256d vv2 = _mm256_load_pd(EEEE);
@@ -74,6 +77,16 @@ int main(int argc , char *argv[]) {
     printf("FFFF : ");
     for(int i = 0 ; i < 4 ; i++) {
         printf("%.2f ",FFFF[i]);
+    }
+    printf("\n"); 
+    
+    __m256d vv4 = _mm256_fmadd_pd(vv1 , vv2 , vv3);
+
+     _mm256_store_pd(GGGG , vv4);
+
+    printf("GGGG : ");
+    for(int i = 0 ; i < 4 ; i++) {
+        printf("%.2f ",GGGG[i]);
     }
     printf("\n"); 
 

@@ -11,22 +11,25 @@ static reg_id_t ZMM_REG_REVERSE[] = {DR_REG_ZMM31, DR_REG_ZMM30, DR_REG_ZMM29, D
 
 static int  tls_result /* index of thread local storage to store the result of floating point operations */, 
             tls_op_A, tls_op_B /* index of thread local storage to store the operands of vectorial floating point operations */,
+            tls_op_C, /* index of thread local storage to store the third operand in FMA */
             tls_stack /* index of thread local storage to store the address of the shallow stack */;
 
 int get_index_tls_result() {return tls_result;}
 int get_index_tls_op_A() {return tls_op_A;}
 int get_index_tls_op_B() {return tls_op_B;}
+int get_index_tls_op_C() {return tls_op_C;}
 int get_index_tls_stack() {return tls_stack;}
 
 void set_index_tls_result(int new_tls_value) {tls_result = new_tls_value;}
 void set_index_tls_op_A(int new_tls_value) {tls_op_A = new_tls_value;}
 void set_index_tls_op_B(int new_tls_value) {tls_op_B = new_tls_value;}
+void set_index_tls_op_C(int new_tls_value) {tls_op_C = new_tls_value;}
 void set_index_tls_stack(int new_tls_value) {tls_stack = new_tls_value;}
 
 template <typename FTYPE , FTYPE (*FN)(FTYPE, FTYPE) , int SIMD_TYPE = IFP_OP_SCALAR>
 struct interflop_backend {
 
-    static void apply(FTYPE *vect_a,  FTYPE *vect_b) {
+    static void apply(FTYPE *vect_a,  FTYPE *vect_b, FTYPE *vect_c) {
        
         constexpr int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
         constexpr int nb_elem = vect_size/sizeof(FTYPE);
@@ -38,11 +41,11 @@ struct interflop_backend {
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
         }   
 
-        #ifdef DEBUG
+        //#ifdef DEBUG
             dr_printf("Vect size : %d\n",vect_size);
             dr_printf("Nb elem : %d\n",nb_elem);
 
-            dr_printf("A : %p\nB : %p\n",vect_a , vect_b);
+            dr_printf("A : %p\nB : %p\nC : %p\n",vect_a , vect_b, vect_c);
 
             dr_printf("A : ");
             for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_a)+i)));
@@ -50,11 +53,14 @@ struct interflop_backend {
             dr_printf("B : ");
             for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_b)+i)));
             dr_printf("\n");
+            dr_printf("C : ");
+            for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_a)+i)));
+            dr_printf("\n");
             
             dr_printf("A op B : ");
             for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(GET_TLS(dr_get_current_drcontext(), tls_result))+i)));
             dr_printf("\n\n");
-        #endif
+        //#endif
 
     }
 };
@@ -258,6 +264,20 @@ void insert_move_operands_to_tls_memory_packed(void *drcontext , instrlist_t *bb
     }
 }
 
+void insert_move_operands_to_tls_memory_fused(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc) {
+    
+    reg_id_t reg_op_addr[] = {DR_REG_OP_C_ADDR, DR_REG_OP_B_ADDR, DR_REG_OP_A_ADDR};
+
+    for(int i = 0 ; i < 3 ; i++) {
+        if(OP_IS_ADDR(SRC(instr,i)))
+            insert_opnd_addr_to_tls_memory_packed(drcontext , SRC(instr,i), reg_op_addr[i] , bb , instr, oc);
+        else if(OP_IS_BASE_DISP(SRC(instr,i))) 
+            insert_opnd_base_disp_to_tls_memory_packed(drcontext , SRC(instr,i) , reg_op_addr[i] , bb , instr , oc);
+        else if(IS_REG(SRC(instr,i)))
+            translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(SRC(instr,i))) || IS_ZMM(GET_REG(SRC(instr,i)))) , drcontext , OP_BASE_DISP(reg_op_addr[i], 0, reg_get_size(GET_REG(SRC(instr,i)))) , SRC(instr,i)), bb , instr);
+    }
+}
+
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
@@ -266,10 +286,15 @@ void insert_move_operands_to_tls_memory(void *drcontext , instrlist_t *bb , inst
     INSERT_READ_TLS(drcontext , tls_op_A , bb , instr , DR_REG_OP_A_ADDR);
     INSERT_READ_TLS(drcontext , tls_op_B , bb , instr , DR_REG_OP_B_ADDR);
 
-    if(ifp_is_scalar(oc)) 
+    if(oc & IFP_OP_SCALAR) 
         insert_move_operands_to_tls_memory_scalar(drcontext , bb , instr , oc, is_double);
-    else 
+    else if(oc & IFP_OP_PACKED && !(oc & IFP_OP_FUSED))
         insert_move_operands_to_tls_memory_packed(drcontext , bb , instr , oc);
+    else if(oc & IFP_OP_FUSED) {
+        dr_printf("MOVE OP FUSED\n");
+        INSERT_READ_TLS(drcontext , tls_op_C , bb , instr , DR_REG_OP_C_ADDR);
+        insert_move_operands_to_tls_memory_fused(drcontext , bb , instr , oc);
+    }     
 }
 
 //######################################################################################################################################################################################
@@ -339,35 +364,48 @@ void insert_corresponding_vect_call(void* drcontext, instrlist_t *bb, instr_t* i
 
 void insert_call(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc , bool is_double) {
     
-    switch (oc & IFP_OP_TYPE_MASK)
-    {
-        case IFP_OP_ADD:
-            if(is_double)
-                insert_corresponding_vect_call<double,Interflop::Op<double>::add>(drcontext , bb , instr, oc);
-            else
-                insert_corresponding_vect_call<float,Interflop::Op<float>::add>(drcontext , bb , instr, oc);
-        break;
-        case IFP_OP_SUB:
-            if(is_double)
-                insert_corresponding_vect_call<double,Interflop::Op<double>::sub>(drcontext , bb , instr, oc);
-            else
-                insert_corresponding_vect_call<float,Interflop::Op<float>::sub>(drcontext , bb , instr, oc);
-        break;
-        case IFP_OP_MUL:
-            if(is_double)
-                insert_corresponding_vect_call<double,Interflop::Op<double>::mul>(drcontext , bb , instr, oc);
-            else
-                insert_corresponding_vect_call<float,Interflop::Op<float>::mul>(drcontext , bb , instr, oc);
-        break;
-        case IFP_OP_DIV:
-            if(is_double)
-                insert_corresponding_vect_call<double,Interflop::Op<double>::div>(drcontext , bb , instr, oc);
-            else
-                insert_corresponding_vect_call<float,Interflop::Op<float>::div>(drcontext , bb , instr, oc);
-        break;
-        default:
-            ERROR("ERROR OPERATION NOT FOUND !");
+    dr_printf("INSERT CALL\n");
+
+    if(oc & IFP_OP_FUSED) {
+        if(is_double)
+            insert_corresponding_vect_call<double,Interflop::Op<double>::add>(drcontext , bb , instr, oc);
+        else
+            insert_corresponding_vect_call<float,Interflop::Op<float>::add>(drcontext , bb , instr, oc);
     }
+    else {
+        switch (oc & IFP_OP_TYPE_MASK)
+        {
+            case IFP_OP_ADD:
+                if(is_double)
+                    insert_corresponding_vect_call<double,Interflop::Op<double>::add>(drcontext , bb , instr, oc);
+                else
+                    insert_corresponding_vect_call<float,Interflop::Op<float>::add>(drcontext , bb , instr, oc);
+            break;
+            case IFP_OP_SUB:
+                if(is_double)
+                    insert_corresponding_vect_call<double,Interflop::Op<double>::sub>(drcontext , bb , instr, oc);
+                else
+                    insert_corresponding_vect_call<float,Interflop::Op<float>::sub>(drcontext , bb , instr, oc);
+            break;
+            case IFP_OP_MUL:
+                if(is_double)
+                    insert_corresponding_vect_call<double,Interflop::Op<double>::mul>(drcontext , bb , instr, oc);
+                else
+                    insert_corresponding_vect_call<float,Interflop::Op<float>::mul>(drcontext , bb , instr, oc);
+            break;
+            case IFP_OP_DIV:
+                if(is_double)
+                    insert_corresponding_vect_call<double,Interflop::Op<double>::div>(drcontext , bb , instr, oc);
+                else
+                    insert_corresponding_vect_call<float,Interflop::Op<float>::div>(drcontext , bb , instr, oc);    
+            break;
+            default:
+                ERROR("ERROR OPERATION NOT FOUND !");
+        }
+    }
+
+    dr_printf("INSERT CALL END\n");
+    
 }
 
 //######################################################################################################################################################################################

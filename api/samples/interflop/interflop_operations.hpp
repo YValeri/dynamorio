@@ -33,6 +33,7 @@
 #define IFP_OP_MASK         131056  // 0b11111111111110000          //Mask to get the Operation
 #define IFP_OP_TYPE_MASK    16368   // 0b00011111111110000          //Mask to get the type of the operation
 #define IFP_SIMD_TYPE_MASK  114688  // 0b11100000000000000          //Mask to get the type of SIMD
+#define IFP_OP_FUSED        16128   // 0b00011111100000000
 
 // For operations that are unsupported for the moment
 #define IFP_OP_UNSUPPORTED IFP_OP_OTHER

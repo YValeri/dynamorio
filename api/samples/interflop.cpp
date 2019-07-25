@@ -72,6 +72,7 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
     set_index_tls_stack(drmgr_register_tls_field());
     set_index_tls_op_A(drmgr_register_tls_field());
     set_index_tls_op_B(drmgr_register_tls_field());
+    set_index_tls_op_C(drmgr_register_tls_field());
 
     drmgr_register_thread_init_event(thread_init);
     drmgr_register_thread_exit_event(thread_exit);
@@ -113,6 +114,7 @@ static void thread_init(void *dr_context) {
     SET_TLS(dr_context , get_index_tls_stack() , dr_thread_alloc(dr_context , SIZE_STACK*sizeof(SLOT)));
     SET_TLS(dr_context , get_index_tls_op_A() , dr_thread_alloc(dr_context , MAX_OPND_SIZE_BYTES));
     SET_TLS(dr_context , get_index_tls_op_B() , dr_thread_alloc(dr_context , MAX_OPND_SIZE_BYTES));
+    SET_TLS(dr_context , get_index_tls_op_C() , dr_thread_alloc(dr_context , MAX_OPND_SIZE_BYTES));
 }
 
 static void thread_exit(void *dr_context) {
@@ -120,6 +122,7 @@ static void thread_exit(void *dr_context) {
     dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_result()) , MAX_OPND_SIZE_BYTES);
     dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_op_A()) , MAX_OPND_SIZE_BYTES);
     dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_op_B()) , MAX_OPND_SIZE_BYTES);
+    dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_op_C()) , MAX_OPND_SIZE_BYTES);
 }
 
 
@@ -228,12 +231,18 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
         next_instr = instr_get_next_app(instr);
         oc = ifp_get_operation_category(instr);
 
-        if(oc)
-        {
-            bool is_double = ifp_is_double(oc);
-            bool is_scalar = ifp_is_scalar(oc);
 
-            
+        if(oc & (oc & IFP_OP_FUSED))
+        {
+            bool is_double = oc & IFP_OP_DOUBLE;
+            bool is_scalar = oc & IFP_OP_SCALAR;
+
+            dr_print_instr(drcontext, STDERR, instr , "II : ");
+            dr_printf("Operation category : %u\n",oc);
+            dr_print_opnd(drcontext , STDERR , SRC(instr,0) , "SRC 0 : ");
+            dr_print_opnd(drcontext , STDERR , SRC(instr,1) , "SRC 1 : ");
+            dr_print_opnd(drcontext , STDERR , SRC(instr,2) , "SRC 2 : ");
+
             #ifdef DEBUG
                 dr_print_instr(drcontext, STDERR, instr , "II : ");
             #endif
@@ -245,7 +254,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
 
             dr_save_reg(drcontext , bb , instr , buffer_reg , SPILL_SLOT_BUFFER_REG);
             dr_save_reg(drcontext , bb , instr , scratch , SPILL_SLOT_SCRATCH_REG);
-        
+                    
             // ****************************************************************************
             // save processor flags
             // ****************************************************************************
@@ -276,6 +285,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             // ***** If the gap is greater than 32 bytes, the program may crash !!!!!!!!!!!!!!! *****
             translate_insert(INSTR_CREATE_sub(drcontext , OP_REG(DR_REG_XSP) , OP_INT(32)) , bb , instr);
 
+
             //****************************************************************************
             // ***** CALL *****
             // ****************************************************************************
@@ -283,7 +293,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             // ****************************************************************************
             // ****************************************************************************
             // ****************************************************************************
-
+            
             // ****************************************************************************
             // Restore all ZMM/YMM/XMM registers 
             // ****************************************************************************
