@@ -6,3 +6,5 @@ CMakeLists.txt
 dynamorio_prog_test/*.out
 dynamorio_prog_test/*.exe
 dynamorio_prog_test/*.obj
+dynamorio_prog_test/*.pdb
+dynamorio_prog_test/*.ilk
