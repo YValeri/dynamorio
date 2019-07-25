@@ -57,7 +57,7 @@
         - peut-être que du au fait que la taille de la stack n'est plus un multiple de 16, et il aime pas
     - vérifier les XINST add pour voir s'il y a pas des conneries
     - peut-être changer les X en R dans les registres à sauver, pour éviter de potentiels conflits
-
+    - tester avec les autres add
 */
                                         
 static void event_exit(void);
