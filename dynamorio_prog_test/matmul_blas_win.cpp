@@ -45,47 +45,15 @@ int main(int argc , char *argv[]) {
         B[i] = 2 / ((double) (i+(i%MATRIX_SIZE)+1));
         AB[i] = 0;
     }
-    printf("%.100f\n",AB[0]);
-     printf("%.100f\n",AB[1]);
-      printf("%.100f\n",AB[2]);
-       printf("%.100f\n",AB[3]);
-
-        printf("%.100f\n",AB[150]);
-         printf("%.100f\n",AB[45]);
 
     matrix_multiplcation(A , MATRIX_SIZE , MATRIX_SIZE , B , MATRIX_SIZE , MATRIX_SIZE , AB , false , false , 0);
 
-/*
-    printf("\t***** A *****\n");
-    for(int i = 0 ; i < MATRIX_SIZE*MATRIX_SIZE ; i++) {
-        printf("%.4f ",A[i]);
-        if(i && !((i+1) %MATRIX_SIZE)) printf("\n");
-    }
-    
-    printf("\n\n");
-    printf("\t***** B *****\n");
-    for(int i = 0 ; i < MATRIX_SIZE*MATRIX_SIZE ; i++) {
-        printf("%.4f ",B[i]);
-        if(i && !((i+1)%MATRIX_SIZE)) printf("\n");
-    }
-
-    printf("\n\n");
-*/
-/*
-    printf("\t***** A*B *****\n");
-    for(int i = 0 ; i < MATRIX_SIZE*MATRIX_SIZE ; i++) {
-        printf("%.4f ",AB[i]);
-        if(i && !((i+1)%MATRIX_SIZE)) printf("\n");
-    }
-*/
-
     printf("%.100lf\n",AB[0]);
-     printf("%.100lf\n",AB[1]);
-      printf("%.100lf\n",AB[2]);
-       printf("%.100lf\n",AB[3]);
-
-        printf("%.100lf\n",AB[150]);
-         printf("%.100lf\n",AB[45]);
+    printf("%.100lf\n",AB[1]);
+    printf("%.100lf\n",AB[2]);
+    printf("%.100lf\n",AB[3]);
+    printf("%.100lf\n",AB[150]);
+    printf("%.100lf\n",AB[45]);
 
 
 

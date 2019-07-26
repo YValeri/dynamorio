@@ -229,8 +229,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
         next_instr = instr_get_next_app(instr);
         oc = ifp_get_operation_category(instr);
 
-
-        if(oc) {
+        if(oc != IFP_UNSUPPORTED && oc != IFP_OTHER) {
             bool is_double = ifp_is_double(oc);
             bool is_scalar = ifp_is_scalar(oc);
             
@@ -329,23 +328,29 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
 
 static dr_emit_flags_t symbol_lookup_event(void *drcontext, void *tag, instrlist_t *bb, bool for_trace, bool translating, OUT void** user_data)
 {
-    instr_t *instr, *next_instr;
+    instr_t *instr;
     OPERATION_CATEGORY oc;
     
     bool already_found_fp_op = false;
 
-    for(instr = instrlist_first_app(bb); instr != NULL; instr = next_instr)
+    for(instr = instrlist_first_app(bb); instr != NULL; instr = instr_get_next_app(instr))
     {
-        next_instr = instr_get_next_app(instr);
         oc = ifp_get_operation_category(instr);
-        if(oc)
+        if(oc != IFP_UNSUPPORTED && oc != IFP_OTHER)
         {
-            dr_print_instr(drcontext, STDERR, instr, "Found : ");
             if(!already_found_fp_op)
             {
                 already_found_fp_op=true;
                 logSymbol(bb);
             }
+            if(isDebug())
+            {
+                dr_print_instr(drcontext, STDERR, instr, "Found : ");
+            }else
+            {
+                break;
+            }
+            
         }
 
     }
