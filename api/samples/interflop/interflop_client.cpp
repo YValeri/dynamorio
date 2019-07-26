@@ -39,23 +39,6 @@ struct interflop_backend {
             res = FN(vect_a[i],vect_b[i]);
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
         }   
-/*
-        dr_printf("Vect size : %d\n",vect_size);
-        dr_printf("Nb elem : %d\n",nb_elem);
-
-        dr_printf("A : %p\nB : %p\n",vect_a , vect_b);
-
-        dr_printf("A : ");
-        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_a)+i)));
-        dr_printf("\n");
-        dr_printf("B : ");
-        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_b)+i)));
-        dr_printf("\n");
-        
-        dr_printf("A op B : ");
-        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(GET_TLS(dr_get_current_drcontext(), tls_result))+i)));
-        dr_printf("\n\n");
-    */
     }
 };
 
@@ -74,27 +57,6 @@ struct interflop_backend_fused {
             res = vect_a[i] * vect_b[i] + vect_c[i];
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
         }   
-        
-  /*      
-        dr_printf("Vect size : %d\n",vect_size);
-        dr_printf("Nb elem : %d\n",nb_elem);
-
-        dr_printf("A : %p\nB : %p\nC : %p\n",vect_a , vect_b, vect_c);
-
-        dr_printf("A : ");
-        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_a)+i)));
-        dr_printf("\n");
-        dr_printf("B : ");
-        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_b)+i)));
-        dr_printf("\n");
-        dr_printf("C : ");
-        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_c)+i)));
-        dr_printf("\n");
-        
-        dr_printf("Result : ");
-        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(GET_TLS(dr_get_current_drcontext(), tls_result))+i)));
-        dr_printf("\n\n");
-       */ 
     }
 
     static void apply_sub(FTYPE *vect_a,  FTYPE *vect_b, FTYPE *vect_c) {
@@ -108,39 +70,15 @@ struct interflop_backend_fused {
             res = vect_a[i] * vect_b[i] - vect_c[i];
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
         }   
-        
-        /*
-        dr_printf("Vect size : %d\n",vect_size);
-        dr_printf("Nb elem : %d\n",nb_elem);
-
-        dr_printf("A : %p\nB : %p\nC : %p\n",vect_a , vect_b, vect_c);
-
-        dr_printf("A : ");
-        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_a)+i)));
-        dr_printf("\n");
-        dr_printf("B : ");
-        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_b)+i)));
-        dr_printf("\n");
-        dr_printf("C : ");
-        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_c)+i)));
-        dr_printf("\n");
-        
-        dr_printf("A op B op C : ");
-        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(GET_TLS(dr_get_current_drcontext(), tls_result))+i)));
-        dr_printf("\n\n");
-        */
     }
 
 };
 
-
-
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-void translate_insert(instr_t* newinstr, instrlist_t* ilist, instr_t* instr)
-{   
+void translate_insert(instr_t* newinstr, instrlist_t* ilist, instr_t* instr) {   
     instr_set_translation(newinstr, instr_get_app_pc(instr));
     instr_set_app(newinstr);
     instrlist_preinsert(ilist,instr, newinstr);
@@ -305,9 +243,36 @@ void insert_restore_floating_reg(void *drcontext , instrlist_t *bb , instr_t *in
     }
 }
 
+
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
+
+void insert_move_operands_to_tls_memory(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc, bool is_double) {
+
+    /* First set content of the destination regsiter in the tls of the result to save the current value */
+    INSERT_READ_TLS(drcontext , tls_result , bb , instr , DR_REG_XDI);
+    translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(DST(instr,0))) || IS_ZMM(GET_REG(DST(instr,0)))) , drcontext , OP_BASE_DISP(DR_REG_XDI , 0 , reg_get_size(GET_REG(DST(instr,0)))) , OP_REG(GET_REG(DST(instr,0)))) , bb, instr);
+
+    INSERT_READ_TLS(drcontext , tls_op_A , bb , instr , DR_REG_OP_A_ADDR);
+    INSERT_READ_TLS(drcontext , tls_op_B , bb , instr , DR_REG_OP_B_ADDR);
+
+    if(oc & IFP_OP_SCALAR && !(oc & IFP_OP_FUSED)) {
+        insert_move_operands_to_tls_memory_scalar(drcontext , bb , instr , oc, is_double);
+    }
+    else if(oc & IFP_OP_PACKED && !(oc & IFP_OP_FUSED)) {
+        insert_move_operands_to_tls_memory_packed(drcontext , bb , instr , oc);
+    }
+    else if(oc & IFP_OP_FUSED) {
+        INSERT_READ_TLS(drcontext , tls_op_C , bb , instr , DR_REG_OP_C_ADDR);
+        insert_move_operands_to_tls_memory_fused(drcontext , bb , instr , oc);
+    }     
+}
+
+//######################################################################################################################################################################################
+//######################################################################################################################################################################################
+//######################################################################################################################################################################################
+
 
 void insert_move_operands_to_tls_memory_scalar(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc, bool is_double) {
 
@@ -340,31 +305,6 @@ void insert_move_operands_to_tls_memory_packed(void *drcontext , instrlist_t *bb
         else if(IS_REG(SRC(instr,i)))
             translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(SRC(instr,i))) || IS_ZMM(GET_REG(SRC(instr,i)))) , drcontext , OP_BASE_DISP(reg_op_addr[i], 0, reg_get_size(GET_REG(SRC(instr,i)))) , SRC(instr,i)), bb , instr);
     }
-}
-
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-
-void insert_move_operands_to_tls_memory(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc, bool is_double) {
-
-    /* First set content of the destination regsiter in the tls of the result to save the current value */
-    INSERT_READ_TLS(drcontext , tls_result , bb , instr , DR_REG_XDI);
-    translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(DST(instr,0))) || IS_ZMM(GET_REG(DST(instr,0)))) , drcontext , OP_BASE_DISP(DR_REG_XDI , 0 , reg_get_size(GET_REG(DST(instr,0)))) , OP_REG(GET_REG(DST(instr,0)))) , bb, instr);
-
-    INSERT_READ_TLS(drcontext , tls_op_A , bb , instr , DR_REG_OP_A_ADDR);
-    INSERT_READ_TLS(drcontext , tls_op_B , bb , instr , DR_REG_OP_B_ADDR);
-
-    if(oc & IFP_OP_SCALAR && !(oc & IFP_OP_FUSED)) {
-        insert_move_operands_to_tls_memory_scalar(drcontext , bb , instr , oc, is_double);
-    }
-    else if(oc & IFP_OP_PACKED && !(oc & IFP_OP_FUSED)) {
-        insert_move_operands_to_tls_memory_packed(drcontext , bb , instr , oc);
-    }
-    else if(oc & IFP_OP_FUSED) {
-        INSERT_READ_TLS(drcontext , tls_op_C , bb , instr , DR_REG_OP_C_ADDR);
-        insert_move_operands_to_tls_memory_fused(drcontext , bb , instr , oc);
-    }     
 }
 
 //######################################################################################################################################################################################
