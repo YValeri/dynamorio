@@ -26,7 +26,7 @@ void set_index_tls_op_B(int new_tls_value) {tls_op_B = new_tls_value;}
 void set_index_tls_op_C(int new_tls_value) {tls_op_C = new_tls_value;}
 void set_index_tls_stack(int new_tls_value) {tls_stack = new_tls_value;}
 
-template <typename FTYPE , FTYPE (*FN)(FTYPE, FTYPE) , int SIMD_TYPE = IFP_OP_SCALAR>
+template <typename FTYPE , FTYPE (*Backend_function)(FTYPE, FTYPE) , int SIMD_TYPE = IFP_OP_SCALAR>
 struct interflop_backend {
 
     static void apply(FTYPE *vect_a,  FTYPE *vect_b) {
@@ -37,17 +37,17 @@ struct interflop_backend {
         FTYPE res;
         
         for(int i = 0 ; i < nb_elem ; i++) {
-            res = FN(vect_a[i],vect_b[i]);
+            res = Backend_function(vect_a[i],vect_b[i]);
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
         }   
     }
 };
 
 
-template <typename FTYPE , FTYPE (*FN)(FTYPE, FTYPE) , int SIMD_TYPE = IFP_OP_SCALAR>
+template <typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE) , int SIMD_TYPE = IFP_OP_SCALAR>
 struct interflop_backend_fused {
         
-        static void apply_add(FTYPE *vect_a,  FTYPE *vect_b, FTYPE *vect_c) {
+        static void apply(FTYPE *vect_a,  FTYPE *vect_b, FTYPE *vect_c) {
        
         static const int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
         static const int nb_elem = vect_size/sizeof(FTYPE);
@@ -55,12 +55,12 @@ struct interflop_backend_fused {
         FTYPE res;
 
         for(int i = 0 ; i < nb_elem ; i++) {
-            res = vect_a[i] * vect_b[i] + vect_c[i];
+            res = Backend_function(vect_a[i] , vect_b[i] , vect_c[i]);
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
         }   
     }
 
-    static void apply_sub(FTYPE *vect_a,  FTYPE *vect_b, FTYPE *vect_c) {
+   /* static void apply_sub(FTYPE *vect_a,  FTYPE *vect_b, FTYPE *vect_c) {
        
         static const int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
         static const int nb_elem = vect_size/sizeof(FTYPE);
@@ -72,6 +72,7 @@ struct interflop_backend_fused {
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
         }   
     }
+    */
 
 };
 
@@ -389,22 +390,22 @@ void insert_move_operands_to_tls_memory_fused(void *drcontext , instrlist_t *bb 
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-template <typename FTYPE , FTYPE (*FN)(FTYPE, FTYPE)>
+template <typename FTYPE , FTYPE (*Backend_function)(FTYPE, FTYPE)>
 void insert_corresponding_vect_call(void* drcontext, instrlist_t *bb, instr_t* instr,OPERATION_CATEGORY oc)
 {
     switch(oc & IFP_SIMD_TYPE_MASK)
     {
         case IFP_OP_128:
-            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_128>::apply , 0);
+            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, Backend_function, IFP_OP_128>::apply , 0);
         break;
         case IFP_OP_256:
-            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_256>::apply , 0);
+            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, Backend_function, IFP_OP_256>::apply , 0);
         break;
         case IFP_OP_512:
-            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_512>::apply , 0);
+            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, Backend_function, IFP_OP_512>::apply , 0);
         break;
         default: /*SCALAR */
-            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN>::apply , 0);
+            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, Backend_function>::apply , 0);
     }
 }
 
@@ -413,38 +414,24 @@ void insert_corresponding_vect_call(void* drcontext, instrlist_t *bb, instr_t* i
 //######################################################################################################################################################################################
 
 
-template <typename FTYPE , FTYPE (*FN)(FTYPE, FTYPE)>
+template <typename FTYPE , FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE)>
 void insert_corresponding_vect_call_fused(void* drcontext, instrlist_t *bb, instr_t* instr,OPERATION_CATEGORY oc)
 {
     switch(oc & IFP_SIMD_TYPE_MASK)
     {
         case IFP_OP_128:
-            if(oc & IFP_OP_FMA)
-                dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, FN, IFP_OP_128>::apply_add , 0);
-            else if(oc & IFP_OP_FMS)
-                dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, FN, IFP_OP_128>::apply_sub , 0);
+            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, Backend_function, IFP_OP_128>::apply , 0);
         break;
 
         case IFP_OP_256:
-
-            if(oc & IFP_OP_FMA)
-                dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, FN, IFP_OP_256>::apply_add , 0);
-            else if(oc & IFP_OP_FMS)
-                dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, FN, IFP_OP_256>::apply_sub , 0);
+            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, Backend_function,  IFP_OP_256>::apply , 0);
         break;
 
-        case IFP_OP_512:
-            if(oc & IFP_OP_FMA)
-                dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, FN, IFP_OP_512>::apply_add , 0);
-            else if(oc & IFP_OP_FMS)
-                dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, FN, IFP_OP_512>::apply_sub , 0);
+            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, Backend_function,  IFP_OP_512>::apply , 0);
         break;
 
         default: /*SCALAR */
-            if(oc & IFP_OP_FMA)
-                dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, FN>::apply_add , 0);
-            else if(oc & IFP_OP_FMS)
-                dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, FN>::apply_sub , 0);
+            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, Backend_function>::apply , 0);
     }
 }
 
@@ -455,37 +442,45 @@ void insert_corresponding_vect_call_fused(void* drcontext, instrlist_t *bb, inst
 void insert_call(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc , bool is_double) {
     
     if(oc & IFP_OP_FUSED) {
-        if(is_double)
-            insert_corresponding_vect_call_fused<double,Interflop::Op<double>::add>(drcontext , bb , instr, oc);
-        else
-            insert_corresponding_vect_call_fused<float,Interflop::Op<float>::add>(drcontext , bb , instr, oc);
+        if(oc & IFP_OP_FMA) {
+            if(is_double)
+                insert_corresponding_vect_call_fused<double, Interflop::Op<double>::fmadd>(drcontext , bb , instr, oc);
+            else
+                insert_corresponding_vect_call_fused<float, Interflop::Op<float>::fmadd>(drcontext , bb , instr, oc);
+        }
+        else if(oc & IFP_OP_FMS) {
+            if(is_double)
+                insert_corresponding_vect_call_fused<double, Interflop::Op<double>::fmsub>(drcontext , bb , instr, oc);
+            else
+                insert_corresponding_vect_call_fused<float, Interflop::Op<float>::fmsub>(drcontext , bb , instr, oc);
+        }
     }
     else {
         switch (oc & IFP_OP_TYPE_MASK)
         {
             case IFP_OP_ADD:
                 if(is_double)
-                    insert_corresponding_vect_call<double,Interflop::Op<double>::add>(drcontext , bb , instr, oc);
+                    insert_corresponding_vect_call<double, Interflop::Op<double>::add>(drcontext , bb , instr, oc);
                 else
-                    insert_corresponding_vect_call<float,Interflop::Op<float>::add>(drcontext , bb , instr, oc);
+                    insert_corresponding_vect_call<float, Interflop::Op<float>::add>(drcontext , bb , instr, oc);
             break;
             case IFP_OP_SUB:
                 if(is_double)
-                    insert_corresponding_vect_call<double,Interflop::Op<double>::sub>(drcontext , bb , instr, oc);
+                    insert_corresponding_vect_call<double, Interflop::Op<double>::sub>(drcontext , bb , instr, oc);
                 else
-                    insert_corresponding_vect_call<float,Interflop::Op<float>::sub>(drcontext , bb , instr, oc);
+                    insert_corresponding_vect_call<float, Interflop::Op<float>::sub>(drcontext , bb , instr, oc);
             break;
             case IFP_OP_MUL:
                 if(is_double)
-                    insert_corresponding_vect_call<double,Interflop::Op<double>::mul>(drcontext , bb , instr, oc);
+                    insert_corresponding_vect_call<double, Interflop::Op<double>::mul>(drcontext , bb , instr, oc);
                 else
-                    insert_corresponding_vect_call<float,Interflop::Op<float>::mul>(drcontext , bb , instr, oc);
+                    insert_corresponding_vect_call<float, Interflop::Op<float>::mul>(drcontext , bb , instr, oc);
             break;
             case IFP_OP_DIV:
                 if(is_double)
-                    insert_corresponding_vect_call<double,Interflop::Op<double>::div>(drcontext , bb , instr, oc);
+                    insert_corresponding_vect_call<double, Interflop::Op<double>::div>(drcontext , bb , instr, oc);
                 else
-                    insert_corresponding_vect_call<float,Interflop::Op<float>::div>(drcontext , bb , instr, oc);    
+                    insert_corresponding_vect_call<float, Interflop::Op<float>::div>(drcontext , bb , instr, oc);    
             break;
             default:
                 PRINT_ERROR_MESSAGE("ERROR OPERATION NOT FOUND !");
