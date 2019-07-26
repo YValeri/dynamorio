@@ -40,7 +40,6 @@ static dr_emit_flags_t symbol_lookup_event( void *drcontext,        //Context
 static void module_load_handler(void* drcontext, const module_data_t* module, bool loaded)
 {
     dr_module_set_should_instrument(module->handle, shouldInstrumentModule(module));
-    //dr_printf("%s %d\n", dr_module_preferred_name(module), dr_module_should_instrument(module->handle));
 }    
 
 // Main function to setup the dynamoRIO client
@@ -228,9 +227,6 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
 
     for(instr = instrlist_first_app(bb); instr != NULL; instr = next_instr)
     {
-        //if(instr_get_opcode(instr) == OP_vfmadd231pd) instr_set_opcode(instr,OP_vfmsub231pd);
-        //if(instr_get_opcode(instr) == OP_vfmadd231ps) instr_set_opcode(instr,OP_vfmsub231ps);
-
         next_instr = instr_get_next_app(instr);
         oc = ifp_get_operation_category(instr);
 
@@ -242,7 +238,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
 
             
 
-            dr_print_instr(drcontext, STDERR, instr , "II : ");
+            //dr_print_instr(drcontext, STDERR, instr , "II : ");
 /*            dr_printf("Operation category : %u\n",oc);
             dr_print_opnd(drcontext , STDERR , SRC(instr,0) , "SRC 0 : ");
             dr_print_opnd(drcontext , STDERR , SRC(instr,1) , "SRC 1 : ");

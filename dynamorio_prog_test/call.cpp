@@ -26,6 +26,7 @@ int main(int argc , char *argv[]) {
     
     double a=10 , b=20, res=500;
 
+
     //*res=a+b;
     //printf("THIS IS THE ENDD : %p\n",res);
 
@@ -68,6 +69,16 @@ int main(int argc , char *argv[]) {
      _mm_store_ps(CCCCCCC , v4);
 
     printf("CCCCCCCC : ");
+    for(int i = 0 ; i < 4 ; i++) {
+        printf("%.2f ",CCCCCCC[i]);
+    }
+    printf("\n");   
+
+    __m128 v5 = _mm_fmadd_ss(v1,v2,v3);
+
+     _mm_store_ps(CCCCCCC , v5);
+
+    printf("SCALAR FMA FLOAT : ");
     for(int i = 0 ; i < 4 ; i++) {
         printf("%.2f ",CCCCCCC[i]);
     }

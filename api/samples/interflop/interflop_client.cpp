@@ -57,22 +57,59 @@ struct interflop_backend {
         dr_printf("\n\n");
     */
     }
+};
 
-    static void apply_fused(FTYPE *vect_a,  FTYPE *vect_b, FTYPE *vect_c) {
+
+template <typename FTYPE , FTYPE (*FN)(FTYPE, FTYPE) , int SIMD_TYPE = IFP_OP_SCALAR>
+struct interflop_backend_fused {
+        
+        static void apply_add(FTYPE *vect_a,  FTYPE *vect_b, FTYPE *vect_c) {
        
         constexpr int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
         constexpr int nb_elem = vect_size/sizeof(FTYPE);
 
         FTYPE res;
 
-        /*
-        // TODO : Backend for FMA !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-         */
         for(int i = 0 ; i < nb_elem ; i++) {
             res = vect_a[i] * vect_b[i] + vect_c[i];
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
         }   
+        
+  /*      
+        dr_printf("Vect size : %d\n",vect_size);
+        dr_printf("Nb elem : %d\n",nb_elem);
 
+        dr_printf("A : %p\nB : %p\nC : %p\n",vect_a , vect_b, vect_c);
+
+        dr_printf("A : ");
+        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_a)+i)));
+        dr_printf("\n");
+        dr_printf("B : ");
+        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_b)+i)));
+        dr_printf("\n");
+        dr_printf("C : ");
+        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(vect_c)+i)));
+        dr_printf("\n");
+        
+        dr_printf("Result : ");
+        for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(GET_TLS(dr_get_current_drcontext(), tls_result))+i)));
+        dr_printf("\n\n");
+       */ 
+    }
+
+    static void apply_sub(FTYPE *vect_a,  FTYPE *vect_b, FTYPE *vect_c) {
+       
+        constexpr int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
+        constexpr int nb_elem = vect_size/sizeof(FTYPE);
+
+        FTYPE res;
+
+        for(int i = 0 ; i < nb_elem ; i++) {
+            res = vect_a[i] * vect_b[i] - vect_c[i];
+            *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
+        }   
+        
+        /*
         dr_printf("Vect size : %d\n",vect_size);
         dr_printf("Nb elem : %d\n",nb_elem);
 
@@ -91,9 +128,12 @@ struct interflop_backend {
         dr_printf("A op B op C : ");
         for(int i = 0 ; i < nb_elem ; i++) dr_printf("%f ",(*((FTYPE*)(GET_TLS(dr_get_current_drcontext(), tls_result))+i)));
         dr_printf("\n\n");
-
+        */
     }
+
 };
+
+
 
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
@@ -307,6 +347,10 @@ void insert_move_operands_to_tls_memory_packed(void *drcontext , instrlist_t *bb
 //######################################################################################################################################################################################
 
 void insert_move_operands_to_tls_memory(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc, bool is_double) {
+
+    INSERT_READ_TLS(drcontext , tls_result , bb , instr , DR_REG_XDI);
+    translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(DST(instr,0))) || IS_ZMM(GET_REG(DST(instr,0)))) , drcontext , OP_BASE_DISP(DR_REG_XDI , 0 , reg_get_size(GET_REG(DST(instr,0)))) , OP_REG(GET_REG(DST(instr,0)))) , bb, instr);
+
     INSERT_READ_TLS(drcontext , tls_op_A , bb , instr , DR_REG_OP_A_ADDR);
     INSERT_READ_TLS(drcontext , tls_op_B , bb , instr , DR_REG_OP_B_ADDR);
 
@@ -397,67 +441,6 @@ void insert_move_operands_to_tls_memory_fused(void *drcontext , instrlist_t *bb 
             translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(SRC(instr,i))) || IS_ZMM(GET_REG(SRC(instr,i)))) , drcontext , OP_BASE_DISP(reg_op_addr[index[i]], 0, reg_get_size(GET_REG(SRC(instr,i)))) , SRC(instr,i)), bb , instr);
         }
     }
-
-    if(oc & IFP_OP_FMS) {
-        switch(oc & IFP_SIMD_TYPE_MASK) {
-            
-            case IFP_OP_128:
-                /* Retrieve value in tls field */
-                translate_insert(MOVE_FLOATING_REG(false , drcontext , OP_REG(DR_REG_XMM_BUFFER) , OP_BASE_DISP(DR_REG_OP_C_ADDR, 0 , reg_get_size(DR_REG_XMM_BUFFER))), bb , instr);
-
-                 /* Set second register to 0 */
-                translate_insert(INSTR_CREATE_xorpd(drcontext , OP_REG(DR_REG_XMM_BUFFER_2) , OP_REG(DR_REG_XMM_BUFFER_2)) , bb , instr);
-
-                /* Sub (0 - REG) to have the negation */
-                if(oc & IFP_OP_DOUBLE)
-                    translate_insert(INSTR_CREATE_vsubpd(drcontext , OP_REG(DR_REG_XMM_BUFFER) , OP_REG(DR_REG_XMM_BUFFER_2), OP_REG(DR_REG_XMM_BUFFER)), bb , instr);
-                else 
-                    translate_insert(INSTR_CREATE_vsubps(drcontext , OP_REG(DR_REG_XMM_BUFFER) , OP_REG(DR_REG_XMM_BUFFER_2), OP_REG(DR_REG_XMM_BUFFER)), bb , instr);
-                
-                /* Set the result in tls field */
-                translate_insert(MOVE_FLOATING_REG(false , drcontext, OP_BASE_DISP(DR_REG_OP_C_ADDR, 0 , reg_get_size(DR_REG_XMM_BUFFER)) , OP_REG(DR_REG_XMM_BUFFER)), bb , instr);
-            break;
-
-            case IFP_OP_256:   
-                /* Retrieve value in tls field */
-                translate_insert(MOVE_FLOATING_REG(true , drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_BASE_DISP(DR_REG_OP_C_ADDR, 0 , reg_get_size(DR_REG_YMM_BUFFER))), bb , instr);
-                
-                /* Set second register to 0 */
-                translate_insert(INSTR_CREATE_vxorpd(drcontext , OP_REG(DR_REG_YMM_BUFFER_2) , OP_REG(DR_REG_YMM_BUFFER_2), OP_REG(DR_REG_YMM_BUFFER_2)),bb , instr);
-                
-                /* Sub (0 - REG) to have the negation */
-                if(oc & IFP_OP_DOUBLE)
-                    translate_insert(INSTR_CREATE_vsubpd(drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_REG(DR_REG_YMM_BUFFER_2) , OP_REG(DR_REG_YMM_BUFFER)), bb , instr);
-                else 
-                    translate_insert(INSTR_CREATE_vsubps(drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_REG(DR_REG_YMM_BUFFER_2) , OP_REG(DR_REG_YMM_BUFFER)), bb , instr);
-                
-                /* Set the result in tls field */
-                translate_insert(MOVE_FLOATING_REG(true , drcontext , OP_BASE_DISP(DR_REG_OP_C_ADDR, 0 , reg_get_size(DR_REG_YMM_BUFFER)), OP_REG(DR_REG_YMM_BUFFER)), bb , instr);
-            break;
-
-            case IFP_OP_512:
-
-                 /* Retrieve value in tls field */
-                translate_insert(MOVE_FLOATING_REG(true , drcontext , OP_REG(DR_REG_ZMM_BUFFER) , OP_BASE_DISP(DR_REG_OP_C_ADDR, 0 , reg_get_size(DR_REG_ZMM_BUFFER))), bb , instr);
-                
-                /* Set second register to 0 */
-                translate_insert(INSTR_CREATE_vxorpd(drcontext , OP_REG(DR_REG_ZMM_BUFFER_2) , OP_REG(DR_REG_ZMM_BUFFER_2), OP_REG(DR_REG_ZMM_BUFFER_2)),bb , instr);
-                
-                /* Sub (0 - REG) to have the negation */
-                if(oc & IFP_OP_DOUBLE)
-                    translate_insert(INSTR_CREATE_vsubpd(drcontext , OP_REG(DR_REG_ZMM_BUFFER) , OP_REG(DR_REG_ZMM_BUFFER_2) , OP_REG(DR_REG_ZMM_BUFFER)), bb , instr);
-                else 
-                    translate_insert(INSTR_CREATE_vsubps(drcontext , OP_REG(DR_REG_ZMM_BUFFER) , OP_REG(DR_REG_ZMM_BUFFER_2) , OP_REG(DR_REG_ZMM_BUFFER)), bb , instr);
-                
-                /* Set the result in tls field */
-                translate_insert(MOVE_FLOATING_REG(true , drcontext , OP_BASE_DISP(DR_REG_OP_C_ADDR, 0 , reg_get_size(DR_REG_ZMM_BUFFER)), OP_REG(DR_REG_ZMM_BUFFER)), bb , instr);
-            break;
-
-
-            default: //SCALAR 
-            break;
-        }
-    } 
 }
 
 //######################################################################################################################################################################################
@@ -494,16 +477,32 @@ void insert_corresponding_vect_call_fused(void* drcontext, instrlist_t *bb, inst
     switch(oc & IFP_SIMD_TYPE_MASK)
     {
         case IFP_OP_128:
-            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_128>::apply_fused , 0);
+            if(oc & IFP_OP_FMA)
+                dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, FN, IFP_OP_128>::apply_add , 0);
+            else if(oc & IFP_OP_FMS)
+                dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, FN, IFP_OP_128>::apply_sub , 0);
         break;
+
         case IFP_OP_256:
-            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_256>::apply_fused , 0);
+
+            if(oc & IFP_OP_FMA)
+                dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, FN, IFP_OP_256>::apply_add , 0);
+            else if(oc & IFP_OP_FMS)
+                dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, FN, IFP_OP_256>::apply_sub , 0);
         break;
+
         case IFP_OP_512:
-            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN, IFP_OP_512>::apply_fused , 0);
+            if(oc & IFP_OP_FMA)
+                dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, FN, IFP_OP_512>::apply_add , 0);
+            else if(oc & IFP_OP_FMS)
+                dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, FN, IFP_OP_512>::apply_sub , 0);
         break;
+
         default: /*SCALAR */
-            dr_insert_call(drcontext , bb , instr , (void*)interflop_backend<FTYPE, FN>::apply_fused , 0);
+            if(oc & IFP_OP_FMA)
+                dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, FN>::apply_add , 0);
+            else if(oc & IFP_OP_FMS)
+                dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, FN>::apply_sub , 0);
     }
 }
 
@@ -558,9 +557,5 @@ void insert_call(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_
 
 void insert_set_result_in_corresponding_register(void *drcontext , instrlist_t *bb , instr_t *instr, bool is_double , bool is_scalar) {
     INSERT_READ_TLS(drcontext , tls_result , bb , instr , DR_REG_RES_ADDR);
-    
-    if(is_scalar)
-        translate_insert(MOVE_FLOATING(is_double , drcontext , DST(instr,0) , OP_BASE_DISP(DR_REG_RES_ADDR, 0, OPSZ(DOUBLE_SIZE)) , OP_BASE_DISP(DR_REG_RES_ADDR,0,OPSZ(FLOAT_SIZE))), bb , instr);     
-    else  /* PACKED */
-        translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(DST(instr,0))) || IS_ZMM(GET_REG(DST(instr,0)))) , drcontext , DST(instr,0) , OP_BASE_DISP(DR_REG_RES_ADDR , 0 , reg_get_size(GET_REG(DST(instr,0))))), bb , instr);
+    translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(DST(instr,0))) || IS_ZMM(GET_REG(DST(instr,0)))) , drcontext , DST(instr,0) , OP_BASE_DISP(DR_REG_RES_ADDR , 0 , reg_get_size(GET_REG(DST(instr,0))))), bb , instr);
 }
