@@ -33,6 +33,20 @@ struct Op<double> {
     interflop_verrou_div_double(a,b,&res , NULL);
     return res;
   }
+
+  static double fmadd(double a , double b , double c) {
+    double res, coeff;
+    interflop_verrou_mul_double(a,b, &coeff, NULL);
+    interflop_verrou_add_double(coeff , c , &res , NULL);
+    return res;
+  }
+
+  static double fmsub(double a , double b , double c) {
+    double res, coeff;
+    interflop_verrou_mul_double(a,b, &coeff, NULL);
+    interflop_verrou_sub_double(coeff , c , &res , NULL);
+    return res;
+  }
 };
 
 
@@ -59,6 +73,20 @@ struct Op<float> {
   static float div (float a, float b) {
     float res;
     interflop_verrou_div_float(a,b,&res , NULL);
+    return res;
+  }
+
+  static float fmadd(float a , float b , float c) {
+    float res, coeff;
+    interflop_verrou_mul_float(a,b, &coeff, NULL);
+    interflop_verrou_add_float(coeff , c , &res , NULL);
+    return res;
+  }
+
+  static float fmsub(float a , float b , float c) {
+    float res, coeff;
+    interflop_verrou_mul_float(a,b, &coeff, NULL);
+    interflop_verrou_sub_float(coeff , c , &res , NULL);
     return res;
   }
 };

@@ -234,6 +234,8 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
 
             bool is_double = oc & IFP_OP_DOUBLE;
             bool is_scalar = oc & IFP_OP_SCALAR;
+
+            //dr_print_instr(drcontext, STDERR, instr , "II : ");
             
             if(isDebug()) {
                 dr_print_instr(drcontext, STDERR, instr , "II : ");
