@@ -49,8 +49,8 @@ struct interflop_backend_fused {
         
         static void apply_add(FTYPE *vect_a,  FTYPE *vect_b, FTYPE *vect_c) {
        
-        constexpr int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
-        constexpr int nb_elem = vect_size/sizeof(FTYPE);
+        static const int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
+        static const int nb_elem = vect_size/sizeof(FTYPE);
 
         FTYPE res;
 
@@ -62,8 +62,8 @@ struct interflop_backend_fused {
 
     static void apply_sub(FTYPE *vect_a,  FTYPE *vect_b, FTYPE *vect_c) {
        
-        constexpr int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
-        constexpr int nb_elem = vect_size/sizeof(FTYPE);
+        static const int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
+        static const int nb_elem = vect_size/sizeof(FTYPE);
 
         FTYPE res;
 
