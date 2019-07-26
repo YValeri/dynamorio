@@ -144,7 +144,7 @@ static std::string getSymbolName(module_data_t* module, app_pc intr_pc)
     if(module)
     {
         //If the module doesn't have symbols, we can't know the name associated the adress
-        if(drsym_module_has_symbols(module->full_path) == DRSYM_SUCCESS)
+        if(true/*drsym_module_has_symbols(module->full_path) == DRSYM_SUCCESS*/) //FIXME : Condition commented out until we find why it spits
         {
             //We ask a first time to get the length of the name
             drsym_info_t sym;
@@ -188,10 +188,13 @@ void logSymbol(instrlist_t* ilist)
         pc = instr_get_app_pc(instr);
         if(pc)
         {
+            dr_printf("pc : %p\n", pc);
             mod = dr_lookup_module(pc);
             if(mod)
             {
+
                 entry.module_name=std::string(dr_module_preferred_name(mod));
+                dr_printf("Module name : %s\n", entry.module_name.c_str());
                 std::string symbolName = getSymbolName(mod, pc);
                 if(!symbolName.empty())
                 {
