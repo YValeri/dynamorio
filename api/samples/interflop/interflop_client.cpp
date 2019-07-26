@@ -426,7 +426,7 @@ void insert_corresponding_vect_call_fused(void* drcontext, instrlist_t *bb, inst
         case IFP_OP_256:
             dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, Backend_function,  IFP_OP_256>::apply , 0);
         break;
-
+        case IFP_OP_512:
             dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, Backend_function,  IFP_OP_512>::apply , 0);
         break;
 
