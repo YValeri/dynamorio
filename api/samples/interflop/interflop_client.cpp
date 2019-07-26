@@ -348,6 +348,7 @@ void insert_move_operands_to_tls_memory_packed(void *drcontext , instrlist_t *bb
 
 void insert_move_operands_to_tls_memory(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc, bool is_double) {
 
+    /* First set content of the destination regsiter in the tls of the result to save the current value */
     INSERT_READ_TLS(drcontext , tls_result , bb , instr , DR_REG_XDI);
     translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(DST(instr,0))) || IS_ZMM(GET_REG(DST(instr,0)))) , drcontext , OP_BASE_DISP(DR_REG_XDI , 0 , reg_get_size(GET_REG(DST(instr,0)))) , OP_REG(GET_REG(DST(instr,0)))) , bb, instr);
 
