@@ -28,12 +28,13 @@ typedef enum {
 /** Structure holding informations on a module, used for the whitelist and blacklist before further processing*/
 typedef struct _module_entry
 {
-    inline _module_entry (const std::string & mod_name, const bool all) : module_name(mod_name), all_symbols(all){}
+    inline _module_entry (const std::string & mod_name, const bool all) : module_name(mod_name), all_symbols(all), incomplete(false){}
     inline bool operator==(struct _module_entry o){return o.module_name == module_name;};
 
     std::string module_name; /** Prefered name of the module */
     bool all_symbols;       /** True if we are considering the whole module */
     std::vector<std::string> symbols; /** List of the symbols of interest in this module */
+    bool incomplete; /** If we couldn't find the symbol for a module, it's marked as incomplete */
 } module_entry;
 
 /** Structure of a range of app_pc*/

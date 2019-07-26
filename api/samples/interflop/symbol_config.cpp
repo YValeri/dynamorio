@@ -114,15 +114,28 @@ void write_symbols_to_file()
         {
             symbol_file << IFP_SYMBOL_FILE_HEADER;
             size_t num_modules = modules_vector.size();
-            size_t totalSymbols=0;
+            size_t totalSymbols=0, numIncomplete=0;
             for(size_t i=0; i<num_modules; i++)
             {
                 totalSymbols+=modules_vector[i].symbols.size();
+                if(modules_vector[i].incomplete)
+                {
+                    numIncomplete++;
+                }
             }
-            symbol_file << "# This list contains " << totalSymbols << " symbols of interest, split between " << num_modules << " modules\n";
+            symbol_file << "# This list contains " << totalSymbols << " symbol" << (totalSymbols != 1 ? "s, " : ", ");
+            symbol_file << num_modules << " module" << (num_modules != 1 ? "s" : "");
+            if(numIncomplete > 0)
+            {
+                symbol_file << " of which " << numIncomplete << (numIncomplete != 1 ? " are" : " is") << " incomplete\n";
+            }else
+            {
+                symbol_file << "\n";
+            }
+            
             for(size_t i=0; i<num_modules; i++)
             {
-                symbol_file << modules_vector[i].module_name << "\n";
+                symbol_file << modules_vector[i].module_name << (modules_vector[i].incomplete ? " # INCOMPLETE\n" : "\n");
                 size_t symbols_size = modules_vector[i].symbols.size();
                 for(size_t j=0; j< symbols_size; j++)
                 {
@@ -144,7 +157,7 @@ static std::string getSymbolName(module_data_t* module, app_pc intr_pc)
     if(module)
     {
         //If the module doesn't have symbols, we can't know the name associated the adress
-        if(true/*drsym_module_has_symbols(module->full_path) == DRSYM_SUCCESS*/) //FIXME : Condition commented out until we find why it spits
+        if(true/*drsym_module_has_symbols(module->full_path) == DRSYM_SUCCESS*/) //FIXME : Condition commented out until we find why it doesn't find dynamic symbols
         {
             //We ask a first time to get the length of the name
             drsym_info_t sym;
@@ -183,66 +196,40 @@ void logSymbol(instrlist_t* ilist)
     app_pc pc = 0;
     module_data_t* mod = nullptr;
     module_entry entry("", false);
+    size_t pos=oldModule;
     if(instr)
     {
         pc = instr_get_app_pc(instr);
         if(pc)
         {
-            dr_printf("pc : %p\n", pc);
             mod = dr_lookup_module(pc);
             if(mod)
             {
-
                 entry.module_name=std::string(dr_module_preferred_name(mod));
-                dr_printf("Module name : %s\n", entry.module_name.c_str());
+                if(modules_vector.size() <= oldModule || 
+                (!(modules_vector[oldModule] == entry) && (pos = vec_idx_of(modules_vector, entry))==modules_vector.size())) 
+                {
+                    //Not found
+                    oldModule = modules_vector.size();
+                    modules_vector.push_back(entry);
+                }else
+                {
+                    //Either it's the oldModule, or it's the module we found
+                    oldModule = pos;
+                }
                 std::string symbolName = getSymbolName(mod, pc);
                 if(!symbolName.empty())
                 {
-                    if(modules_vector.size() > oldModule)
+                    if((modules_vector[oldModule].symbols.size() <= oldPos 
+                    || (modules_vector[oldModule].symbols[oldPos] != symbolName)) 
+                    && vec_idx_of(modules_vector[oldModule].symbols, symbolName) == modules_vector[oldModule].symbols.size())
                     {
-                        
-                        if(modules_vector[oldModule] == entry) // If the module is the last seen module
-                        {
-                            //If it's not the old symbol, and it can't be found elsewhere, we need to add it
-                            if((modules_vector[oldModule].symbols.size() <= oldPos 
-                            || (modules_vector[oldModule].symbols[oldPos] != symbolName)) 
-                            && vec_idx_of(modules_vector[oldModule].symbols, symbolName) == modules_vector[oldModule].symbols.size())
-                            {
-                                modules_vector[oldModule].symbols.push_back(symbolName);
-                                oldPos=modules_vector[oldModule].symbols.size()-1;
-                            }
-                            
-                        }else
-                        {
-                            //It's not the last seen module
-                            size_t pos = vec_idx_of(modules_vector, entry);
-                            if(pos == modules_vector.size())
-                            {
-                                modules_vector.push_back(entry);
-                                oldModule = pos;
-                            }
-                            if(vec_idx_of(modules_vector[pos].symbols, symbolName) == modules_vector[pos].symbols.size())
-                            {
-                                oldPos=modules_vector[oldModule].symbols.size();
-                                modules_vector[pos].symbols.push_back(symbolName);
-                            }
-                            
-                        }
-                    }else
-                    {
-                        size_t pos = vec_idx_of(modules_vector, entry);
-                        if(pos == modules_vector.size())
-                        {
-                            modules_vector.push_back(entry);
-                            oldModule = pos;
-                        }
-                        if(vec_idx_of(modules_vector[pos].symbols, symbolName) == modules_vector[pos].symbols.size())
-                        {
-                            oldPos=modules_vector[oldModule].symbols.size();
-                            modules_vector[pos].symbols.push_back(symbolName);
-                        }
-                        
+                        oldPos=modules_vector[oldModule].symbols.size();
+                        modules_vector[oldModule].symbols.push_back(symbolName);
                     }
+                }else
+                {
+                    modules_vector[oldModule].incomplete=true;
                 }
             }
         }
