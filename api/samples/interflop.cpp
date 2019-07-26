@@ -35,10 +35,10 @@
         DR_REG_X15, DR_REG_X16, DR_REG_X17, DR_REG_X18, DR_REG_X19,
         DR_REG_X20, DR_REG_X21, DR_REG_X22, DR_REG_X23, DR_REG_X24,
         DR_REG_X25, DR_REG_X26, DR_REG_X27, DR_REG_X28, DR_REG_X29,
-        DR_REG_X30, DR_REG_XSP, DR_REG_XZR
+        DR_REG_X30, DR_REG_XSP
     };
     static reg_id_t topop_reg[] = {
-        DR_REG_XZR, DR_REG_XSP, DR_REG_X30, DR_REG_X29, DR_REG_X28,
+        DR_REG_XSP, DR_REG_X30, DR_REG_X29, DR_REG_X28,
         DR_REG_X27, DR_REG_X26, DR_REG_X25, DR_REG_X24, DR_REG_X23,
         DR_REG_X22, DR_REG_X21, DR_REG_X20, DR_REG_X19, DR_REG_X18,
         DR_REG_X17, DR_REG_X16, DR_REG_X15, DR_REG_X14, DR_REG_X13,
@@ -46,7 +46,7 @@
         DR_REG_X7, DR_REG_X6, DR_REG_X5, DR_REG_X4, DR_REG_X3, 
         DR_REG_X2, DR_REG_X1, DR_REG_X0
     };
-    #define NB_REG_SAVED 33
+    #define NB_REG_SAVED 32
 #endif
 
 /*
@@ -283,7 +283,12 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             //#ifdef DEBUG
                 dr_print_instr(drcontext, STDERR, instr, "II : ");
             //#endif
-
+/*
+		translate_insert(INSTR_CREATE_ld1_multi_1(
+			drcontext, opnd_create_reg(DR_REG_Q0),
+			opnd_create_base_disp_aarch64(DR_REG_X0, DR_REG_NULL, 0, false, 0, 0, OPSZ_1),
+			OPND_CREATE_DOUBLE());
+*/
             // ****************************************************************************
             // Reserve two registers
             // ****************************************************************************
@@ -376,13 +381,15 @@ static dr_emit_flags_t symbol_lookup_event(void *drcontext, void *tag, instrlist
     OPERATION_CATEGORY oc;
     
     bool already_found_fp_op = false;
-
+bool found = false;
     for(instr = instrlist_first_app(bb); instr != NULL; instr = next_instr)
     {
         next_instr = instr_get_next_app(instr);
         oc = ifp_get_operation_category(instr);
         if(oc)
         {
+		dr_printf("BEGIN\n\n");
+		found = true;
             dr_print_instr(drcontext, STDERR, instr, "Found : ");
             if(!already_found_fp_op)
             {
@@ -392,5 +399,15 @@ static dr_emit_flags_t symbol_lookup_event(void *drcontext, void *tag, instrlist
         }
 
     }
+if(found){
+dr_printf("found = true\n");
+for(instr = instrlist_first_app(bb); instr != NULL; instr = next_instr)
+    {
+        next_instr = instr_get_next_app(instr);
+            dr_print_instr(drcontext, STDERR, instr, "After : ");
+
+    }
+}
     return DR_EMIT_DEFAULT;
 }
+

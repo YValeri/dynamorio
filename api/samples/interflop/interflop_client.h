@@ -25,7 +25,7 @@
 #elif defined(AARCH64)
     #define DR_REG_OP_A_ADDR DR_REG_X0
     #define DR_REG_OP_B_ADDR DR_REG_X1
-    #define DR_REG_RES_ADDR DR_REG_X0
+    #define DR_REG_RES_ADDR DR_REG_X2
 #else
     #define DR_REG_OP_A_ADDR DR_REG_XDI
     #define DR_REG_OP_B_ADDR DR_REG_XSI
@@ -47,8 +47,8 @@
     #define DR_REG_FLOAT DR_REG_S31
     #define DR_REG_DOUBLE DR_REG_D31
 
-    #define DR_BUFFER_REG DR_REG_X9
-    #define DR_SCRATCH_REG DR_REG_X10
+    #define DR_BUFFER_REG DR_REG_X6
+    #define DR_SCRATCH_REG DR_REG_X5
 #endif
 
 #define SPILL_SLOT_BUFFER_REG SPILL_SLOT_1
