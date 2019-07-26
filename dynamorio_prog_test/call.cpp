@@ -26,6 +26,7 @@ int main(int argc , char *argv[]) {
     
     double a=10 , b=20, res=500;
 
+
     //*res=a+b;
     //printf("THIS IS THE ENDD : %p\n",res);
 
@@ -62,8 +63,31 @@ int main(int argc , char *argv[]) {
         printf("%.2f ",CCCCCCC[i]);
     }
     printf("\n");   
+
+    __m128 v4 = _mm_fmsub_ps(v1,v2,v3);
+
+     _mm_store_ps(CCCCCCC , v4);
+
+    printf("CCCCCCCC : ");
+    for(int i = 0 ; i < 4 ; i++) {
+        printf("%.2f ",CCCCCCC[i]);
+    }
+    printf("\n");   
+
+    __m128 v5 = _mm_fmadd_ss(v1,v2,v3);
+
+     _mm_store_ps(CCCCCCC , v5);
+
+    printf("SCALAR FMA FLOAT : ");
+    for(int i = 0 ; i < 4 ; i++) {
+        printf("%.2f ",CCCCCCC[i]);
+    }
+    printf("\n");   
     
-    double DDDD[]  __attribute__ ((aligned(32))) = {10,100,1000,10000} , EEEE[]  __attribute__ ((aligned(32))) = {20,200,2000,20000} , FFFF[]  __attribute__ ((aligned(32))) = {0,0,0,0};
+    double  DDDD[]  __attribute__ ((aligned(32))) = {10,100,1000,10000} , 
+            EEEE[]  __attribute__ ((aligned(32))) = {20,200,2000,20000} , 
+            FFFF[]  __attribute__ ((aligned(32))) = {30,300,3000,30000} , 
+            GGGG[]  __attribute__ ((aligned(32))) = {0,0,0,0};
 
     __m256d vv1 = _mm256_load_pd(DDDD);
     __m256d vv2 = _mm256_load_pd(EEEE);
@@ -74,6 +98,21 @@ int main(int argc , char *argv[]) {
     printf("FFFF : ");
     for(int i = 0 ; i < 4 ; i++) {
         printf("%.2f ",FFFF[i]);
+    }
+    printf("\n"); 
+    
+    _mm256_permute_pd(vv2 , 6);
+    __m256d vv4 = _mm256_fmsub_pd(vv3 , vv1 , vv2);
+    
+    //__m256d vv5 = _mm256_fmsub_pd(vv3 , vv4 , vv2);
+    //__m256d vv6 = _mm256_fmsub_pd(vv4 , vv1 , vv5);
+    
+
+     _mm256_store_pd(GGGG , vv4);
+
+    printf("GGGG : ");
+    for(int i = 0 ; i < 4 ; i++) {
+        printf("%.2f ",GGGG[i]);
     }
     printf("\n"); 
 

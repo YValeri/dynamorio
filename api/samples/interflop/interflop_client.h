@@ -21,17 +21,24 @@
 #ifdef WINDOWS
     #define DR_REG_OP_A_ADDR DR_REG_XCX
     #define DR_REG_OP_B_ADDR DR_REG_XDX
+    #define DR_REG_OP_C_ADDR DR_REG_XDX /* TO UPDATE : check the correct register for windows */
     #define DR_REG_RES_ADDR DR_REG_XDI
 #else
     #define DR_REG_OP_A_ADDR DR_REG_XDI
     #define DR_REG_OP_B_ADDR DR_REG_XSI
+    #define DR_REG_OP_C_ADDR DR_REG_XDX
     #define DR_REG_RES_ADDR DR_REG_XDI
 #endif
 
 
 #define DR_REG_XMM_BUFFER DR_REG_XMM15
+#define DR_REG_XMM_BUFFER_2 DR_REG_XMM14
+
 #define DR_REG_YMM_BUFFER DR_REG_YMM15
+#define DR_REG_YMM_BUFFER_2 DR_REG_YMM14
+
 #define DR_REG_ZMM_BUFFER DR_REG_ZMM31
+#define DR_REG_ZMM_BUFFER_2 DR_REG_ZMM30
 
 #define AVX_2_SUPPORTED (proc_has_feature(FEATURE_AVX2))
 #define AVX_512_SUPPORTED (proc_has_feature(FEATURE_AVX512F))
@@ -52,6 +59,7 @@
 /* CREATE OPND */
 #define OP_REG(reg_id) opnd_create_reg((reg_id))
 #define OP_INT(val) opnd_create_immed_int((val) , OPSZ_4)
+#define OP_INT64(val) opnd_create_immed_int64((val) , OPSZ_8)
 #define OP_BASE_DISP(base,disp,size) opnd_create_base_disp((base) , DR_REG_NULL , 0 , (disp) , (size))
 #define OP_REL_ADDR(addr) opnd_create_rel_addr((addr) , OPSZ_8)
 
@@ -95,11 +103,13 @@ typedef byte SLOT;
 int get_index_tls_result();
 int get_index_tls_op_A();
 int get_index_tls_op_B();
+int get_index_tls_op_C();
 int get_index_tls_stack();
 
 void set_index_tls_result(int new_tls_value);
 void set_index_tls_op_A(int new_tls_value);
 void set_index_tls_op_B(int new_tls_value);
+void set_index_tls_op_C(int new_tls_value);
 void set_index_tls_stack(int new_tls_value);
 
 void translate_insert(instr_t* newinstr, instrlist_t* ilist, instr_t* instr);
@@ -113,6 +123,7 @@ void insert_push_pseudo_stack_list(void *drcontext , reg_id_t *reg_to_push_list 
 void insert_move_operands_to_tls_memory_scalar(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc, bool is_double);
 void insert_move_operands_to_tls_memory_packed(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc);
 void insert_move_operands_to_tls_memory(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc, bool is_double);
+void insert_move_operands_to_tls_memory_fused(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc);
 
 void insert_save_floating_reg(void *drcontext , instrlist_t *bb , instr_t *instr , reg_id_t buffer_reg , reg_id_t scratch);
 void insert_restore_floating_reg(void *drcontext , instrlist_t *bb , instr_t *instr , reg_id_t buffer_reg , reg_id_t scratch);
