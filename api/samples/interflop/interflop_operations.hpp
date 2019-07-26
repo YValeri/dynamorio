@@ -216,39 +216,39 @@ inline bool ifp_is_div(enum OPERATION_CATEGORY oc)
 }
 inline bool ifp_is_fma(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_FMA;
+    return (oc & IFP_OP_FMA) != 0;
 }
 inline bool ifp_is_fms(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_FMS;
+    return (oc & IFP_OP_FMS) != 0;
 }
 inline bool ifp_is_fma132(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_132;
+    return (oc & IFP_OP_132) != 0;
 }
 inline bool ifp_is_fma213(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_213;
+    return (oc & IFP_OP_213) != 0;
 }
 inline bool ifp_is_fma231(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_231;
+    return (oc & IFP_OP_231) != 0;
 }
 inline bool ifp_is_fms132(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_132;
+    return (oc & IFP_OP_132) != 0;
 }
 inline bool ifp_is_fms213(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_213;
+    return (oc & IFP_OP_213) != 0;
 }
 inline bool ifp_is_fms231(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_231;
+    return (oc & IFP_OP_231) != 0;
 }
 inline bool ifp_is_negated(enum OPERATION_CATEGORY oc)
 {
-    return oc & IFP_OP_NEG;
+    return (oc & IFP_OP_NEG) != 0;
 }
 inline bool ifp_is_128(enum OPERATION_CATEGORY oc)
 {

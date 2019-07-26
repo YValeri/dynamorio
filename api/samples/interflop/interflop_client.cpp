@@ -49,8 +49,8 @@ struct interflop_backend_fused {
         
         static void apply(FTYPE *vect_a,  FTYPE *vect_b, FTYPE *vect_c) {
        
-        constexpr int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
-        constexpr int nb_elem = vect_size/sizeof(FTYPE);
+        static const int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
+        static const int nb_elem = vect_size/sizeof(FTYPE);
 
         FTYPE res;
 
@@ -58,7 +58,7 @@ struct interflop_backend_fused {
             res = Backend_function(vect_a[i] , vect_b[i] , vect_c[i]);
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext() , tls_result))+i) = res;
         }   
-    }
+    }   
 };
 
 //######################################################################################################################################################################################
@@ -411,7 +411,7 @@ void insert_corresponding_vect_call_fused(void* drcontext, instrlist_t *bb, inst
         case IFP_OP_256:
             dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, Backend_function,  IFP_OP_256>::apply , 0);
         break;
-
+        case IFP_OP_512:
             dr_insert_call(drcontext , bb , instr , (void*)interflop_backend_fused<FTYPE, Backend_function,  IFP_OP_512>::apply , 0);
         break;
 
