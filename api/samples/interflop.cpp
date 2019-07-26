@@ -46,19 +46,9 @@
         DR_REG_X7, DR_REG_X6, DR_REG_X5, DR_REG_X4, DR_REG_X3, 
         DR_REG_X2, DR_REG_X1, DR_REG_X0
     };
+	//Pour voir le problèmes des registres flottants, veuillez mettre la valeur du define ci-dessous à 0
     #define NB_REG_SAVED 32
 #endif
-
-/*
-    ORIGINE POSSIBLE DU PROBLEME DU ADD AVEC X7 :
-    - problème dans la sauvegarde des registres et les tailles qui n'étaient pas concordantes
-    - problème par rapport à DR_BUFFER_REG qui est X7, changer les valeurs pour test
-    - problème avec le add dans le fonction push stack list truc, qui fait faisait un add avec x7 et un offset
-        - peut-être que du au fait que la taille de la stack n'est plus un multiple de 16, et il aime pas
-    - vérifier les XINST add pour voir s'il y a pas des conneries
-    - peut-être changer les X en R dans les registres à sauver, pour éviter de potentiels conflits
-    - tester avec les autres add
-*/
                                         
 static void event_exit(void);
 
