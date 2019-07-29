@@ -71,6 +71,7 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
     set_index_tls_op_A(drmgr_register_tls_field());
     set_index_tls_op_B(drmgr_register_tls_field());
     set_index_tls_op_C(drmgr_register_tls_field());
+    set_index_tls_saved_reg(drmgr_register_tls_field());
 
     drmgr_register_thread_init_event(thread_init);
     drmgr_register_thread_exit_event(thread_exit);
@@ -78,9 +79,9 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 
     drreg_options_t drreg_options;
     drreg_options.conservative = true;
-    drreg_options.num_spill_slots = 1;
+    drreg_options.num_spill_slots = 5;
     drreg_options.struct_size = sizeof(drreg_options_t);
-    drreg_options.do_not_sum_slots=false;
+    drreg_options.do_not_sum_slots=true;
     drreg_options.error_callback=NULL;
     drreg_init(&drreg_options);
     
@@ -105,6 +106,7 @@ static void event_exit(void)
     }
     drmgr_exit();
     drsym_exit();
+    drreg_exit();
 }
 
 static void thread_init(void *dr_context) {
@@ -113,6 +115,7 @@ static void thread_init(void *dr_context) {
     SET_TLS(dr_context , get_index_tls_op_A() , dr_thread_alloc(dr_context , MAX_OPND_SIZE_BYTES));
     SET_TLS(dr_context , get_index_tls_op_B() , dr_thread_alloc(dr_context , MAX_OPND_SIZE_BYTES));
     SET_TLS(dr_context , get_index_tls_op_C() , dr_thread_alloc(dr_context , MAX_OPND_SIZE_BYTES));
+    SET_TLS(dr_context, get_index_tls_saved_reg(), dr_thread_alloc(dr_context, 64*3));
 }
 
 static void thread_exit(void *dr_context) {
@@ -121,6 +124,7 @@ static void thread_exit(void *dr_context) {
     dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_op_A()) , MAX_OPND_SIZE_BYTES);
     dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_op_B()) , MAX_OPND_SIZE_BYTES);
     dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_op_C()) , MAX_OPND_SIZE_BYTES);
+    dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_saved_reg()) , 64*3);
 }
 
 
@@ -229,8 +233,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
         next_instr = instr_get_next_app(instr);
         oc = ifp_get_operation_category(instr);
 
-
-        if(oc) {
+        if(oc != IFP_UNSUPPORTED && oc != IFP_OTHER) {
             bool is_double = ifp_is_double(oc);
             bool is_scalar = ifp_is_scalar(oc);
             
@@ -242,14 +245,26 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             // Reserve two registers
             // ****************************************************************************
             reg_id_t buffer_reg  = DR_BUFFER_REG, scratch = DR_SCRATCH_REG;
+            dr_save_reg(drcontext, bb, instr, DR_SCRATCH_REG,SPILL_SLOT_SCRATCH_REG); //save rdx to spill slot
 
-            dr_save_reg(drcontext , bb , instr , buffer_reg , SPILL_SLOT_BUFFER_REG);
-            dr_save_reg(drcontext , bb , instr , scratch , SPILL_SLOT_SCRATCH_REG);
-                    
-            // ****************************************************************************
-            // save processor flags
-            // ****************************************************************************
-            dr_save_arith_flags(drcontext , bb , instr , SPILL_SLOT_ARITH_FLAG);
+            INSERT_READ_TLS(drcontext, get_index_tls_saved_reg(), bb, instr, DR_SCRATCH_REG); //read tls
+
+            instrlist_meta_preinsert(bb, instr, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_SCRATCH_REG, 0, OPSZ_8),OP_REG(DR_REG_XAX))); //store rax
+            
+            instrlist_meta_preinsert(bb, instr, INSTR_CREATE_lahf(drcontext)); //store arith flags to rax
+            
+            instrlist_meta_preinsert(bb, instr, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_SCRATCH_REG, 8, OPSZ_8),OP_REG(DR_REG_XAX))); //store arith flags
+            
+            dr_restore_reg(drcontext, bb, instr, DR_REG_XAX, SPILL_SLOT_SCRATCH_REG); //restore rdx into rax
+            
+            instrlist_meta_preinsert(bb, instr, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_SCRATCH_REG, 16, OPSZ_8),OP_REG(DR_REG_XAX))); //store rdx
+
+            instrlist_meta_preinsert(bb, instr, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_SCRATCH_REG, 24, OPSZ_8), OP_REG(DR_BUFFER_REG))); //store rcx
+            
+            instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_REG_XAX), OP_BASE_DISP(DR_SCRATCH_REG, 0, OPSZ_8))); //restore rax from saved location
+            
+            dr_restore_reg(drcontext, bb, instr, DR_SCRATCH_REG, SPILL_SLOT_SCRATCH_REG); //restore rdx into rdx
+            
 
             // ****************************************************************************
             // push general purpose registers on pseudo stack 
@@ -257,7 +272,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             // ****************************************************************************
             reg_id_t topush_reg[] = {DR_REG_XDI , DR_REG_XSI , DR_REG_XAX , DR_REG_XBP , DR_REG_XSP , DR_REG_XBX , DR_REG_R8, DR_REG_R9, DR_REG_R10, DR_REG_R11, DR_REG_R12, DR_REG_R13, DR_REG_R14, DR_REG_R15};
             insert_push_pseudo_stack_list(drcontext , topush_reg , bb , instr , buffer_reg , scratch , 14);
-
+            
             // ****************************************************************************
             // Push all ZMM/YMM/XMM registers
             // ****************************************************************************
@@ -302,15 +317,23 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             reg_id_t topop_reg[] = {DR_REG_R15, DR_REG_R14, DR_REG_R13, DR_REG_R12, DR_REG_R11, DR_REG_R10, DR_REG_R9, DR_REG_R8, DR_REG_XBX , DR_REG_XSP , DR_REG_XBP , DR_REG_XAX , DR_REG_XSI , DR_REG_XDI};
             insert_pop_pseudo_stack_list(drcontext , topop_reg , bb , instr , buffer_reg , scratch , 14);
 
+            INSERT_READ_TLS(drcontext, get_index_tls_saved_reg(), bb, instr, DR_SCRATCH_REG); //read tls into rdx
+            instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_REG_RAX), OP_BASE_DISP(DR_SCRATCH_REG, 8, OPSZ_8)));//load arith flags to rax
+            instrlist_meta_preinsert(bb, instr, INSTR_CREATE_sahf(drcontext));//load artih flags
+            instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_REG_RAX), OP_BASE_DISP(DR_SCRATCH_REG, 0, OPSZ_8)));//load rax into rax
+            instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_BUFFER_REG), OP_BASE_DISP(DR_SCRATCH_REG, 24, OPSZ_8)));//load rcx
+            instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_SCRATCH_REG), OP_BASE_DISP(DR_SCRATCH_REG, 16, OPSZ_8)));//load rdx
+
+            
             // ****************************************************************************
             // Restore processor flags
             // ****************************************************************************
-            dr_restore_arith_flags(drcontext , bb , instr , SPILL_SLOT_ARITH_FLAG);
+            //dr_restore_arith_flags(drcontext , bb , instr , SPILL_SLOT_ARITH_FLAG);
            
             // Restore registers
             // ****************************************************************************
-            dr_restore_reg(drcontext , bb , instr , buffer_reg , SPILL_SLOT_BUFFER_REG);
-            dr_restore_reg(drcontext , bb , instr , scratch , SPILL_SLOT_SCRATCH_REG);
+            //dr_restore_reg(drcontext , bb , instr , buffer_reg , SPILL_SLOT_BUFFER_REG);
+            //dr_restore_reg(drcontext , bb , instr , scratch , SPILL_SLOT_SCRATCH_REG);
 
             // ****************************************************************************
             // Remove original instruction
@@ -329,23 +352,29 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
 
 static dr_emit_flags_t symbol_lookup_event(void *drcontext, void *tag, instrlist_t *bb, bool for_trace, bool translating, OUT void** user_data)
 {
-    instr_t *instr, *next_instr;
+    instr_t *instr;
     OPERATION_CATEGORY oc;
     
     bool already_found_fp_op = false;
 
-    for(instr = instrlist_first_app(bb); instr != NULL; instr = next_instr)
+    for(instr = instrlist_first_app(bb); instr != NULL; instr = instr_get_next_app(instr))
     {
-        next_instr = instr_get_next_app(instr);
         oc = ifp_get_operation_category(instr);
-        if(oc)
+        if(oc != IFP_UNSUPPORTED && oc != IFP_OTHER)
         {
-            dr_print_instr(drcontext, STDERR, instr, "Found : ");
             if(!already_found_fp_op)
             {
                 already_found_fp_op=true;
                 logSymbol(bb);
             }
+            if(isDebug())
+            {
+                dr_print_instr(drcontext, STDERR, instr, "Found : ");
+            }else
+            {
+                break;
+            }
+            
         }
 
     }

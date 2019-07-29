@@ -12,19 +12,22 @@ static reg_id_t ZMM_REG_REVERSE[] = {DR_REG_ZMM31, DR_REG_ZMM30, DR_REG_ZMM29, D
 static int  tls_result /* index of thread local storage to store the result of floating point operations */, 
             tls_op_A, tls_op_B /* index of thread local storage to store the operands of vectorial floating point operations */,
             tls_op_C, /* index of thread local storage to store the third operand in FMA */
-            tls_stack /* index of thread local storage to store the address of the shallow stack */;
+            tls_stack, /* index of thread local storage to store the address of the shallow stack */
+            tls_saved_reg;
 
 int get_index_tls_result() {return tls_result;}
 int get_index_tls_op_A() {return tls_op_A;}
 int get_index_tls_op_B() {return tls_op_B;}
 int get_index_tls_op_C() {return tls_op_C;}
 int get_index_tls_stack() {return tls_stack;}
+int get_index_tls_saved_reg(){return tls_saved_reg;}
 
 void set_index_tls_result(int new_tls_value) {tls_result = new_tls_value;}
 void set_index_tls_op_A(int new_tls_value) {tls_op_A = new_tls_value;}
 void set_index_tls_op_B(int new_tls_value) {tls_op_B = new_tls_value;}
 void set_index_tls_op_C(int new_tls_value) {tls_op_C = new_tls_value;}
 void set_index_tls_stack(int new_tls_value) {tls_stack = new_tls_value;}
+void set_index_tls_saved_reg(int new_tls_value) {tls_saved_reg = new_tls_value;}
 
 template <typename FTYPE , FTYPE (*Backend_function)(FTYPE, FTYPE) , int SIMD_TYPE = IFP_OP_SCALAR>
 struct interflop_backend {
@@ -323,7 +326,7 @@ void insert_opnd_base_disp_to_tls_memory_packed(void *drcontext , opnd_t base_di
         translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_XMM_BUFFER)) , OP_REG(DR_REG_XMM_BUFFER)) , bb  , instr);
     }
     else if(ifp_is_256(oc)) {
-        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_BASE_DISP(opnd_get_base(base_disp_src) , opnd_get_disp(base_disp_src), reg_get_size(DR_REG_YMM_BUFFER))) , bb  , instr);
+        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_BASE_DISP(opnd_get_base(base_disp_src) , opnd_get_disp(base_disp_src), reg_get_size(DR_REG_YMM_BUFFER))), bb  , instr);
         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_YMM_BUFFER)) , OP_REG(DR_REG_YMM_BUFFER)) , bb  , instr);
     }
     else if(ifp_is_512(oc)){ /* 512 */

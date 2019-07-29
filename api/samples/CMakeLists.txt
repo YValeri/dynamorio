@@ -248,7 +248,7 @@ add_sample_client(stl_test    "stl_test.cpp"    "")
 if(WIN32)
 add_sample_client(interflop    "interflop.cpp;interflop/interflop_operations.cpp;interflop/backend_verrou/interflop_verrou.cxx;interflop/symbol_config.cpp;interflop/interflop_client.cpp"  "drmgr;drreg;drsyms")
 else(WIN32)
-add_sample_client(interflop    "interflop.cpp;interflop/interflop_operations.cpp;interflop/backend_verrou/interflop_verrou.cxx;interflop/symbol_config.cpp;interflop/interflop_client.cpp"  "drmgr;drreg;drsyms;mpfr")
+add_sample_client(interflop    "interflop.cpp;interflop/interflop_operations.cpp;interflop/backend_verrou/interflop_verrou.cxx;interflop/symbol_config.cpp;interflop/interflop_client.cpp"  "drmgr;drreg;drsyms")
 endif(WIN32)
 # add utils.h for installation  # NON-PUBLIC
 set(srcs ${srcs} "utils.h")     # NON-PUBLIC
