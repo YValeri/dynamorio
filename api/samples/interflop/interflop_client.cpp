@@ -126,12 +126,12 @@ void insert_pop_pseudo_stack(void *drcontext, reg_id_t reg, instrlist_t *bb, ins
             bb, instr);
 #elif defined(AARCH64)
 	DR_ASSERT_MSG(false, "Not implemented, ld1 isn't working properly yet.");
-        translate_insert(
+        /*translate_insert(
             INSTR_CREATE_ld1_multi_1(drcontext,
                 OP_REG(reg),
                 OP_BASE_DISP(buffer_reg, 0, OPSZ_16),
                 OPND_CREATE_BYTE()), 
-            bb, instr);
+            bb, instr);*/
 #endif
     // ****************************************************************************
     // Update tls field with the new address
@@ -174,13 +174,13 @@ void insert_pop_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_pop_list, in
                 bb, instr);
 #elif defined(AARCH64)
 	DR_ASSERT_MSG(false, "Not implemented yet, ld1 isn't working properly yet.");
-            translate_insert(
+            /*translate_insert(
                 INSTR_CREATE_ld1_multi_1(
                     drcontext,
                     OP_REG(reg_to_pop_list[i]),
                     OP_BASE_DISP(buffer_reg, offset, OPSZ_16),
                     OPND_CREATE_BYTE()), 
-                bb, instr);
+                bb, instr);*/
 #endif
     }
 
@@ -223,12 +223,12 @@ void insert_push_pseudo_stack(void *drcontext, reg_id_t reg_to_push, instrlist_t
                 OP_REG(reg_to_push)), bb, instr);
 #elif defined(AARCH64)
 	DR_ASSERT_MSG(false, "Not implemented yet, st1 isn't working properly.");
-        translate_insert(
+        /*translate_insert(
             INSTR_CREATE_st1_multi_1(drcontext,
                 OP_BASE_DISP(buffer_reg, 0, OPSZ_16),
                 OP_REG(reg_to_push), 
 		OPND_CREATE_BYTE()), 
-            bb, instr);
+            bb, instr);*/
 #endif
    
     // ****************************************************************************
@@ -274,12 +274,12 @@ void insert_push_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_push_list, 
                     OP_REG(reg_to_push_list[i])), bb, instr);
 #elif defined(AARCH64)
 		DR_ASSERT_MSG(false, "Not implemented yet, st1 isn't working properly.");
-            translate_insert(
+            /*translate_insert(
                 INSTR_CREATE_st1_multi_1(drcontext,
                     OP_BASE_DISP(buffer_reg, offset, OPSZ_16),
                     OP_REG(reg_to_push_list[i]), 
 			OPND_CREATE_BYTE()), 
-                bb, instr);
+                bb, instr);*/
 #endif
 
         offset += REG_SIZE(reg_to_push_list[i]);
@@ -407,12 +407,12 @@ void insert_move_operands_to_tls_memory_packed(void *drcontext, instrlist_t *bb,
                 bb, instr);
 #elif defined(AARCH64)
 		DR_ASSERT_MSG(false, "Not implemented, st1 isn't working properly.");
-            translate_insert(
+           /*translate_insert(
                 INSTR_CREATE_st1_multi_1(drcontext,
                     OP_BASE_DISP(reg_op_addr[i], 0, OPSZ_2),
                     SRC(instr,i), 
                     OPND_CREATE_DOUBLE()), 
-                bb, instr);
+                bb, instr);*/
 #endif 
     }
 }
@@ -451,7 +451,7 @@ void insert_opnd_addr_to_tls_memory_packed(void *drcontext, opnd_t addr_src, reg
     }
 #elif defined(AARCH64)
 	DR_ASSERT_MSG(false, "Not implemented, ld1/st1 not working properly");
-    translate_insert(
+    /*translate_insert(
         INSTR_CREATE_ld1_multi_1(drcontext,
             OP_REG(DR_REG_MULTIPLE), 
             OP_REL_ADDR(GET_ADDR(addr_src)),
@@ -462,7 +462,7 @@ void insert_opnd_addr_to_tls_memory_packed(void *drcontext, opnd_t addr_src, reg
             OP_BASE_DISP(base_dst, 0, OPSZ_2),
             OP_REG(DR_REG_MULTIPLE), 
             OPND_CREATE_DOUBLE()), 
-        bb, instr);
+        bb, instr);*/
 #else
     DR_ASSERT(false, "Not implemented !");
 #endif
@@ -492,7 +492,7 @@ void insert_opnd_base_disp_to_tls_memory_packed(void *drcontext, opnd_t base_dis
     }
 #elif defined(AARCH64)
 	DR_ASSERT_MSG(false, "Not implemented, ld1/st1 not working properly");
-    translate_insert(
+    /*translate_insert(
         INSTR_CREATE_ld1_multi_1(drcontext,
             OP_REG(DR_REG_MULTIPLE), 
             OP_BASE_DISP(opnd_get_base(base_disp_src), opnd_get_disp(base_disp_src), OPSZ_2),
@@ -503,7 +503,7 @@ void insert_opnd_base_disp_to_tls_memory_packed(void *drcontext, opnd_t base_dis
             OP_BASE_DISP(base_dst, 0, OPSZ_2),
             OP_REG(DR_REG_MULTIPLE), 
             OPND_CREATE_DOUBLE()), 
-        bb, instr);
+        bb, instr);*/
 #else
     DR_ASSERT(false, "Not implemented !");
 #endif
@@ -600,12 +600,12 @@ void insert_set_result_in_corresponding_register(void *drcontext, instrlist_t *b
             bb, instr);
 #elif defined(AARCH64)
 	DR_ASSERT_MSG(false, "Not implemented, ld1 not working properly");
-        translate_insert(
+       /* translate_insert(
             INSTR_CREATE_ld1_multi_1(drcontext,
                 DST(instr, 0), 
                 OP_BASE_DISP(DR_REG_RES_ADDR, 0, OPSZ_2),
                 OPND_CREATE_DOUBLE()), 
-            bb, instr);
+            bb, instr);*/
 #endif
     }
 }
