@@ -1,5 +1,5 @@
-/**
- * DynamoRIO client developped in the scope of INTERFLOP project 
+	/**
+	 * DynamoRIO client developped in the scope of INTERFLOP project 
  */
 
 #include "dr_api.h"
@@ -35,10 +35,10 @@
         DR_REG_X15, DR_REG_X16, DR_REG_X17, DR_REG_X18, DR_REG_X19,
         DR_REG_X20, DR_REG_X21, DR_REG_X22, DR_REG_X23, DR_REG_X24,
         DR_REG_X25, DR_REG_X26, DR_REG_X27, DR_REG_X28, DR_REG_X29,
-        DR_REG_X30, DR_REG_XSP
+        DR_REG_X30
     };
     static reg_id_t topop_reg[] = {
-        DR_REG_XSP, DR_REG_X30, DR_REG_X29, DR_REG_X28,
+        DR_REG_X30, DR_REG_X29, DR_REG_X28,
         DR_REG_X27, DR_REG_X26, DR_REG_X25, DR_REG_X24, DR_REG_X23,
         DR_REG_X22, DR_REG_X21, DR_REG_X20, DR_REG_X19, DR_REG_X18,
         DR_REG_X17, DR_REG_X16, DR_REG_X15, DR_REG_X14, DR_REG_X13,
@@ -47,7 +47,7 @@
         DR_REG_X2, DR_REG_X1, DR_REG_X0
     };
 	//Pour voir le problèmes des registres flottants, veuillez mettre la valeur du define ci-dessous à 0
-    #define NB_REG_SAVED 32
+    #define NB_REG_SAVED 31
 #endif
                                         
 static void event_exit(void);
@@ -138,6 +138,7 @@ static void event_exit(void)
     {
         write_symbols_to_file();
     }
+	drreg_exit();
     drmgr_exit();
     drsym_exit();
 }
@@ -268,7 +269,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
         {
             bool is_double = ifp_is_double(oc);
             bool is_scalar = ifp_is_scalar(oc);
-
+		dr_printf("is double = %d\n", is_double);
             
             //#ifdef DEBUG
                 dr_print_instr(drcontext, STDERR, instr, "II : ");
@@ -314,7 +315,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             // ***** Sub stack pointer to handle the case where XSP is equal to XBP and XSP doesn't match the top of the stack *****
             // ***** Otherwise the call will erase data when pushing the return address *****
             // ***** If the gap is greater than 32 bytes, the program may crash !!!!!!!!!!!!!!! *****
-            translate_insert(XINST_CREATE_sub(drcontext, OP_REG(DR_REG_XSP), OP_INT(32)), bb, instr);
+//            translate_insert(XINST_CREATE_sub(drcontext, OP_REG(DR_REG_XSP), OP_INT(32)), bb, instr);
 
             //****************************************************************************
             // ***** CALL *****
@@ -400,4 +401,3 @@ for(instr = instrlist_first_app(bb); instr != NULL; instr = next_instr)
 }
     return DR_EMIT_DEFAULT;
 }
-

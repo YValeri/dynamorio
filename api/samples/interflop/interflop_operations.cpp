@@ -14,6 +14,10 @@ static unsigned int getPackedSizeFlag(instr_t* instr)
     }
     switch(maxSize)
     {
+	case 8:
+	return IFP_OP_DOUBLE;
+	case 4:
+	return IFP_OP_FLOAT;
         case 16:
         return IFP_OP_128;
         case 32:
@@ -117,7 +121,8 @@ enum OPERATION_CATEGORY ifp_get_operation_category(instr_t* instr)
 
 #elif defined(AARCH64)
         case OP_fadd:
-        return IFP_ADDD;
+        //return IFP_ADDD;
+	return (OPERATION_CATEGORY)(IFP_OP_SCALAR | IFP_OP_ADD | getPackedSizeFlag(instr));
 #endif
 
         default:
