@@ -129,7 +129,7 @@ typedef byte SLOT;
 	#define NB_YMM_REG 16
 	#define NB_ZMM_REG 32
 #elif defined(AARCH64)
-	#define NB_Q_REG 32
+	#define NB_Q_REG 0
 #endif
 
 int get_index_tls_result();

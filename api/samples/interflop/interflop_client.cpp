@@ -187,7 +187,7 @@ void insert_pop_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_pop_list, in
     // ****************************************************************************
     // Decrement the register containing the address of the top of the stack
     // ****************************************************************************
-	dr_printf("offset pop list = %d\n", offset);
+	//dr_printf("offset pop list = %d\n", offset);
     //translate_insert(XINST_CREATE_add(drcontext, OP_REG(buffer_reg), OP_INT(offset)), bb, instr);
 
     // ****************************************************************************
@@ -288,7 +288,7 @@ void insert_push_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_push_list, 
     // ****************************************************************************
     // Increment the register containing the address of the top of the stack
     // ****************************************************************************
-    dr_printf("offset push list = %d\n", offset);
+    //dr_printf("offset push list = %d\n", offset);
     //translate_insert(INSTR_CREATE_adds_imm(drcontext, OP_REG(buffer_reg), OP_REG(buffer_reg), OP_INT(offset), OP_INT(0)), bb, instr);
     translate_insert(XINST_CREATE_add(drcontext, OP_REG(buffer_reg), OP_INT(offset)), bb, instr);
 
