@@ -46,7 +46,6 @@
         DR_REG_X7, DR_REG_X6, DR_REG_X5, DR_REG_X4, DR_REG_X3, 
         DR_REG_X2, DR_REG_X1, DR_REG_X0
     };
-	//Pour voir le problèmes des registres flottants, veuillez mettre la valeur du define ci-dessous à 0
     #define NB_REG_SAVED 31
 #endif
                                         
@@ -273,12 +272,6 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             //#ifdef DEBUG
                 dr_print_instr(drcontext, STDERR, instr, "II : ");
             //#endif
-/*
-		translate_insert(INSTR_CREATE_ld1_multi_1(
-			drcontext, opnd_create_reg(DR_REG_Q0),
-			opnd_create_base_disp_aarch64(DR_REG_X0, DR_REG_NULL, 0, false, 0, 0, OPSZ_1),
-			OPND_CREATE_DOUBLE());
-*/
             // ****************************************************************************
             // Reserve two registers
             // ****************************************************************************
@@ -314,7 +307,9 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             // ***** Sub stack pointer to handle the case where XSP is equal to XBP and XSP doesn't match the top of the stack *****
             // ***** Otherwise the call will erase data when pushing the return address *****
             // ***** If the gap is greater than 32 bytes, the program may crash !!!!!!!!!!!!!!! *****
-//            translate_insert(XINST_CREATE_sub(drcontext, OP_REG(DR_REG_XSP), OP_INT(32)), bb, instr);
+#if defined(X86)
+            translate_insert(XINST_CREATE_sub(drcontext, OP_REG(DR_REG_XSP), OP_INT(32)), bb, instr);
+#endif
 
             //****************************************************************************
             // ***** CALL *****
@@ -371,15 +366,12 @@ static dr_emit_flags_t symbol_lookup_event(void *drcontext, void *tag, instrlist
     OPERATION_CATEGORY oc;
     
     bool already_found_fp_op = false;
-bool found = false;
     for(instr = instrlist_first_app(bb); instr != NULL; instr = next_instr)
     {
         next_instr = instr_get_next_app(instr);
         oc = ifp_get_operation_category(instr);
         if(oc)
         {
-		dr_printf("BEGIN\n\n");
-		found = true;
             dr_print_instr(drcontext, STDERR, instr, "Found : ");
             if(!already_found_fp_op)
             {
@@ -389,14 +381,5 @@ bool found = false;
         }
 
     }
-if(found){
-dr_printf("found = true\n");
-for(instr = instrlist_first_app(bb); instr != NULL; instr = next_instr)
-    {
-        next_instr = instr_get_next_app(instr);
-            dr_print_instr(drcontext, STDERR, instr, "After : ");
-
-    }
-}
     return DR_EMIT_DEFAULT;
 }
