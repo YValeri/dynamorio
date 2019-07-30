@@ -68,45 +68,37 @@ typedef struct _lookup_entry_t
 	{
 		if(lookup == IFP_LOOKUP_MODULE || (total && symbols.empty()))
 		{
-			#ifdef WINDOWS
+#ifdef WINDOWS
 			return range.contains(pc);
-			#else
+#else
 			//Either we are looking for the whole module, or for a symbol in a total module without symbols as exceptions
 			if(contiguous)
-			{
 				return range.contains(pc);
-			}else
+			else
 			{
 				//The module isn't contiguous, we need to check each segment
 				size_t segsize =  segments.size();
 				for(size_t i = 0; i<segsize; i++)
-				{
 					if(segments[i].contains(pc))
-					{
 						return true;
-					}
-				}
+
 				return false;
 			}
-			#endif
+#endif
 		}else
 		{
 			//We are looking at a symbol
 			if(!range.contains(pc))
-			{
 				//If the address isn't even in the full range of the module, it won't be found
 				return false;
-			}else
+			else
 			{
 				//Note : checking for each range of segments would be possible, but performance-wise wouldn't be much better than looking for symbols
 				size_t symsize =  symbols.size();
 				for(size_t i = 0; i<symsize; i++)
-				{
 					if(symbols[i].contains(pc))
-					{
 						return !total; //If it was "total", then the symbols would be exceptions
-					}
-				}
+
 				return total; //In total state with symbols, not finding the right symbol means it's not an exception
 			}
 			
@@ -151,12 +143,12 @@ void symbol_lookup_config_from_args(int argc, const char* argv[]);
 /**
  * \brief Returns true if \p ilist has to be instrumented
  */
-bool needsToInstrument(instrlist_t* ilist);
+bool needs_to_instrument(instrlist_t* ilist);
 
 /**
  * \brief Logs the symbol associated with \p ilist to the modules vector
  */
-void logSymbol(instrlist_t* ilist);
+void log_symbol(instrlist_t* ilist);
 
 /**
  * \brief Writes the symbols held by the modules vector to the output file (defined by the command line argument)
@@ -167,15 +159,14 @@ void write_symbols_to_file();
 /**
  * \brief Returns true if the module passed by \p module should be instrumented
  */
-bool shouldInstrumentModule(const module_data_t* module);
+bool should_instrument_module(const module_data_t* module);
 
 /**
  * \brief DEBUG_ONLY
- * 
  */
 void print_lookup();
 
-bool isDebug();
+bool is_debug();
 
 #endif //SYMBOL_CONFIG_HEADER
 

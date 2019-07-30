@@ -72,7 +72,7 @@ static dr_emit_flags_t symbol_lookup_event( void *drcontext,        //Context
 
 static void module_load_handler(void* drcontext, const module_data_t* module, bool loaded)
 {
-	dr_module_set_should_instrument(module->handle, shouldInstrumentModule(module));
+	dr_module_set_should_instrument(module->handle, should_instrument_module(module));
 }    
 
 // Main function to setup the dynamoRIO client
@@ -167,8 +167,8 @@ static void thread_exit(void *dr_context) {
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-#if defined(X86)
-static void print() {
+#if defined(X86) && DEBUG
+static void print(){
 	void *context = dr_get_current_drcontext();
 	dr_mcontext_t mcontext;
 	mcontext.flags = DR_MC_ALL;
@@ -261,7 +261,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
 	instr_t *instr, *next_instr;
 	OPERATION_CATEGORY oc;
 
-	if(!needsToInstrument(bb)) {
+	if(!needs_to_instrument(bb)) {
 		return DR_EMIT_DEFAULT;
 	}
 
@@ -274,7 +274,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
 			bool is_double = ifp_is_double(oc);
 			bool is_scalar = ifp_is_scalar(oc);
 			
-			if(isDebug()) {
+			if(is_debug()) {
 				dr_print_instr(drcontext, STDERR, instr, "II : ");
 			}
 				
@@ -378,9 +378,9 @@ static dr_emit_flags_t symbol_lookup_event(void *drcontext, void *tag, instrlist
 			if(!already_found_fp_op)
 			{
 				already_found_fp_op = true;
-				logSymbol(bb);
+				log_symbol(bb);
 			}
-			if(isDebug())
+			if(is_debug())
 			{
 				dr_print_instr(drcontext, STDERR, instr, "Found : ");
 			}else

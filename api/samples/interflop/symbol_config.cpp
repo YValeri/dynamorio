@@ -6,16 +6,18 @@
 #include <fstream>
 #include <algorithm>
 
+using namespace std;
+
 static void lookup_or_load_module(const module_data_t* module);
 static lookup_entry_t* lookup_find(app_pc pc, ifp_lookup_type_t lookup_type);
-static std::string getSymbolName(module_data_t* module, app_pc intr_pc);
-static void parseLine(std::string line, bool parsing_whitelist);
+static string get_symbol_name(module_data_t* module, app_pc intr_pc);
+static void parse_line(string line, bool parsing_whitelist);
 static void load_lookup_from_modules_vector();
 
 //Current functionning mode of the client, defines the behavior
 static interflop_client_mode_t interflop_client_mode;
 
-static std::ofstream symbol_file;
+static ofstream symbol_file;
 
 /*Note:
 TODO : the modules_vector can contain symbols with a wildcard
@@ -25,16 +27,17 @@ whitelist only : modules_vector contains the modules and symbols instrumented,
 blacklist only : modules_vector contains the modules and symbols we shouldn't instrument, 
 	all_symbols = true means whole module
 	all_symbols = false means only the symbols in this module in the symbols vector
-blacklist_whitelist : modules_vector contains the modules and symbols we should instrument
+blacklist + whitelist : modules_vector contains the modules and symbols we should instrument
 	all_symbols = true means instrument the whole module EXCEPT the symbols in the symbols vector
 	all_symbols = false means instrument ONLY the symbols in the symbols vector
 */
-static std::vector<module_entry> modules_vector;
-static std::vector<lookup_entry_t> lookup_vector;
+static vector<module_entry> modules_vector;
+static vector<lookup_entry_t> lookup_vector;
 
 static bool whitelist_parsed = false;
 static bool debug_enabled = false;
-bool isDebug()
+
+bool is_debug()
 {
 	return debug_enabled;
 }
@@ -44,11 +47,8 @@ void print_lookup()
 	for(size_t i = 0; i<lookup_vector.size(); i++)
 	{
 		dr_printf((lookup_vector[i].name+"\nTotal : %d\n").c_str(), lookup_vector[i].total);
-		
 		for(size_t j = 0; j<lookup_vector[i].symbols.size(); j++)
-		{
 			dr_printf((lookup_vector[i].symbols[j].name+"\n").c_str());
-		}
 	}
 }
 
@@ -75,14 +75,13 @@ void set_client_mode(interflop_client_mode_t mode)
  * \brief Returns the index of \elem, \p vec .size() if it's not found
  */
 template<typename T>
-static inline size_t vec_idx_of(std::vector<T, std::allocator<T>> vec, T elem)
+static inline size_t vec_idx_of(vector<T, allocator<T>> vec, T elem)
 {
 	size_t size = vec.size();
 	for(size_t i = 0; i<size; ++i)
-	{
 		if(elem == vec[i])
 			return i;
-	}
+	
 	return size;
 }
 
@@ -98,9 +97,8 @@ static bool need_cleanup_module(module_entry & entry)
 		return false;
 	}
 	if(!entry.all_symbols && entry.symbols.empty())
-	{
 		return true;
-	}
+	
 	return false;
 }
 
@@ -116,18 +114,15 @@ void write_symbols_to_file()
 			size_t num_modules = modules_vector.size();
 			size_t totalSymbols = 0;
 			for(size_t i = 0; i<num_modules; i++)
-			{
 				totalSymbols += modules_vector[i].symbols.size();
-			}
+
 			symbol_file << "# This list contains " << totalSymbols << " symbols of interest, split between " << num_modules << " modules\n";
 			for(size_t i = 0; i < num_modules; i++)
 			{
 				symbol_file << modules_vector[i].module_name << "\n";
 				size_t symbols_size = modules_vector[i].symbols.size();
 				for(size_t j = 0; j < symbols_size; j++)
-				{
 					symbol_file << '\t' << modules_vector[i].module_name << "!" << modules_vector[i].symbols[j] << "\n";
-				}
 			}
 			symbol_file.flush();
 			symbol_file.close();
@@ -138,13 +133,13 @@ void write_symbols_to_file()
 /**
  * \brief Return the name of the symbol in \p module associated with the address \p intr_pc
  */
-static std::string getSymbolName(module_data_t* module, app_pc intr_pc)
+static string get_symbol_name(module_data_t* module, app_pc intr_pc)
 {
-	std::string name;
+	string name;
 	if(module)
 	{
 		//If the module doesn't have symbols, we can't know the name associated the adress
-		if(true/*drsym_module_has_symbols(module->full_path) == DRSYM_SUCCESS*/) //FIXME : Condition commented out until we find why it spits
+		if(true /*drsym_module_has_symbols(module->full_path) == DRSYM_SUCCESS*/) //FIXME : Condition commented out until we find why it spits
 		{
 			//We ask a first time to get the length of the name
 			drsym_info_t sym;
@@ -165,7 +160,6 @@ static std::string getSymbolName(module_data_t* module, app_pc intr_pc)
 					free(name_str);
 					return name;
 				}
-				
 				free(name_str);
 				name = "";
 			}
@@ -174,7 +168,7 @@ static std::string getSymbolName(module_data_t* module, app_pc intr_pc)
 	return name;
 }
 
-void logSymbol(instrlist_t* ilist)
+void log_symbol(instrlist_t* ilist)
 {
 	//We save the old module and symbol locations, as we can expect a symbol to appear multiple times in a row
 	static size_t oldModule = 0;
@@ -193,9 +187,9 @@ void logSymbol(instrlist_t* ilist)
 			if(mod)
 			{
 
-				entry.module_name = std::string(dr_module_preferred_name(mod));
+				entry.module_name = string(dr_module_preferred_name(mod));
 				dr_printf("Module name : %s\n", entry.module_name.c_str());
-				std::string symbolName = getSymbolName(mod, pc);
+				string symbolName = get_symbol_name(mod, pc);
 				if(!symbolName.empty())
 				{
 					if(modules_vector.size() > oldModule)
@@ -204,9 +198,10 @@ void logSymbol(instrlist_t* ilist)
 						if(modules_vector[oldModule] == entry) // If the module is the last seen module
 						{
 							//If it's not the old symbol, and it can't be found elsewhere, we need to add it
-							if((modules_vector[oldModule].symbols.size() <=  oldPos 
+							if((modules_vector[oldModule].symbols.size() <= oldPos 
 							|| (modules_vector[oldModule].symbols[oldPos] != symbolName)) 
-							&& vec_idx_of(modules_vector[oldModule].symbols, symbolName) == modules_vector[oldModule].symbols.size())
+							&& vec_idx_of(modules_vector[oldModule].symbols, symbolName) == 
+								modules_vector[oldModule].symbols.size())
 							{
 								modules_vector[oldModule].symbols.push_back(symbolName);
 								oldPos = modules_vector[oldModule].symbols.size()-1;
@@ -248,9 +243,7 @@ void logSymbol(instrlist_t* ilist)
 		}
 	}
 	if(mod)
-	{
 		dr_free_module_data(mod);
-	}
 }
 
 /* ### INTRUMENTATION ### */
@@ -262,12 +255,10 @@ static void lookup_or_load_module(const module_data_t* module)
 {
 	//If we find the module in the lookup, we don't need to load it
 	if(lookup_find(module->start, IFP_LOOKUP_MODULE))
-	{
 		return;
-	}
 
-	std::string name = dr_module_preferred_name(module);
-	module_entry entry(std::string(name), false);
+	string name = dr_module_preferred_name(module);
+	module_entry entry(string(name), false);
 	size_t pos = vec_idx_of(modules_vector, entry);
 	//If it's not in the list of modules we care about, it won't be in the lookup
 	if(pos != modules_vector.size())
@@ -278,17 +269,14 @@ static void lookup_or_load_module(const module_data_t* module)
 		lentry.range.start = module->start;
 		lentry.range.end = module->end;
 		lentry.total = mentry.all_symbols;
-		#ifndef WINDOWS
+#ifndef WINDOWS
 		lentry.contiguous = module->contiguous;
 		//When a module isn't continuous (sometimes on Linux, often on MacOS), we need to remember the bounds of each segment
 		if(!lentry.contiguous)
-		{
 			for(size_t i = 0; i<module->num_segments; i++)
-			{
 				lentry.segments.emplace_back(module->segments[i].start, module->segments[i].end);
-			}
-		}
-		#endif //WINDOWS
+
+#endif //WINDOWS
 		//When the module isn't total, or there can be exceptions to the total module, we need to register each symbol
 		if(!lentry.total || interflop_client_mode == IFP_CLIENT_BL_WL)
 		{
@@ -328,8 +316,8 @@ static void lookup_or_load_module(const module_data_t* module)
 static void load_lookup_from_modules_vector()
 {
 
-	auto end = std::remove_if(modules_vector.begin(), modules_vector.end(), [](module_entry const& mentry) {
-								  std::string module_name = mentry.module_name;
+	auto end = remove_if(modules_vector.begin(), modules_vector.end(), [](module_entry const& mentry) {
+								  string module_name = mentry.module_name;
 								  module_data_t* mod = dr_lookup_module_by_name(module_name.c_str());
 								  if(mod) {
 									  lookup_or_load_module(mod);
@@ -342,51 +330,43 @@ static void load_lookup_from_modules_vector()
 	modules_vector.erase(end, modules_vector.end());
 }
 
-bool shouldInstrumentModule(const module_data_t* module)
+bool should_instrument_module(const module_data_t* module)
 {
 	lookup_or_load_module(module);
 	lookup_entry_t* found_module = lookup_find(module->start, IFP_LOOKUP_MODULE);
 	if(found_module != nullptr)
-	{
 		//We found the module in the list, we need to instrument it if it's not blacklisted totally
 		return (interflop_client_mode == IFP_CLIENT_BL_ONLY && !found_module->total) ||
-		interflop_client_mode == IFP_CLIENT_WL_ONLY || interflop_client_mode == IFP_CLIENT_BL_WL;
-	}else
-	{
+				interflop_client_mode == IFP_CLIENT_WL_ONLY || interflop_client_mode == IFP_CLIENT_BL_WL;
+	else
 		//We didn't find the module in the lookup, we instrument it if we're not white listing
 		return interflop_client_mode == IFP_CLIENT_BL_ONLY || interflop_client_mode == IFP_CLIENT_NOLOOKUP;
-	}
 }
 
-bool needsToInstrument(instrlist_t* ilist)
+bool needs_to_instrument(instrlist_t* ilist)
 {
 	if(ilist != nullptr)
 	{
 		if(interflop_client_mode == IFP_CLIENT_NOLOOKUP)
-		{
 			//We always instrument in NOLOOKUP
 			return true;
-		}
+
 		if(interflop_client_mode == IFP_CLIENT_GENERATE || interflop_client_mode == IFP_CLIENT_HELP)
-		{
 			//We never instrument in GENERATE or HELP (nor that this check is strictly necessary)
 			return false;
-		}
+
 		instr_t * instr = instrlist_first_app(ilist);
 		if(instr)
 		{
 			app_pc pc = instr_get_app_pc(instr);
 			if(pc)
-			{
 				//We instrument if we found the symbol in the lookup for whitelists, otherwise always for blacklists
 				return lookup_find(pc, IFP_LOOKUP_SYMBOL) != nullptr || interflop_client_mode == IFP_CLIENT_BL_ONLY;
-			}
 		}
 	}else
-	{
 		//ilist == nullptr
 		return false;
-	}
+
 	//Something went wrong, so we assume we didn't find the symbol
 	return interflop_client_mode == IFP_CLIENT_NOLOOKUP || interflop_client_mode == IFP_CLIENT_BL_ONLY; 
 	
@@ -394,39 +374,35 @@ bool needsToInstrument(instrlist_t* ilist)
 
 /* ### FILE PARSING ### */
 
-static void parseLine(std::string line, bool parsing_whitelist)
+static void parse_line(string line, bool parsing_whitelist)
 {
 	DR_ASSERT_MSG(parsing_whitelist || (interflop_client_mode == IFP_CLIENT_BL_ONLY || whitelist_parsed), "Wrong parsing order for blacklist/whitelist");
 	//Remove comments
-	std::size_t pos = line.find('#');
-	if(pos != std::string::npos)
-	{
+	size_t pos = line.find('#');
+	if(pos != string::npos)
 		line = line.substr(0, pos);
-	}
+
 	//left Trimming
 	pos = line.find_first_not_of(" \n\r\t\f\v");
-	if(pos != std::string::npos)
-	{
+	if(pos != string::npos)
 		line = line.substr(pos);
-	}
+
 	//Right trimming
 	pos = line.find_last_not_of(" \n\r\t\f\v");
-	if(pos != std::string::npos)
-	{
+	if(pos != string::npos)
 		line = line.substr(0, pos+1);
-	}
+
 	if(!line.empty())
 	{
-		std::string module, symbol;
+		string module, symbol;
 		//Behold the if statements
 		//Checks if it's only the module name or the symbol as well
 		pos = line.find('!');
-		bool whole = pos == std::string::npos;
+		bool whole = pos == string::npos;
 		if(whole)
-		{
 			//Whole module
 			module = line;
-		}else
+		else
 		{
 			//Symbol
 			module = line.substr(0, pos);
@@ -445,21 +421,19 @@ static void parseLine(std::string line, bool parsing_whitelist)
 					modules_vector[pos].symbols.clear();
 					modules_vector[pos].all_symbols = true;
 				}else
-				{
 					//Add only if the symbol doesn't exist yet
-					if(!modules_vector[pos].all_symbols && vec_idx_of<std::string>(modules_vector[pos].symbols, symbol) == modules_vector[pos].symbols.size())
-					{
+					if(!modules_vector[pos].all_symbols && 
+						vec_idx_of<string>(modules_vector[pos].symbols, symbol) == 
+							modules_vector[pos].symbols.size())
 						modules_vector[pos].symbols.push_back(symbol);
-					}
-				}
+
 			}else
 			{
 				//It doesn't exist yet, we need to push it
 				modules_vector.push_back(entry);
 				if(!whole)
-				{
 					modules_vector[pos].symbols.push_back(symbol);
-				}
+
 			}
 		}else
 		{
@@ -467,20 +441,17 @@ static void parseLine(std::string line, bool parsing_whitelist)
 			if(exists)
 			{
 				if(whole)
-				{
 					modules_vector.erase(modules_vector.begin()+pos);
-				}else
+				else
 				{
 					if(modules_vector[pos].all_symbols)
-					{
 						modules_vector[pos].symbols.push_back(symbol);
-					}else 
+					else 
 					{
-						size_t sympos =  vec_idx_of<std::string>(modules_vector[pos].symbols, symbol);
+						size_t sympos =  vec_idx_of<string>(modules_vector[pos].symbols, symbol);
 						if(sympos != modules_vector[pos].symbols.size())
-						{
 							modules_vector[pos].symbols.erase(modules_vector[pos].symbols.begin() + sympos);
-						}
+						
 					}
 				}
 				
@@ -489,73 +460,66 @@ static void parseLine(std::string line, bool parsing_whitelist)
 	}
 }
 
-static void generate_blacklist_from_file(std::ifstream& blacklist)
+static void generate_blacklist_from_file(ifstream& blacklist)
 {
-	std::string buffer;
+	string buffer;
 	if(blacklist.is_open())
 	{
-		while(std::getline(blacklist, buffer))
-		{
-			parseLine(buffer, false);
-		}
+		while(getline(blacklist, buffer))
+			parse_line(buffer, false);
+
 		DR_ASSERT_MSG(!blacklist.bad(), "Error while reading blacklist\n");
 	}else
-	{
 		DR_ASSERT_MSG(false, "Error while opening blacklist\n");
-	}
-	auto end = std::remove_if(modules_vector.begin(), modules_vector.end(), [](module_entry & entry){
+
+	auto end = remove_if(modules_vector.begin(), modules_vector.end(), [](module_entry & entry){
 		return need_cleanup_module(entry);
 	});
 	modules_vector.erase(end, modules_vector.end());
 }
 
-static void generate_whitelist_from_files(std::ifstream& whitelist, std::ifstream& blacklist)
+static void generate_whitelist_from_files(ifstream& whitelist, ifstream& blacklist)
 {
-	std::string buffer;
+	string buffer;
 	if(whitelist.is_open() && !whitelist.bad() && (!blacklist.is_open() || !blacklist.bad()))
 	{
 		whitelist.clear();
-		whitelist.seekg(std::ios::beg);
+		whitelist.seekg(ios::beg);
 		
-		while(std::getline(whitelist, buffer))
-		{
-			parseLine(buffer, true);
-		}
+		while(getline(whitelist, buffer))
+			parse_line(buffer, true);
+
 		whitelist_parsed = true;
 		DR_ASSERT_MSG(!whitelist.bad(), "Error while reading blacklist\n");
 
 		if(blacklist.is_open() && !blacklist.bad())
 		{
 			blacklist.clear();
-			blacklist.seekg(std::ios::beg);
-			while(std::getline(blacklist, buffer))
-			{
-				parseLine(buffer, false);
-			}
+			blacklist.seekg(ios::beg);
+			while(getline(blacklist, buffer))
+				parse_line(buffer, false);
+
 			DR_ASSERT_MSG(!blacklist.bad(), "Error while reading blacklist\n");
 		}
 	}
-	auto end = std::remove_if(modules_vector.begin(), modules_vector.end(), [](module_entry & entry){
+	auto end = remove_if(modules_vector.begin(), modules_vector.end(), [](module_entry & entry){
 		return need_cleanup_module(entry);
 	});
 	modules_vector.erase(end, modules_vector.end());
 }
 
-static void generate_whitelist_from_file(std::ifstream& whitelist)
+static void generate_whitelist_from_file(ifstream& whitelist)
 {
-	std::ifstream bl;
+	ifstream bl;
 	generate_whitelist_from_files(whitelist, bl);
 }
 
 static lookup_entry_t* lookup_find(app_pc pc, ifp_lookup_type_t lookup_type)
 {
 	for(auto & i : lookup_vector)
-	{
 		if(i.contains(pc, lookup_type))
-		{
 			return &i;
-		}
-	}
+
 	return nullptr;
 }
 
@@ -564,16 +528,16 @@ static lookup_entry_t* lookup_find(app_pc pc, ifp_lookup_type_t lookup_type)
 void symbol_lookup_config_from_args(int argc, const char* argv[])
 {
 	interflop_client_mode = IFP_CLIENT_DEFAULT;
-	std::string blacklist_filename, whitelist_filename;
+	string blacklist_filename, whitelist_filename;
 	debug_enabled = false;
 	bool no_lookup_argument = false; //Defines if the no-lookup argument has been found, allows to distinguish from default
 	for(int i = 1; i<argc; i++)
 	{
-		std::string arg(argv[i]);
+		string arg(argv[i]);
 		if(arg == "--debug" || arg == "-d")
-		{
 			debug_enabled = true;
-		}else if(interflop_client_mode != IFP_CLIENT_GENERATE && interflop_client_mode != IFP_CLIENT_HELP && !no_lookup_argument)
+		else if(interflop_client_mode != IFP_CLIENT_GENERATE && 
+			interflop_client_mode != IFP_CLIENT_HELP && !no_lookup_argument)
 		{
 			if(arg == "--no-lookup" || arg == "-n") //No lookup takes precedence over all other arguments
 			{
@@ -582,17 +546,13 @@ void symbol_lookup_config_from_args(int argc, const char* argv[])
 			}else if(arg == "--whitelist" || arg == "-w") //Whitelist
 			{
 				if(interflop_client_mode == IFP_CLIENT_BL_ONLY || interflop_client_mode == IFP_CLIENT_BL_WL) //If we have a blacklist
-				{
 					interflop_client_mode = IFP_CLIENT_BL_WL;
-				}else
-				{
+				else
 					interflop_client_mode = IFP_CLIENT_WL_ONLY;
-				}
 				
 				if(++i < argc) //If the filename is precised
-				{
 					whitelist_filename = argv[i];
-				}else
+				else
 				{
 					dr_fprintf(STDERR, "Not enough arguments\n");
 					interflop_client_mode = IFP_CLIENT_HELP;
@@ -602,17 +562,13 @@ void symbol_lookup_config_from_args(int argc, const char* argv[])
 			}else if(arg == "--blacklist" || arg == "-b") //Whitelist
 			{
 				if(interflop_client_mode == IFP_CLIENT_WL_ONLY || interflop_client_mode == IFP_CLIENT_BL_WL) //If we have a whitelist
-				{
 					interflop_client_mode = IFP_CLIENT_BL_WL;
-				}else
-				{
+				else
 					interflop_client_mode = IFP_CLIENT_BL_ONLY;
-				}
 				
 				if(++i < argc) //If the filename is precised
-				{
 					blacklist_filename = argv[i];
-				}else
+				else
 				{
 					dr_fprintf(STDERR, "Not enough arguments\n");
 					interflop_client_mode = IFP_CLIENT_HELP;
@@ -642,50 +598,44 @@ void symbol_lookup_config_from_args(int argc, const char* argv[])
 				interflop_client_mode = IFP_CLIENT_HELP;
 				break;
 			}else
-			{
 				DR_ASSERT_MSG(false, "Unknown command line option\n");
-			}
 		}
 	}
 
-	std::ifstream blacklist, whitelist;
+	ifstream blacklist, whitelist;
 
 	switch(interflop_client_mode)
 	{
 		case IFP_CLIENT_HELP:
-		print_help();
-		break;
-
+			print_help();
+			break;
 		case IFP_CLIENT_BL_ONLY:
-		blacklist.open(blacklist_filename);
-		DR_ASSERT_MSG(!blacklist.fail(), "Can't open blacklist file");
+			blacklist.open(blacklist_filename);
+			DR_ASSERT_MSG(!blacklist.fail(), "Can't open blacklist file");
 
-		generate_blacklist_from_file(blacklist);
-		load_lookup_from_modules_vector();
-		break;
-
+			generate_blacklist_from_file(blacklist);
+			load_lookup_from_modules_vector();
+			break;
 		case IFP_CLIENT_WL_ONLY:
-		whitelist.open(whitelist_filename);
-		DR_ASSERT_MSG(!whitelist.fail(), "Can't open whitelist file");
+			whitelist.open(whitelist_filename);
+			DR_ASSERT_MSG(!whitelist.fail(), "Can't open whitelist file");
 
-		generate_whitelist_from_file(whitelist);
-		load_lookup_from_modules_vector();
-		break;
-
+			generate_whitelist_from_file(whitelist);
+			load_lookup_from_modules_vector();
+			break;
 		case IFP_CLIENT_BL_WL:
-		whitelist.open(whitelist_filename);
-		DR_ASSERT_MSG(!whitelist.fail(), "Can't open whitelist file");
-		blacklist.open(blacklist_filename);
-		DR_ASSERT_MSG(!blacklist.fail(), "Can't open blacklist file");
-
-		generate_whitelist_from_files(whitelist, blacklist);
-		load_lookup_from_modules_vector();
-		break;
-
+			whitelist.open(whitelist_filename);
+			DR_ASSERT_MSG(!whitelist.fail(), "Can't open whitelist file");
+			blacklist.open(blacklist_filename);
+			DR_ASSERT_MSG(!blacklist.fail(), "Can't open blacklist file");
+			generate_whitelist_from_files(whitelist, blacklist);
+			load_lookup_from_modules_vector();
+			break;
 		default:
-		break;
+			break;
 	}
-
-	if(blacklist.is_open()) blacklist.close();
-	if(whitelist.is_open()) whitelist.close();
+	if(blacklist.is_open()) 
+		blacklist.close();
+	if(whitelist.is_open()) 
+		whitelist.close();
 }
