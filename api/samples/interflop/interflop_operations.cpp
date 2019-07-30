@@ -14,10 +14,7 @@ static unsigned int get_size_flag(instr_t* instr)
     }
     switch(maxSize)
     {
-        case 4:
-        return IFP_OP_FLOAT;
-    	case 8:
-    	return IFP_OP_DOUBLE;
+#if defined(X86)
         case 16:
         return IFP_OP_128;
         case 32:
@@ -26,6 +23,16 @@ static unsigned int get_size_flag(instr_t* instr)
         return IFP_OP_512;
         default:
         return 0;
+#elif defined(AARCH64)
+        case 4:
+        return IFP_OP_SCALAR | IFP_OP_FLOAT;
+        case 8:
+        return IFP_OP_SCALAR | IFP_OP_DOUBLE;
+        case 16:
+        return IFP_OP_PACKED | IFP_OP_128;
+        default:
+        return 0;
+#endif
     }
 }
 
@@ -132,11 +139,11 @@ enum OPERATION_CATEGORY ifp_get_operation_category(instr_t* instr)
         case OP_fdiv:
         return (OPERATION_CATEGORY)(IFP_OP_DIV | get_size_flag(instr));
 
-        case OP_fmadd:
+        /*case OP_fmadd:
         return (OPERATION_CATEGORY)(IFP_OP_FMA | get_size_flag(instr));
 
         case OP_fmsub:
-        return (OPERATION_CATEGORY)(IFP_OP_FMS | get_size_flag(instr));
+        return (OPERATION_CATEGORY)(IFP_OP_FMS | get_size_flag(instr));*/
 #endif
 
         default:
