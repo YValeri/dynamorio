@@ -104,14 +104,19 @@ int get_index_tls_op_A();
 int get_index_tls_op_B();
 int get_index_tls_op_C();
 int get_index_tls_stack();
+int get_index_tls_saved_reg();
 
 void set_index_tls_result(int new_tls_value);
 void set_index_tls_op_A(int new_tls_value);
 void set_index_tls_op_B(int new_tls_value);
 void set_index_tls_op_C(int new_tls_value);
 void set_index_tls_stack(int new_tls_value);
+void set_index_tls_saved_reg(int new_tls_value);
 
 void translate_insert(instr_t* newinstr, instrlist_t* ilist, instr_t* instr);
+
+void insert_save_scratch_arith_rax(void *drcontext, instrlist_t *bb, instr_t *instr);
+void insert_restore_scratch_arith_rax(void *drcontext, instrlist_t *bb, instr_t *instr);
 
 void insert_pop_pseudo_stack(void *drcontext , reg_id_t reg, instrlist_t *bb , instr_t *instr , reg_id_t buffer_reg, reg_id_t temp_buf);
 void insert_pop_pseudo_stack_list(void *drcontext , reg_id_t *reg_to_pop_list , instrlist_t *bb , instr_t *instr , reg_id_t buffer_reg , reg_id_t temp_buf , unsigned int nb_reg);

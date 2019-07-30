@@ -12,19 +12,22 @@ static reg_id_t ZMM_REG_REVERSE[] = {DR_REG_ZMM31, DR_REG_ZMM30, DR_REG_ZMM29, D
 static int  tls_result /* index of thread local storage to store the result of floating point operations */, 
             tls_op_A, tls_op_B /* index of thread local storage to store the operands of vectorial floating point operations */,
             tls_op_C, /* index of thread local storage to store the third operand in FMA */
-            tls_stack /* index of thread local storage to store the address of the shallow stack */;
+            tls_stack, /* index of thread local storage to store the address of the shallow stack */
+            tls_saved_reg;
 
 int get_index_tls_result() {return tls_result;}
 int get_index_tls_op_A() {return tls_op_A;}
 int get_index_tls_op_B() {return tls_op_B;}
 int get_index_tls_op_C() {return tls_op_C;}
 int get_index_tls_stack() {return tls_stack;}
+int get_index_tls_saved_reg(){return tls_saved_reg;}
 
 void set_index_tls_result(int new_tls_value) {tls_result = new_tls_value;}
 void set_index_tls_op_A(int new_tls_value) {tls_op_A = new_tls_value;}
 void set_index_tls_op_B(int new_tls_value) {tls_op_B = new_tls_value;}
 void set_index_tls_op_C(int new_tls_value) {tls_op_C = new_tls_value;}
 void set_index_tls_stack(int new_tls_value) {tls_stack = new_tls_value;}
+void set_index_tls_saved_reg(int new_tls_value) {tls_saved_reg = new_tls_value;}
 
 template <typename FTYPE , FTYPE (*Backend_function)(FTYPE, FTYPE) , int SIMD_TYPE = IFP_OP_SCALAR>
 struct interflop_backend {
@@ -323,7 +326,7 @@ void insert_opnd_base_disp_to_tls_memory_packed(void *drcontext , opnd_t base_di
         translate_insert(INSTR_CREATE_movupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_XMM_BUFFER)) , OP_REG(DR_REG_XMM_BUFFER)) , bb  , instr);
     }
     else if(ifp_is_256(oc)) {
-        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_BASE_DISP(opnd_get_base(base_disp_src) , opnd_get_disp(base_disp_src), reg_get_size(DR_REG_YMM_BUFFER))) , bb  , instr);
+        translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_REG(DR_REG_YMM_BUFFER) , OP_BASE_DISP(opnd_get_base(base_disp_src) , opnd_get_disp(base_disp_src), reg_get_size(DR_REG_YMM_BUFFER))), bb  , instr);
         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_YMM_BUFFER)) , OP_REG(DR_REG_YMM_BUFFER)) , bb  , instr);
     }
     else if(ifp_is_512(oc)){ /* 512 */
@@ -480,4 +483,37 @@ void insert_call(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_
 void insert_set_result_in_corresponding_register(void *drcontext , instrlist_t *bb , instr_t *instr, bool is_double , bool is_scalar) {
     INSERT_READ_TLS(drcontext , tls_result , bb , instr , DR_REG_RES_ADDR);
     translate_insert(MOVE_FLOATING_REG((IS_YMM(GET_REG(DST(instr,0))) || IS_ZMM(GET_REG(DST(instr,0)))) , drcontext , DST(instr,0) , OP_BASE_DISP(DR_REG_RES_ADDR , 0 , reg_get_size(GET_REG(DST(instr,0))))), bb , instr);
+}
+
+void insert_save_scratch_arith_rax(void *drcontext, instrlist_t *bb, instr_t *instr)
+{
+    dr_save_reg(drcontext, bb, instr, DR_SCRATCH_REG,SPILL_SLOT_SCRATCH_REG); //save rdx to spill slot
+
+    INSERT_READ_TLS(drcontext, get_index_tls_saved_reg(), bb, instr, DR_SCRATCH_REG); //read tls
+
+    instrlist_meta_preinsert(bb, instr, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_SCRATCH_REG, 0, OPSZ_8),OP_REG(DR_REG_XAX))); //store rax
+    
+    instrlist_meta_preinsert(bb, instr, INSTR_CREATE_lahf(drcontext)); //store arith flags to rax
+    
+    instrlist_meta_preinsert(bb, instr, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_SCRATCH_REG, 8, OPSZ_8),OP_REG(DR_REG_XAX))); //store arith flags
+    
+    dr_restore_reg(drcontext, bb, instr, DR_REG_XAX, SPILL_SLOT_SCRATCH_REG); //restore rdx into rax
+    
+    instrlist_meta_preinsert(bb, instr, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_SCRATCH_REG, 16, OPSZ_8),OP_REG(DR_REG_XAX))); //store rdx
+
+    instrlist_meta_preinsert(bb, instr, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_SCRATCH_REG, 24, OPSZ_8), OP_REG(DR_BUFFER_REG))); //store rcx
+    
+    instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_REG_XAX), OP_BASE_DISP(DR_SCRATCH_REG, 0, OPSZ_8))); //restore rax from saved location
+    
+    dr_restore_reg(drcontext, bb, instr, DR_SCRATCH_REG, SPILL_SLOT_SCRATCH_REG); //restore rdx into rdx
+}
+
+void insert_restore_scratch_arith_rax(void *drcontext, instrlist_t *bb, instr_t *instr)
+{
+    INSERT_READ_TLS(drcontext, get_index_tls_saved_reg(), bb, instr, DR_SCRATCH_REG); //read tls into rdx
+    instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_REG_RAX), OP_BASE_DISP(DR_SCRATCH_REG, 8, OPSZ_8)));//load arith flags to rax
+    instrlist_meta_preinsert(bb, instr, INSTR_CREATE_sahf(drcontext));//load arith flags
+    instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_REG_RAX), OP_BASE_DISP(DR_SCRATCH_REG, 0, OPSZ_8)));//load rax into rax
+    instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_BUFFER_REG), OP_BASE_DISP(DR_SCRATCH_REG, 24, OPSZ_8)));//load rcx
+    instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_SCRATCH_REG), OP_BASE_DISP(DR_SCRATCH_REG, 16, OPSZ_8)));//load rdx
 }
