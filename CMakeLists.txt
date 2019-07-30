@@ -683,9 +683,10 @@ set(BASE_CONLY_FLAGS "")
 set(BASE_CXXONLY_FLAGS "")
 if (UNIX)
 
-    if(FMA)
+    if(X86FMA)
+      add_compile_definitions(USE_VERROU_FMA)
       set(BASE_CFLAGS "${BASE_CFLAGS} -mfma")
-    endif(FMA)
+    endif(X86FMA)
     
   set(BASE_CXXONLY_FLAGS "${BASE_CXXONLY_FLAGS} -std=c++11")
   # -std=c99 doesn't quite work

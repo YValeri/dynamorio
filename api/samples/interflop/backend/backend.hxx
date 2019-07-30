@@ -58,13 +58,31 @@ struct Op<double> {
 
   static double fmadd(double a , double b , double c) {
     double res;
-    interflop_verrou_madd_double(a , b , c , &res , NULL);
+
+    #ifdef USE_VERROU_FMA
+      dr_printf("Using VERROU FMA !!!!!\n");
+      interflop_verrou_madd_double(a , b , c , &res , NULL);
+    #else
+      dr_printf("Oups I did it again !!!!!\n");
+      double coeff;
+      interflop_verrou_mul_double(a,b, &coeff, NULL);
+      interflop_verrou_add_double(coeff , c , &res , NULL);
+    #endif
+
     return res;
   }
 
   static double fmsub(double a , double b , double c) {
     double res;
-    interflop_verrou_madd_double(a , b , -1*c , &res , NULL);
+
+    #ifdef USE_VERROU_FMA
+      interflop_verrou_madd_double(a , b , -1*c , &res , NULL);
+    #else
+      double coeff;
+      interflop_verrou_mul_double(a,b, &coeff, NULL);
+      interflop_verrou_sub_double(coeff , c , &res , NULL);
+    #endif
+
     return res;
   }
 };
@@ -98,13 +116,28 @@ struct Op<float> {
 
   static float fmadd(float a , float b , float c) {
     float res;
-    interflop_verrou_madd_float(a , b , c , &res , NULL);
+
+    #ifdef USE_VERROU_FMA
+      interflop_verrou_madd_float(a , b , c , &res , NULL);
+    #else
+      float coeff;
+      interflop_verrou_mul_float(a,b, &coeff, NULL);
+      interflop_verrou_add_float(coeff , c , &res , NULL);
+    #endif
     return res;
   }
 
   static float fmsub(float a , float b , float c) {
     float res;
-    interflop_verrou_madd_float(a , b , -1*c , &res , NULL);
+    
+    #ifdef USE_VERROU_FMA
+      interflop_verrou_madd_float(a , b , -1*c , &res , NULL);
+    #else
+      float coeff;
+      interflop_verrou_mul_float(a,b, &coeff, NULL);
+      interflop_verrou_sub_float(coeff , c , &res , NULL);
+    #endif
+
     return res;
   }
 };
