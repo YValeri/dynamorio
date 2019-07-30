@@ -65,7 +65,11 @@ struct interflop_backend {
         dr_printf("A : %f\nB : %f\n",vect_a[0], vect_b[0]);*/
         
         for(int i = 0 ; i < nb_elem ; i++) {
+#if defined(X86)
             res = FN(vect_a[i],vect_b[i]);
+#elif defined(AARCH64)
+		res = FN(vect_b[i], vect_a[i]);
+#endif
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext(), tls_result))+i) = res;
         }   
 
