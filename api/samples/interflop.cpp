@@ -17,34 +17,34 @@
 
 #if defined(X86)
     static reg_id_t topush_reg[] = {
-        DR_REG_XDI, DR_REG_XSI, DR_REG_XAX, DR_REG_XBP, DR_REG_XSP,
-        DR_REG_XBX, DR_REG_R8, DR_REG_R9, DR_REG_R10, DR_REG_R11,
+        DR_REG_XDI, DR_REG_XSI, DR_REG_XAX, DR_REG_XBP, DR_REG_XSP, 
+        DR_REG_XBX, DR_REG_R8, DR_REG_R9, DR_REG_R10, DR_REG_R11, 
         DR_REG_R12, DR_REG_R13, DR_REG_R14, DR_REG_R15
     };
     static reg_id_t topop_reg[] = {
-        DR_REG_R15, DR_REG_R14, DR_REG_R13, DR_REG_R12, DR_REG_R11,
-        DR_REG_R10, DR_REG_R9, DR_REG_R8, DR_REG_XBX, DR_REG_XSP,
+        DR_REG_R15, DR_REG_R14, DR_REG_R13, DR_REG_R12, DR_REG_R11, 
+        DR_REG_R10, DR_REG_R9, DR_REG_R8, DR_REG_XBX, DR_REG_XSP, 
         DR_REG_XBP, DR_REG_XAX, DR_REG_XSI, DR_REG_XDI
     };
     #define NB_REG_SAVED 14
 #elif defined(AARCH64)
     static reg_id_t topush_reg[] = {
-        DR_REG_X0, DR_REG_X1, DR_REG_X2, DR_REG_X3, DR_REG_X4,
-        DR_REG_X5, DR_REG_X6, DR_REG_X7, DR_REG_X8, DR_REG_X9,
+        DR_REG_X0, DR_REG_X1, DR_REG_X2, DR_REG_X3, DR_REG_X4, 
+        DR_REG_X5, DR_REG_X6, DR_REG_X7, DR_REG_X8, DR_REG_X9, 
         DR_REG_X10, DR_REG_X11, DR_REG_X12, DR_REG_X13, DR_REG_X14, 
-        DR_REG_X15, DR_REG_X16, DR_REG_X17, DR_REG_X18, DR_REG_X19,
-        DR_REG_X20, DR_REG_X21, DR_REG_X22, DR_REG_X23, DR_REG_X24,
-        DR_REG_X25, DR_REG_X26, DR_REG_X27, DR_REG_X28, DR_REG_X29,
+        DR_REG_X15, DR_REG_X16, DR_REG_X17, DR_REG_X18, DR_REG_X19, 
+        DR_REG_X20, DR_REG_X21, DR_REG_X22, DR_REG_X23, DR_REG_X24, 
+        DR_REG_X25, DR_REG_X26, DR_REG_X27, DR_REG_X28, DR_REG_X29, 
         DR_REG_X30
     };
     static reg_id_t topop_reg[] = {
-        DR_REG_X30, DR_REG_X29, DR_REG_X28,
-        DR_REG_X27, DR_REG_X26, DR_REG_X25, DR_REG_X24, DR_REG_X23,
-        DR_REG_X22, DR_REG_X21, DR_REG_X20, DR_REG_X19, DR_REG_X18,
-        DR_REG_X17, DR_REG_X16, DR_REG_X15, DR_REG_X14, DR_REG_X13,
-        DR_REG_X12, DR_REG_X11, DR_REG_X10, DR_REG_X9, DR_REG_X8, 
-        DR_REG_X7, DR_REG_X6, DR_REG_X5, DR_REG_X4, DR_REG_X3, 
-        DR_REG_X2, DR_REG_X1, DR_REG_X0
+        DR_REG_X30, DR_REG_X29, DR_REG_X28, DR_REG_X27, DR_REG_X26, 
+        DR_REG_X25, DR_REG_X24, DR_REG_X23, DR_REG_X22, DR_REG_X21, 
+        DR_REG_X20, DR_REG_X19, DR_REG_X18, DR_REG_X17, DR_REG_X16, 
+        DR_REG_X15, DR_REG_X14, DR_REG_X13, DR_REG_X12, DR_REG_X11, 
+        DR_REG_X10, DR_REG_X9, DR_REG_X8, DR_REG_X7, DR_REG_X6, 
+        DR_REG_X5, DR_REG_X4, DR_REG_X3, DR_REG_X2, DR_REG_X1, 
+        DR_REG_X0
     };
     #define NB_REG_SAVED 31
 #endif
@@ -145,21 +145,21 @@ static void event_exit(void)
 }
 
 static void thread_init(void *dr_context) {
-    SET_TLS(dr_context , get_index_tls_result() ,dr_thread_alloc(dr_context , MAX_OPND_SIZE_BYTES));
-    SET_TLS(dr_context , get_index_tls_stack() , dr_thread_alloc(dr_context , SIZE_STACK*sizeof(SLOT)));
-    SET_TLS(dr_context , get_index_tls_op_A() , dr_thread_alloc(dr_context , MAX_OPND_SIZE_BYTES));
-    SET_TLS(dr_context , get_index_tls_op_B() , dr_thread_alloc(dr_context , MAX_OPND_SIZE_BYTES));
-    SET_TLS(dr_context , get_index_tls_op_C() , dr_thread_alloc(dr_context , MAX_OPND_SIZE_BYTES));
+    SET_TLS(dr_context, get_index_tls_result(), dr_thread_alloc(dr_context, MAX_OPND_SIZE_BYTES));
+    SET_TLS(dr_context, get_index_tls_stack(), dr_thread_alloc(dr_context, SIZE_STACK*sizeof(SLOT)));
+    SET_TLS(dr_context, get_index_tls_op_A(), dr_thread_alloc(dr_context, MAX_OPND_SIZE_BYTES));
+    SET_TLS(dr_context, get_index_tls_op_B(), dr_thread_alloc(dr_context, MAX_OPND_SIZE_BYTES));
+    SET_TLS(dr_context, get_index_tls_op_C(), dr_thread_alloc(dr_context, MAX_OPND_SIZE_BYTES));
     SET_TLS(dr_context, get_index_tls_saved_reg(), dr_thread_alloc(dr_context, 64*3));
 }
 
 static void thread_exit(void *dr_context) {
-    dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_stack()) , SIZE_STACK*sizeof(SLOT));
-    dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_result()) , MAX_OPND_SIZE_BYTES);
-    dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_op_A()) , MAX_OPND_SIZE_BYTES);
-    dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_op_B()) , MAX_OPND_SIZE_BYTES);
-    dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_op_C()) , MAX_OPND_SIZE_BYTES);
-    dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_saved_reg()) , 64*3);
+    dr_thread_free(dr_context, GET_TLS(dr_context, get_index_tls_stack()), SIZE_STACK*sizeof(SLOT));
+    dr_thread_free(dr_context, GET_TLS(dr_context, get_index_tls_result()), MAX_OPND_SIZE_BYTES);
+    dr_thread_free(dr_context, GET_TLS(dr_context, get_index_tls_op_A()), MAX_OPND_SIZE_BYTES);
+    dr_thread_free(dr_context, GET_TLS(dr_context, get_index_tls_op_B()), MAX_OPND_SIZE_BYTES);
+    dr_thread_free(dr_context, GET_TLS(dr_context, get_index_tls_op_C()), MAX_OPND_SIZE_BYTES);
+    dr_thread_free(dr_context, GET_TLS(dr_context, get_index_tls_saved_reg()), 64*3);
 }
 
 
@@ -176,9 +176,9 @@ static void print() {
 
     dr_get_mcontext(context, &mcontext);
 
-    byte rdi[8], rbp[8], rsp[8],rax[8], rsi[8], rbx[8], rdx[8], rcx[8],
-         edi[4], ebp[4], esp[4], eax[4], esi[4], ebx[4], edx[4], ecx[4],
-         xmm[16], xmm1[16], xmm2[16], xmm3[16], xmm4[16],
+    byte rdi[8], rbp[8], rsp[8], rax[8], rsi[8], rbx[8], rdx[8], rcx[8], 
+         edi[4], ebp[4], esp[4], eax[4], esi[4], ebx[4], edx[4], ecx[4], 
+         xmm[16], xmm1[16], xmm2[16], xmm3[16], xmm4[16], 
          ymm[32], ymm1[32];
     
     reg_get_value_ex(DR_REG_RDI, &mcontext, rdi);
@@ -210,41 +210,41 @@ static void print() {
 
     dr_printf("*****************************************************************************************************************************\n\n");
 
-    dr_printf("RDI : %02X \nEDI : %02X\nRDI : %e\n\n",*((uint64 *)rdi), *((unsigned int*)edi), *((double*)rdi));
-    dr_printf("RAX : %02X \nEAX : %02X\nRAX : %e\n\n",*((uint64 *)rax), *((unsigned int*)eax), *((double*)rax));
-    dr_printf("RBP : %02X \nEBP : %02X\nRBP : %e\n\n",*((uint64 *)rbp), *((unsigned int*)ebp), *((double*)rbp));    
-    dr_printf("RSP : %02X \nESP : %02X\nRSP : %e\n\n",*((uint64 *)rsp), *((unsigned int*)esp), *((double*)rsp));
-    dr_printf("RSI : %02X \nESI : %02X\nRSI : %e\n\n",*((uint64 *)rsi), *((unsigned int*)esi), *((double*)rsi));
-    dr_printf("RBX : %02X \nEBX : %02X\nRBX : %e\n\n",*((uint64 *)rbx), *((unsigned int*)ebx), *((double*)rbx));
-    dr_printf("RDX : %02X \nEDX : %02X\nRDX : %e\n\n",*((uint64 *)rdx), *((unsigned int*)edx), *((double*)rdx));
-    dr_printf("RCX : %02X \nECX : %02X\nRCX : %e\n\n",*((uint64 *)rcx), *((unsigned int*)ecx), *((double*)rcx));
+    dr_printf("RDI : %02X \nEDI : %02X\nRDI : %e\n\n", *((uint64 *)rdi), *((unsigned int*)edi), *((double*)rdi));
+    dr_printf("RAX : %02X \nEAX : %02X\nRAX : %e\n\n", *((uint64 *)rax), *((unsigned int*)eax), *((double*)rax));
+    dr_printf("RBP : %02X \nEBP : %02X\nRBP : %e\n\n", *((uint64 *)rbp), *((unsigned int*)ebp), *((double*)rbp));    
+    dr_printf("RSP : %02X \nESP : %02X\nRSP : %e\n\n", *((uint64 *)rsp), *((unsigned int*)esp), *((double*)rsp));
+    dr_printf("RSI : %02X \nESI : %02X\nRSI : %e\n\n", *((uint64 *)rsi), *((unsigned int*)esi), *((double*)rsi));
+    dr_printf("RBX : %02X \nEBX : %02X\nRBX : %e\n\n", *((uint64 *)rbx), *((unsigned int*)ebx), *((double*)rbx));
+    dr_printf("RDX : %02X \nEDX : %02X\nRDX : %e\n\n", *((uint64 *)rdx), *((unsigned int*)edx), *((double*)rdx));
+    dr_printf("RCX : %02X \nECX : %02X\nRCX : %e\n\n", *((uint64 *)rcx), *((unsigned int*)ecx), *((double*)rcx));
     
     /*
     for(int i = 0 ; i < NB_XMM_REG ; i++) {
         reg_get_value_ex(XMM_REG[i], &mcontext, xmm);
-        dr_printf("XMM%d : ",i);
-        for(int k = 0 ; k < 4 ; k++) dr_printf("%e ",*(float*)&(xmm[4*k]));
+        dr_printf("XMM%d : ", i);
+        for(int k = 0 ; k < 4 ; k++) dr_printf("%e ", *(float*)&(xmm[4*k]));
         dr_printf("\n");
     }
     */
     dr_printf("YMM 0 : ");
-    for(int i = 0 ; i < 4 ; i++) dr_printf("%e ",*(double*)&(ymm[8*i]));
+    for(int i = 0 ; i < 4 ; i++) dr_printf("%e ", *(double*)&(ymm[8*i]));
     dr_printf("\n");
 
     dr_printf("YMM 1 : ");
-    for(int i = 0 ; i < 4 ; i++) dr_printf("%e ",*(double*)&(ymm1[8*i]));
+    for(int i = 0 ; i < 4 ; i++) dr_printf("%e ", *(double*)&(ymm1[8*i]));
     dr_printf("\n");
     
-    dr_printf("TLS STACK : %d\t%p\n",get_index_tls_stack(),GET_TLS(context,get_index_tls_stack()));
-    dr_printf("TLS RESULT : %d\t%p\n",get_index_tls_result(),GET_TLS(context,get_index_tls_result()));
-    dr_printf("TLS A : %d\t%p\n",get_index_tls_op_A(),GET_TLS(context,get_index_tls_op_A()));
-    dr_printf("TLS B : %d\t%p\n",get_index_tls_op_B(),GET_TLS(context,get_index_tls_op_B()));
+    dr_printf("TLS STACK : %d\t%p\n", get_index_tls_stack(), GET_TLS(context, get_index_tls_stack()));
+    dr_printf("TLS RESULT : %d\t%p\n", get_index_tls_result(), GET_TLS(context, get_index_tls_result()));
+    dr_printf("TLS A : %d\t%p\n", get_index_tls_op_A(), GET_TLS(context, get_index_tls_op_A()));
+    dr_printf("TLS B : %d\t%p\n", get_index_tls_op_B(), GET_TLS(context, get_index_tls_op_B()));
 
     dr_printf("OPERAND A : ");
-    for(int i = 0 ; i < 4 ; i++) dr_printf("%d ",(int)(*((double*)(GET_TLS(context,get_index_tls_op_A()))+i)));
+    for(int i = 0 ; i < 4 ; i++) dr_printf("%d ", (int)(*((double*)(GET_TLS(context, get_index_tls_op_A()))+i)));
     dr_printf("\n");
     dr_printf("OPERAND B : ");
-    for(int i = 0 ; i < 4 ; i++) dr_printf("%d ",(int)(*((double*)(GET_TLS(context,get_index_tls_op_B()))+i)));
+    for(int i = 0 ; i < 4 ; i++) dr_printf("%d ", (int)(*((double*)(GET_TLS(context, get_index_tls_op_B()))+i)));
     dr_printf("\n");
 
     dr_printf("\n");
@@ -275,7 +275,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             bool is_scalar = ifp_is_scalar(oc);
             
             if(isDebug()) {
-                dr_print_instr(drcontext, STDERR, instr , "II : ");
+                dr_print_instr(drcontext, STDERR, instr, "II : ");
             }
                 
             // ****************************************************************************
@@ -341,12 +341,12 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             // ****************************************************************************
             // Restore processor flags
             // ****************************************************************************
-            //dr_restore_arith_flags(drcontext , bb , instr , SPILL_SLOT_ARITH_FLAG);
+            //dr_restore_arith_flags(drcontext, bb, instr, SPILL_SLOT_ARITH_FLAG);
            
             // Restore registers
             // ****************************************************************************
-            //dr_restore_reg(drcontext , bb , instr , buffer_reg , SPILL_SLOT_BUFFER_REG);
-            //dr_restore_reg(drcontext , bb , instr , scratch , SPILL_SLOT_SCRATCH_REG);
+            //dr_restore_reg(drcontext, bb, instr, buffer_reg, SPILL_SLOT_BUFFER_REG);
+            //dr_restore_reg(drcontext, bb, instr, scratch, SPILL_SLOT_SCRATCH_REG);
 
             // ****************************************************************************
             // Remove original instruction

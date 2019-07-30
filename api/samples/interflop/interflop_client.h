@@ -15,7 +15,7 @@
 	#define MAX_OPND_SIZE_BYTES 512 
 #endif
 
-#define PRINT_ERROR_MESSAGE(message) dr_fprintf(STDERR, "%s\n" , (message));
+#define PRINT_ERROR_MESSAGE(message) dr_fprintf(STDERR, "%s\n", (message));
 
 #ifdef WINDOWS
     #define DR_REG_OP_A_ADDR DR_REG_XCX
@@ -63,8 +63,8 @@
 #define SPILL_SLOT_ARITH_FLAG SPILL_SLOT_3
 
 /* INSTR */
-#define SRC(instr,n) instr_get_src((instr),(n))
-#define DST(instr,n) instr_get_dst((instr),(n))
+#define SRC(instr, n) instr_get_src((instr), (n))
+#define DST(instr, n) instr_get_dst((instr), (n))
 
 #if defined(X86)
     #define MOVE_FLOATING_SCALAR(is_double, drcontext, dest, srcd, srcs) (is_double) ? 	\
@@ -78,13 +78,13 @@
 
 /* CREATE OPND */
 #define OP_REG(reg_id) opnd_create_reg((reg_id))
-#define OP_INT(val) opnd_create_immed_int((val) , OPSZ_4)
-#define OP_INT64(val) opnd_create_immed_int64((val) , OPSZ_8)
+#define OP_INT(val) opnd_create_immed_int((val), OPSZ_4)
+#define OP_INT64(val) opnd_create_immed_int64((val), OPSZ_8)
     
 #if defined(X86)
 	#define OP_REL_ADDR(addr) \
 		opnd_create_rel_addr((addr), OPSZ_8)
-	#define OP_BASE_DISP(base,disp,size) \
+	#define OP_BASE_DISP(base, disp, size) \
 		opnd_create_base_disp((base), DR_REG_NULL, 0, (disp), (size))
 #elif defined(AARCH64)
 	#define OP_REL_ADDR(addr) \
@@ -116,8 +116,8 @@
 #define GET_ADDR(opnd) opnd_get_addr((opnd)) /*if opnd is an address */
 
 /* TLS OPERATIONS */
-#define GET_TLS(drcontext,tls) drmgr_get_tls_field((drcontext), (tls))
-#define SET_TLS(drcontext,tls,value) drmgr_set_tls_field((drcontext), (tls), (void*)(value))
+#define GET_TLS(drcontext, tls) drmgr_get_tls_field((drcontext), (tls))
+#define SET_TLS(drcontext, tls, value) drmgr_set_tls_field((drcontext), (tls), (void*)(value))
 #define INSERT_READ_TLS(drcontext, tls, bb, instr, reg) \
 		drmgr_insert_read_tls_field((drcontext), (tls), (bb), (instr), (reg))
 #define INSERT_WRITE_TLS(drcontext, tls, bb, instr, reg, temp_reg) \
@@ -160,16 +160,16 @@ void translate_insert(instr_t* newinstr, instrlist_t* ilist, instr_t* instr);
 void insert_save_scratch_arith_rax(void *drcontext, instrlist_t *bb, instr_t *instr);
 void insert_restore_scratch_arith_rax(void *drcontext, instrlist_t *bb, instr_t *instr);
 
-void insert_pop_pseudo_stack(void *drcontext , reg_id_t reg, instrlist_t *bb , instr_t *instr , reg_id_t buffer_reg, reg_id_t temp_buf);
-void insert_pop_pseudo_stack_list(void *drcontext , reg_id_t *reg_to_pop_list , instrlist_t *bb , instr_t *instr , reg_id_t buffer_reg , reg_id_t temp_buf , unsigned int nb_reg);
+void insert_pop_pseudo_stack(void *drcontext, reg_id_t reg, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t temp_buf);
+void insert_pop_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_pop_list, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t temp_buf, unsigned int nb_reg);
 
 void insert_push_pseudo_stack(void *drcontext, reg_id_t reg_to_push, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t temp_buf);
 void insert_push_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_push_list, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t temp_buf, unsigned int nb_reg);
 
-void insert_move_operands_to_tls_memory_scalar(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc, bool is_double);
-void insert_move_operands_to_tls_memory_packed(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc);
-void insert_move_operands_to_tls_memory(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc, bool is_double);
-void insert_move_operands_to_tls_memory_fused(void *drcontext , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc);
+void insert_move_operands_to_tls_memory_scalar(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double);
+void insert_move_operands_to_tls_memory_packed(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc);
+void insert_move_operands_to_tls_memory(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double);
+void insert_move_operands_to_tls_memory_fused(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc);
 
 void insert_save_floating_reg(void *drcontext, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t scratch);
 void insert_restore_floating_reg(void *drcontext, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t scratch);
@@ -178,7 +178,7 @@ void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CAT
 
 void insert_set_result_in_corresponding_register(void *drcontext, instrlist_t *bb, instr_t *instr, bool is_double, bool is_scalar);
 
-void insert_opnd_base_disp_to_tls_memory_packed(void *drcontext , opnd_t opnd_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc);
-void insert_opnd_addr_to_tls_memory_packed(void *drcontext , opnd_t addr_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc);
+void insert_opnd_base_disp_to_tls_memory_packed(void *drcontext, opnd_t opnd_src, reg_id_t base_dst, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc);
+void insert_opnd_addr_to_tls_memory_packed(void *drcontext, opnd_t addr_src, reg_id_t base_dst, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc);
 
 #endif

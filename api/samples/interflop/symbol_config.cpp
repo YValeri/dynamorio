@@ -22,7 +22,7 @@ TODO : the modules_vector can contain symbols with a wildcard
 whitelist only : modules_vector contains the modules and symbols instrumented, 
     all_symbols=true means whole module, 
     all_symbols=false means only the symbols in this module in the symbols vector
-blacklist only : modules_vector contains the modules and symbols we shouldn't instrument,
+blacklist only : modules_vector contains the modules and symbols we shouldn't instrument, 
     all_symbols=true means whole module
     all_symbols=false means only the symbols in this module in the symbols vector
 blacklist_whitelist : modules_vector contains the modules and symbols we should instrument
@@ -328,7 +328,7 @@ static void lookup_or_load_module(const module_data_t* module)
 static void load_lookup_from_modules_vector()
 {
 
-    auto end = std::remove_if(modules_vector.begin(), modules_vector.end(),[](module_entry const& mentry) {
+    auto end = std::remove_if(modules_vector.begin(), modules_vector.end(), [](module_entry const& mentry) {
                                   std::string module_name = mentry.module_name;
                                   module_data_t* mod = dr_lookup_module_by_name(module_name.c_str());
                                   if(mod) {
