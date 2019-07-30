@@ -60,10 +60,8 @@ struct Op<double> {
     double res;
 
     #ifdef USE_VERROU_FMA
-      dr_printf("Using VERROU FMA !!!!!\n");
       interflop_verrou_madd_double(a , b , c , &res , NULL);
     #else
-      dr_printf("Oups I did it again !!!!!\n");
       double coeff;
       interflop_verrou_mul_double(a,b, &coeff, NULL);
       interflop_verrou_add_double(coeff , c , &res , NULL);
