@@ -17,13 +17,13 @@ typedef enum{
 	IFP_CLIENT_WL_ONLY = 4, /** Instrument only the symbols in the whitelist */
 	IFP_CLIENT_BL_WL = 6, /** Instrument the symbols in the whitelist that aren't in the blacklist */
 	IFP_CLIENT_HELP = -1 /** Display arguments help */
-}interflop_client_mode_t;
+} interflop_client_mode_t;
 
 /** Specifies the type of lookup we are requesting */
 typedef enum {
 	IFP_LOOKUP_MODULE = true, /** Lookup the module */
 	IFP_LOOKUP_SYMBOL = false /** Lookup the symbol */
-}ifp_lookup_type_t;
+} ifp_lookup_type_t;
 
 /** Structure holding informations on a module, used for the whitelist and blacklist before further processing*/
 typedef struct _module_entry

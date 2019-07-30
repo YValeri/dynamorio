@@ -1,14 +1,50 @@
 #include "interflop_client.h"
 
 #if defined(X86)
-	static reg_id_t XMM_REG[] = {DR_REG_XMM0, DR_REG_XMM1, DR_REG_XMM2, DR_REG_XMM3, DR_REG_XMM4, DR_REG_XMM5, DR_REG_XMM6, DR_REG_XMM7, DR_REG_XMM8, DR_REG_XMM9, DR_REG_XMM10, DR_REG_XMM11, DR_REG_XMM12, DR_REG_XMM13, DR_REG_XMM14, DR_REG_XMM15};
-	static reg_id_t XMM_REG_REVERSE[] = {DR_REG_XMM15, DR_REG_XMM14, DR_REG_XMM13, DR_REG_XMM12, DR_REG_XMM11, DR_REG_XMM10, DR_REG_XMM9, DR_REG_XMM8, DR_REG_XMM7, DR_REG_XMM6, DR_REG_XMM5, DR_REG_XMM4, DR_REG_XMM3, DR_REG_XMM2, DR_REG_XMM1, DR_REG_XMM0};
+	static reg_id_t XMM_REG[] = {
+		DR_REG_XMM0, DR_REG_XMM1, DR_REG_XMM2, DR_REG_XMM3, DR_REG_XMM4, 
+		DR_REG_XMM5, DR_REG_XMM6, DR_REG_XMM7, DR_REG_XMM8, DR_REG_XMM9, 
+		DR_REG_XMM10, DR_REG_XMM11, DR_REG_XMM12, DR_REG_XMM13, DR_REG_XMM14, 
+		DR_REG_XMM15
+	};
+	static reg_id_t XMM_REG_REVERSE[] = {
+		DR_REG_XMM15, DR_REG_XMM14, DR_REG_XMM13, DR_REG_XMM12, DR_REG_XMM11, 
+		DR_REG_XMM10, DR_REG_XMM9, DR_REG_XMM8, DR_REG_XMM7, DR_REG_XMM6, 
+		DR_REG_XMM5, DR_REG_XMM4, DR_REG_XMM3, DR_REG_XMM2, DR_REG_XMM1, 
+		DR_REG_XMM0
+	};
 
-	static reg_id_t YMM_REG[] = {DR_REG_YMM0, DR_REG_YMM1, DR_REG_YMM2, DR_REG_YMM3, DR_REG_YMM4, DR_REG_YMM5, DR_REG_YMM6, DR_REG_YMM7, DR_REG_YMM8, DR_REG_YMM9, DR_REG_YMM10, DR_REG_YMM11, DR_REG_YMM12, DR_REG_YMM13, DR_REG_YMM14, DR_REG_YMM15};
-	static reg_id_t YMM_REG_REVERSE[] = {DR_REG_YMM15, DR_REG_YMM14, DR_REG_YMM13, DR_REG_YMM12, DR_REG_YMM11, DR_REG_YMM10, DR_REG_YMM9, DR_REG_YMM8, DR_REG_YMM7, DR_REG_YMM6, DR_REG_YMM5, DR_REG_YMM4, DR_REG_YMM3, DR_REG_YMM2, DR_REG_YMM1, DR_REG_YMM0};
+	static reg_id_t YMM_REG[] = {
+		DR_REG_YMM0, DR_REG_YMM1, DR_REG_YMM2, DR_REG_YMM3, DR_REG_YMM4, 
+		DR_REG_YMM5, DR_REG_YMM6, DR_REG_YMM7, DR_REG_YMM8, DR_REG_YMM9, 
+		DR_REG_YMM10, DR_REG_YMM11, DR_REG_YMM12, DR_REG_YMM13, DR_REG_YMM14, 
+		DR_REG_YMM15
+	};
+	static reg_id_t YMM_REG_REVERSE[] = {
+		DR_REG_YMM15, DR_REG_YMM14, DR_REG_YMM13, DR_REG_YMM12, DR_REG_YMM11, 
+		DR_REG_YMM10, DR_REG_YMM9, DR_REG_YMM8, DR_REG_YMM7, DR_REG_YMM6, 
+		DR_REG_YMM5, DR_REG_YMM4, DR_REG_YMM3, DR_REG_YMM2, DR_REG_YMM1, 
+		DR_REG_YMM0
+	};
 
-	static reg_id_t ZMM_REG[] = {DR_REG_ZMM0, DR_REG_ZMM1, DR_REG_ZMM2, DR_REG_ZMM3, DR_REG_ZMM4, DR_REG_ZMM5, DR_REG_ZMM6, DR_REG_ZMM7, DR_REG_ZMM8, DR_REG_ZMM9, DR_REG_ZMM10, DR_REG_ZMM11, DR_REG_ZMM12, DR_REG_ZMM13, DR_REG_ZMM14, DR_REG_ZMM15, DR_REG_ZMM16, DR_REG_ZMM17, DR_REG_ZMM18, DR_REG_ZMM19, DR_REG_ZMM20, DR_REG_ZMM21, DR_REG_ZMM22, DR_REG_ZMM23, DR_REG_ZMM24, DR_REG_ZMM25, DR_REG_ZMM26, DR_REG_ZMM27, DR_REG_ZMM28, DR_REG_ZMM29, DR_REG_ZMM30, DR_REG_ZMM31};
-	static reg_id_t ZMM_REG_REVERSE[] = {DR_REG_ZMM31, DR_REG_ZMM30, DR_REG_ZMM29, DR_REG_ZMM28, DR_REG_ZMM27, DR_REG_ZMM26, DR_REG_ZMM25, DR_REG_ZMM24, DR_REG_ZMM23, DR_REG_ZMM22, DR_REG_ZMM21, DR_REG_ZMM20, DR_REG_ZMM19, DR_REG_ZMM18, DR_REG_ZMM17, DR_REG_ZMM16, DR_REG_ZMM15, DR_REG_ZMM14, DR_REG_ZMM13, DR_REG_ZMM12, DR_REG_ZMM11, DR_REG_ZMM10, DR_REG_ZMM9, DR_REG_ZMM8, DR_REG_ZMM7, DR_REG_ZMM6, DR_REG_ZMM5, DR_REG_ZMM4, DR_REG_ZMM3, DR_REG_ZMM2, DR_REG_ZMM1, DR_REG_ZMM0};
+	static reg_id_t ZMM_REG[] = {
+		DR_REG_ZMM0, DR_REG_ZMM1, DR_REG_ZMM2, DR_REG_ZMM3, DR_REG_ZMM4, 
+		DR_REG_ZMM5, DR_REG_ZMM6, DR_REG_ZMM7, DR_REG_ZMM8, DR_REG_ZMM9, 
+		DR_REG_ZMM10, DR_REG_ZMM11, DR_REG_ZMM12, DR_REG_ZMM13, DR_REG_ZMM14, 
+		DR_REG_ZMM15, DR_REG_ZMM16, DR_REG_ZMM17, DR_REG_ZMM18, DR_REG_ZMM19, 
+		DR_REG_ZMM20, DR_REG_ZMM21, DR_REG_ZMM22, DR_REG_ZMM23, DR_REG_ZMM24, 
+		DR_REG_ZMM25, DR_REG_ZMM26, DR_REG_ZMM27, DR_REG_ZMM28, DR_REG_ZMM29, 
+		DR_REG_ZMM30, DR_REG_ZMM31
+	};
+	static reg_id_t ZMM_REG_REVERSE[] = {
+		DR_REG_ZMM31, DR_REG_ZMM30, DR_REG_ZMM29, DR_REG_ZMM28, DR_REG_ZMM27, 
+		DR_REG_ZMM26, DR_REG_ZMM25, DR_REG_ZMM24, DR_REG_ZMM23, DR_REG_ZMM22, 
+		DR_REG_ZMM21, DR_REG_ZMM20, DR_REG_ZMM19, DR_REG_ZMM18, DR_REG_ZMM17, 
+		DR_REG_ZMM16, DR_REG_ZMM15, DR_REG_ZMM14, DR_REG_ZMM13, DR_REG_ZMM12, 
+		DR_REG_ZMM11, DR_REG_ZMM10, DR_REG_ZMM9, DR_REG_ZMM8, DR_REG_ZMM7, 
+		DR_REG_ZMM6, DR_REG_ZMM5, DR_REG_ZMM4, DR_REG_ZMM3, DR_REG_ZMM2, 
+		DR_REG_ZMM1, DR_REG_ZMM0
+	};
 #elif defined(AARCH64)
 	static reg_id_t Q_REG[] = {
 		DR_REG_Q0, DR_REG_Q1, DR_REG_Q2, DR_REG_Q3, DR_REG_Q4, 
@@ -31,8 +67,8 @@
 #endif
 
 
-static int  tls_result /* index of thread local storage to store the result of floating point operations */, 
-			tls_op_A, tls_op_B /* index of thread local storage to store the operands of vectorial floating point operations */, 
+static int  tls_result, /* index of thread local storage to store the result of floating point operations */
+			tls_op_A, tls_op_B, /* index of thread local storage to store the operands of vectorial floating point operations */
 			tls_op_C, /* index of thread local storage to store the third operand in FMA */
 			tls_stack, /* index of thread local storage to store the address of the shallow stack */
 			tls_saved_reg;
@@ -55,17 +91,12 @@ template <typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE), int SIMD_TYPE
 struct interflop_backend {
 
 	static void apply(FTYPE *vect_a,  FTYPE *vect_b) {
-	   
-		static const int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
+	    FTYPE res;
+		static const int vect_size = (SIMD_TYPE == IFP_OP_128) ? 
+						16 : (SIMD_TYPE == IFP_OP_256) ? 
+						32 : (SIMD_TYPE == IFP_OP_512) ? 
+						64 : sizeof(FTYPE);
 		static const int nb_elem = vect_size/sizeof(FTYPE);
-
-		FTYPE res;
-
-
-		/*dr_printf("Vect size : %d\n", vect_size);
-		dr_printf("Nb elem : %d\n", nb_elem);
-
-		dr_printf("A : %f\nB : %f\n", vect_a[0], vect_b[0]);*/
 		
 		for(int i = 0 ; i < nb_elem ; i++) {
 #if defined(X86)
@@ -73,7 +104,7 @@ struct interflop_backend {
 #elif defined(AARCH64)
 			res = Backend_function(vect_b[i], vect_a[i]);
 #endif
-			*(((FTYPE*)GET_TLS(dr_get_current_drcontext(), tls_result))+i) = res;
+			*(((FTYPE*)GET_TLS(dr_get_current_drcontext(), tls_result)) + i) = res;
 		}   
 	}
 };
@@ -104,7 +135,7 @@ struct interflop_backend_fused {
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
-void translate_insert(instr_t* newinstr, instrlist_t* ilist, instr_t* instr) {   
+void translate_insert(instr_t* newinstr, instrlist_t* ilist, instr_t* instr) {
 	instr_set_translation(newinstr, instr_get_app_pc(instr));
 	instr_set_app(newinstr);
 	instrlist_preinsert(ilist, instr, newinstr);
