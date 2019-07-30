@@ -63,7 +63,8 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
     dr_register_exit_event(event_exit);
 
     //Configure verrou in random rounding mode
-    interflop_verrou_configure(VR_RANDOM , nullptr);
+    //interflop_verrou_configure(VR_RANDOM , nullptr);
+    Interflop::verrou_prepare();
 
     
     set_index_tls_result(drmgr_register_tls_field());
@@ -105,6 +106,7 @@ static void event_exit(void)
     }
     drmgr_exit();
     drsym_exit();
+    Interflop::verrou_end();
 }
 
 static void thread_init(void *dr_context) {

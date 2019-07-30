@@ -17,7 +17,6 @@
 
 #define PRINT_ERROR_MESSAGE(message) dr_fprintf(STDERR, "%s\n" , (message));
 
-
 #ifdef WINDOWS
     #define DR_REG_OP_A_ADDR DR_REG_XCX
     #define DR_REG_OP_B_ADDR DR_REG_XDX

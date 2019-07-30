@@ -39,6 +39,8 @@
 extern "C" {
 #endif
 #define IFV_FCTNAME(FCT) interflop_verrou_##FCT
+#define USE_VERROU_FMA
+
 #include "interflop_backend_interface.h"
 
 

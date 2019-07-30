@@ -682,6 +682,11 @@ set(BASE_CFLAGS "")
 set(BASE_CONLY_FLAGS "")
 set(BASE_CXXONLY_FLAGS "")
 if (UNIX)
+
+    if(FMA)
+      set(BASE_CFLAGS "${BASE_CFLAGS} -mfma")
+    endif(FMA)
+    
   set(BASE_CXXONLY_FLAGS "${BASE_CXXONLY_FLAGS} -std=c++11")
   # -std=c99 doesn't quite work
   # FIXME case 191480: we used to pass -pedantic just to cpp;
@@ -712,6 +717,7 @@ if (UNIX)
         message(STATUS "  resulting build may not run all apps correctly")
       endif ()
       set(LD_FLAGS "-melf_i386")
+      
     endif (X64)
   elseif (ARM)
     # i#1551: add necessary flags for ARM build.
