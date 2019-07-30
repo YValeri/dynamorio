@@ -10,26 +10,26 @@
 
 /** Specifies the behavior of the client */
 typedef enum{
-    IFP_CLIENT_DEFAULT          =0, /** Default */
-    IFP_CLIENT_NOLOOKUP         =0, /** Don't look at symbols */
-    IFP_CLIENT_GENERATE         =1, /** Generate the symbols from an execution */
-    IFP_CLIENT_BL_ONLY          =2, /** Don't instrument the symbols in the blacklist */
-    IFP_CLIENT_WL_ONLY          =4, /** Instrument only the symbols in the whitelist */
-    IFP_CLIENT_BL_WL            =6, /** Instrument the symbols in the whitelist that aren't in the blacklist */
-    IFP_CLIENT_HELP             =-1 /** Display arguments help */
+    IFP_CLIENT_DEFAULT = 0, /** Default */
+    IFP_CLIENT_NOLOOKUP = 0, /** Don't look at symbols */
+    IFP_CLIENT_GENERATE = 1, /** Generate the symbols from an execution */
+    IFP_CLIENT_BL_ONLY = 2, /** Don't instrument the symbols in the blacklist */
+    IFP_CLIENT_WL_ONLY = 4, /** Instrument only the symbols in the whitelist */
+    IFP_CLIENT_BL_WL = 6, /** Instrument the symbols in the whitelist that aren't in the blacklist */
+    IFP_CLIENT_HELP = -1 /** Display arguments help */
 }interflop_client_mode_t;
 
 /** Specifies the type of lookup we are requesting */
 typedef enum {
-    IFP_LOOKUP_MODULE=true, /** Lookup the module */
-    IFP_LOOKUP_SYMBOL=false /** Lookup the symbol */
+    IFP_LOOKUP_MODULE = true, /** Lookup the module */
+    IFP_LOOKUP_SYMBOL = false /** Lookup the symbol */
 }ifp_lookup_type_t;
 
 /** Structure holding informations on a module, used for the whitelist and blacklist before further processing*/
 typedef struct _module_entry
 {
     inline _module_entry (const std::string & mod_name, const bool all) : module_name(mod_name), all_symbols(all){}
-    inline bool operator==(struct _module_entry o){return o.module_name == module_name;};
+    inline bool operator == (struct _module_entry o){return o.module_name == module_name;};
 
     std::string module_name; /** Prefered name of the module */
     bool all_symbols;       /** True if we are considering the whole module */
@@ -78,8 +78,8 @@ typedef struct _lookup_entry_t
             }else
             {
                 //The module isn't contiguous, we need to check each segment
-                size_t segsize = segments.size();
-                for(size_t i=0; i<segsize; i++)
+                size_t segsize =  segments.size();
+                for(size_t i = 0; i<segsize; i++)
                 {
                     if(segments[i].contains(pc))
                     {
@@ -99,8 +99,8 @@ typedef struct _lookup_entry_t
             }else
             {
                 //Note : checking for each range of segments would be possible, but performance-wise wouldn't be much better than looking for symbols
-                size_t symsize = symbols.size();
-                for(size_t i=0; i<symsize; i++)
+                size_t symsize =  symbols.size();
+                for(size_t i = 0; i<symsize; i++)
                 {
                     if(symbols[i].contains(pc))
                     {

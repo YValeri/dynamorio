@@ -71,7 +71,7 @@ struct interflop_backend {
 #if defined(X86)
             res = Backend_function(vect_a[i], vect_b[i]);
 #elif defined(AARCH64)
-		res = Backend_function(vect_b[i], vect_a[i]);
+            res = Backend_function(vect_b[i], vect_a[i]);
 #endif
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext(), tls_result))+i) = res;
         }   
@@ -90,7 +90,11 @@ struct interflop_backend_fused {
         FTYPE res;
 
         for(int i = 0 ; i < nb_elem ; i++) {
+#if defined(X86)
             res = Backend_function(vect_a[i], vect_b[i], vect_c[i]);
+#elif defined(AARCH64)
+            res = Backend_function(vect_b[i], vect_a[i], vect_c[i]);
+#endif
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext(), tls_result))+i) = res;
         }   
     }   
@@ -268,7 +272,7 @@ void insert_push_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_push_list, 
     // ****************************************************************************
     INSERT_READ_TLS(drcontext, tls_stack, bb, instr, buffer_reg);
 
-    int offset=0;
+    int offset = 0;
 
     for(unsigned int i = 0 ; i < nb_reg ; i++) {
         if(IS_GPR(reg_to_push_list[i]))

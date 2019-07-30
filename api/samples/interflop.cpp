@@ -114,8 +114,8 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
     drreg_options.conservative = true;
     drreg_options.num_spill_slots = 5;
     drreg_options.struct_size = sizeof(drreg_options_t);
-    drreg_options.do_not_sum_slots=true;
-    drreg_options.error_callback=NULL;
+    drreg_options.do_not_sum_slots = true;
+    drreg_options.error_callback = NULL;
     drreg_init(&drreg_options);
     
     if(client_mode == IFP_CLIENT_GENERATE)
@@ -377,7 +377,7 @@ static dr_emit_flags_t symbol_lookup_event(void *drcontext, void *tag, instrlist
         {
             if(!already_found_fp_op)
             {
-                already_found_fp_op=true;
+                already_found_fp_op = true;
                 logSymbol(bb);
             }
             if(isDebug())

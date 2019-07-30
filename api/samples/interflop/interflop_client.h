@@ -68,12 +68,12 @@
 
 #if defined(X86)
     #define MOVE_FLOATING_SCALAR(is_double, drcontext, dest, srcd, srcs) (is_double) ? 	\
-	    INSTR_CREATE_movsd((drcontext), (dest), (srcd)) : 			  	\
+	    INSTR_CREATE_movsd((drcontext), (dest), (srcd)) : 			  	                \
 	    INSTR_CREATE_movss((drcontext), (dest), (srcs))
     
-    #define MOVE_FLOATING_PACKED(is_avx, drcontext, dest, src) (is_avx) ? 		\
-	        INSTR_CREATE_vmovupd((drcontext), (dest), (src)) : 				\
-	        INSTR_CREATE_movupd((drcontext), (dest), (src))
+    #define MOVE_FLOATING_PACKED(is_avx, drcontext, dest, src) (is_avx) ? 		        \
+	    INSTR_CREATE_vmovupd((drcontext), (dest), (src)) : 				                \
+	    INSTR_CREATE_movupd((drcontext), (dest), (src))
 #endif
 
 /* CREATE OPND */
