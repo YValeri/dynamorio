@@ -18,44 +18,44 @@
 #define PRINT_ERROR_MESSAGE(message) dr_fprintf(STDERR, "%s\n", (message));
 
 #ifdef WINDOWS
-    #define DR_REG_OP_A_ADDR DR_REG_XCX
-    #define DR_REG_OP_B_ADDR DR_REG_XDX
-    #define DR_REG_OP_C_ADDR DR_REG_XDX /* TO UPDATE : check the correct register for windows */
-    #define DR_REG_RES_ADDR DR_REG_XDI
+	#define DR_REG_OP_A_ADDR DR_REG_XCX
+	#define DR_REG_OP_B_ADDR DR_REG_XDX
+	#define DR_REG_OP_C_ADDR DR_REG_XDX /* TO UPDATE : check the correct register for windows */
+	#define DR_REG_RES_ADDR DR_REG_XDI
 #elif defined(AARCH64)
-    #define DR_REG_OP_A_ADDR DR_REG_X0
-    #define DR_REG_OP_B_ADDR DR_REG_X1
-    #define DR_REG_RES_ADDR DR_REG_X2
+	#define DR_REG_OP_A_ADDR DR_REG_X0
+	#define DR_REG_OP_B_ADDR DR_REG_X1
+	#define DR_REG_RES_ADDR DR_REG_X2
 #else
-    #define DR_REG_OP_A_ADDR DR_REG_XDI
-    #define DR_REG_OP_B_ADDR DR_REG_XSI
-    #define DR_REG_OP_C_ADDR DR_REG_XDX
-    #define DR_REG_RES_ADDR DR_REG_XDI
+	#define DR_REG_OP_A_ADDR DR_REG_XDI
+	#define DR_REG_OP_B_ADDR DR_REG_XSI
+	#define DR_REG_OP_C_ADDR DR_REG_XDX
+	#define DR_REG_RES_ADDR DR_REG_XDI
 #endif
 
 #if defined(X86)
-    #define DR_REG_XMM_BUFFER DR_REG_XMM15
-    #define DR_REG_XMM_BUFFER_2 DR_REG_XMM14
+	#define DR_REG_XMM_BUFFER DR_REG_XMM15
+	#define DR_REG_XMM_BUFFER_2 DR_REG_XMM14
 
-    #define DR_REG_YMM_BUFFER DR_REG_YMM15
-    #define DR_REG_YMM_BUFFER_2 DR_REG_YMM14
+	#define DR_REG_YMM_BUFFER DR_REG_YMM15
+	#define DR_REG_YMM_BUFFER_2 DR_REG_YMM14
 
-    #define DR_REG_ZMM_BUFFER DR_REG_ZMM31
-    #define DR_REG_ZMM_BUFFER_2 DR_REG_ZMM30
+	#define DR_REG_ZMM_BUFFER DR_REG_ZMM31
+	#define DR_REG_ZMM_BUFFER_2 DR_REG_ZMM30
 
-    #define DR_BUFFER_REG DR_REG_XCX
-    #define DR_SCRATCH_REG DR_REG_XDX
+	#define DR_BUFFER_REG DR_REG_XCX
+	#define DR_SCRATCH_REG DR_REG_XDX
 
-    #define AVX_2_SUPPORTED (proc_has_feature(FEATURE_AVX2))
-    #define AVX_512_SUPPORTED (proc_has_feature(FEATURE_AVX512F))
+	#define AVX_2_SUPPORTED (proc_has_feature(FEATURE_AVX2))
+	#define AVX_512_SUPPORTED (proc_has_feature(FEATURE_AVX512F))
 
 #elif defined(AARCH64)
-    #define DR_REG_MULTIPLE DR_REG_Q31
-    #define DR_REG_FLOAT DR_REG_S31
-    #define DR_REG_DOUBLE DR_REG_D31
+	#define DR_REG_MULTIPLE DR_REG_Q31
+	#define DR_REG_FLOAT DR_REG_S31
+	#define DR_REG_DOUBLE DR_REG_D31
 
-    #define DR_BUFFER_REG DR_REG_X6
-    #define DR_SCRATCH_REG DR_REG_X5
+	#define DR_BUFFER_REG DR_REG_X6
+	#define DR_SCRATCH_REG DR_REG_X5
 #endif
 
 #define SPILL_SLOT_BUFFER_REG SPILL_SLOT_1
@@ -67,20 +67,20 @@
 #define DST(instr, n) instr_get_dst((instr), (n))
 
 #if defined(X86)
-    #define MOVE_FLOATING_SCALAR(is_double, drcontext, dest, srcd, srcs) (is_double) ? 	\
-	    INSTR_CREATE_movsd((drcontext), (dest), (srcd)) : 			  	                \
-	    INSTR_CREATE_movss((drcontext), (dest), (srcs))
-    
-    #define MOVE_FLOATING_PACKED(is_avx, drcontext, dest, src) (is_avx) ? 		        \
-	    INSTR_CREATE_vmovupd((drcontext), (dest), (src)) : 				                \
-	    INSTR_CREATE_movupd((drcontext), (dest), (src))
+	#define MOVE_FLOATING_SCALAR(is_double, drcontext, dest, srcd, srcs) (is_double) ? 	\
+		INSTR_CREATE_movsd((drcontext), (dest), (srcd)) : 			  					\
+		INSTR_CREATE_movss((drcontext), (dest), (srcs))
+	
+	#define MOVE_FLOATING_PACKED(is_avx, drcontext, dest, src) (is_avx) ? 				\
+		INSTR_CREATE_vmovupd((drcontext), (dest), (src)) : 								\
+		INSTR_CREATE_movupd((drcontext), (dest), (src))
 #endif
 
 /* CREATE OPND */
 #define OP_REG(reg_id) opnd_create_reg((reg_id))
 #define OP_INT(val) opnd_create_immed_int((val), OPSZ_4)
 #define OP_INT64(val) opnd_create_immed_int64((val), OPSZ_8)
-    
+	
 #if defined(X86)
 	#define OP_REL_ADDR(addr) \
 		opnd_create_rel_addr((addr), OPSZ_8)
