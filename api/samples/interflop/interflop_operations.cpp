@@ -301,11 +301,11 @@ enum OPERATION_CATEGORY ifp_get_operation_category(instr_t* instr)
         case OP_fdiv:
         return (OPERATION_CATEGORY)(IFP_OP_DIV | get_size_flag(instr));
 
-        /*case OP_fmadd:
+        case OP_fmadd:
         return (OPERATION_CATEGORY)(IFP_OP_FMA | get_size_flag(instr));
 
         case OP_fmsub:
-        return (OPERATION_CATEGORY)(IFP_OP_FMS | get_size_flag(instr));*/
+        return (OPERATION_CATEGORY)(IFP_OP_FMS | get_size_flag(instr));
 #endif
 
         default:
