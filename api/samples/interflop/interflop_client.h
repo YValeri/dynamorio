@@ -20,8 +20,9 @@
 #ifdef WINDOWS
     #define DR_REG_OP_A_ADDR DR_REG_XCX
     #define DR_REG_OP_B_ADDR DR_REG_XDX
-    #define DR_REG_OP_C_ADDR DR_REG_XDX /* TO UPDATE : check the correct register for windows */
+    #define DR_REG_OP_C_ADDR DR_REG_R8 /* TO UPDATE : check the correct register for windows */
     #define DR_REG_RES_ADDR DR_REG_XDI
+    #define DR_REG_BASE DR_REG_XAX
 #elif defined(AARCH64)
     #define DR_REG_OP_A_ADDR DR_REG_X0
     #define DR_REG_OP_B_ADDR DR_REG_X1
@@ -31,6 +32,7 @@
     #define DR_REG_OP_B_ADDR DR_REG_XSI
     #define DR_REG_OP_C_ADDR DR_REG_XDX
     #define DR_REG_RES_ADDR DR_REG_XDI
+    #define DR_REG_BASE DR_REG_XAX
 #endif
 
 #if defined(X86)
@@ -43,10 +45,10 @@
     #define DR_REG_ZMM_BUFFER DR_REG_ZMM31
     #define DR_REG_ZMM_BUFFER_2 DR_REG_ZMM30
 
-    #define DR_BUFFER_REG DR_REG_XCX
-    #define DR_SCRATCH_REG DR_REG_XDX
+    #define DR_BUFFER_REG DR_REG_XDX
+    #define DR_SCRATCH_REG DR_REG_XCX
 
-    #define AVX_2_SUPPORTED (proc_has_feature(FEATURE_AVX2))
+    #define AVX_SUPPORTED (proc_has_feature(FEATURE_AVX))
     #define AVX_512_SUPPORTED (proc_has_feature(FEATURE_AVX512F))
 
 #elif defined(AARCH64)

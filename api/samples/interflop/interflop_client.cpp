@@ -30,12 +30,33 @@
     };
 #endif
 
+#define R(name) DR_REG_##name
+#if defined(X86) && defined(X64)
+
+    static const reg_id_t GPR_ORDER[] = {R(NULL), R(XAX), R(XCX), R(XDX), R(XBX), R(XSP), R(XBP), R(XSI), R(XDI), R(R8), R(R9), R(R10), R(R11), R(R12), R(R13), R(R14), R(R15)};
+    #define NUM_GPR_SLOTS 17
+#elif defined(AArch64)
+    //TODO Add GPR for Aarch64
+#endif
+#undef R
+
 
 static int  tls_result /* index of thread local storage to store the result of floating point operations */, 
             tls_op_A, tls_op_B /* index of thread local storage to store the operands of vectorial floating point operations */,
             tls_op_C, /* index of thread local storage to store the third operand in FMA */
             tls_stack, /* index of thread local storage to store the address of the shallow stack */
             tls_saved_reg;
+
+static int tls_op_mem, tls_gpr, tls_float;
+
+int get_index_tls_op_mem(){return tls_op_mem;}
+int get_index_tls_gpr(){return tls_gpr;}
+int get_index_tls_float(){return tls_float;}
+
+void set_index_tls_op_mem(int new_tls_value) {tls_op_mem = new_tls_value;}
+void set_index_tls_gpr(int new_tls_value) {tls_gpr = new_tls_value;}
+void set_index_tls_float(int new_tls_value) {tls_float = new_tls_value;}
+
 
 int get_index_tls_result() {return tls_result;}
 int get_index_tls_op_A() {return tls_op_A;}
@@ -50,6 +71,32 @@ void set_index_tls_op_B(int new_tls_value) {tls_op_B = new_tls_value;}
 void set_index_tls_op_C(int new_tls_value) {tls_op_C = new_tls_value;}
 void set_index_tls_stack(int new_tls_value) {tls_stack = new_tls_value;}
 void set_index_tls_saved_reg(int new_tls_value) {tls_saved_reg = new_tls_value;}
+
+/**
+ * \brief Returns the offset, in bytes, of the gpr stored in the tls
+ * 
+ * \param gpr 
+ * \return int 
+ */
+inline int offset_of_gpr(reg_id_t gpr)
+{
+    //Assuming the gpr parameter is a valid gpr
+    return (((int)gpr-DR_REG_START_GPR)+1)<<3;
+}
+
+/**
+ * \brief Returns the offset, in bytes, of the simd register in the tls
+ * 
+ * \param simd 
+ * \return int 
+ */
+inline int offset_of_simd(reg_id_t simd)
+{
+    //Assuming the simd parameter is a valid simd register
+    static const int OFFSET = AVX_512_SUPPORTED ? 6 : AVX_SUPPORTED ? 5 : 4 /*128 bits = 16 bytes = 2^4 */;
+    const reg_id_t START = reg_is_strictly_zmm(simd) ? DR_REG_START_ZMM : reg_is_strictly_ymm(simd) ? DR_REG_START_YMM : DR_REG_START_XMM;
+    return ((int)simd-START)<<OFFSET;
+}
 
 template <typename FTYPE , FTYPE (*Backend_function)(FTYPE, FTYPE) , int SIMD_TYPE = IFP_OP_SCALAR>
 struct interflop_backend {
@@ -322,7 +369,7 @@ void insert_save_floating_reg(void *drcontext, instrlist_t *bb, instr_t *instr, 
     if(AVX_512_SUPPORTED) {
         insert_push_pseudo_stack_list(drcontext, ZMM_REG, bb, instr, buffer_reg, scratch, NB_ZMM_REG);
     }
-    else if(AVX_2_SUPPORTED) {
+    else if(AVX_SUPPORTED) {
         insert_push_pseudo_stack_list(drcontext, YMM_REG, bb, instr, buffer_reg, scratch, NB_YMM_REG);
     }
     else { /* SSE only */
@@ -343,7 +390,7 @@ void insert_restore_floating_reg(void *drcontext, instrlist_t *bb, instr_t *inst
     if(AVX_512_SUPPORTED) {
         insert_pop_pseudo_stack_list(drcontext, ZMM_REG_REVERSE, bb, instr, buffer_reg, scratch, NB_ZMM_REG);
     }
-    else if(AVX_2_SUPPORTED){
+    else if(AVX_SUPPORTED){
         insert_pop_pseudo_stack_list(drcontext, YMM_REG_REVERSE, bb, instr, buffer_reg, scratch, NB_YMM_REG); 
     }
     else { /* SSE only */
@@ -738,4 +785,272 @@ void insert_restore_scratch_arith_rax(void *drcontext, instrlist_t *bb, instr_t 
     instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_REG_RAX), OP_BASE_DISP(DR_SCRATCH_REG, 0, OPSZ_8)));//load rax into rax
     instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_BUFFER_REG), OP_BASE_DISP(DR_SCRATCH_REG, 24, OPSZ_8)));//load rcx
     instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_SCRATCH_REG), OP_BASE_DISP(DR_SCRATCH_REG, 16, OPSZ_8)));//load rdx
+}
+
+#define MINSERT(bb, where, instr) instrlist_meta_preinsert(bb, where, instr)
+
+/**
+ * \brief Inserts prior to \p where meta-instructions to save the arithmetic flags and the gpr registers
+ * \param drcontext DynamoRIO context
+ * \param bb Current basic bloc
+ * \param where instruction prior to whom we insert the meta-instructions 
+ */
+void insert_save_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *where)
+{
+#if defined(X86) && defined(X64)
+    //save rcx to spill slot
+    dr_save_reg(drcontext, bb, where, DR_REG_RCX, SPILL_SLOT_SCRATCH_REG); 
+    //read tls
+    INSERT_READ_TLS(drcontext, get_index_tls_gpr(), bb, where, DR_REG_RCX); 
+    //store rax in second position
+    MINSERT(bb, where, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_REG_RCX, 8, OPSZ_8),OP_REG(DR_REG_XAX))); 
+    //store arith flags to rax
+    MINSERT(bb, where, INSTR_CREATE_lahf(drcontext)); 
+    //store arith flags in first position
+    MINSERT(bb, where, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_REG_RCX, 0, OPSZ_8),OP_REG(DR_REG_XAX))); 
+    //restore rcx into rax
+    dr_restore_reg(drcontext, bb, where, DR_REG_XAX, SPILL_SLOT_SCRATCH_REG); 
+    //store rcx in third position
+    MINSERT(bb, where, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_REG_RCX, 16, OPSZ_8),OP_REG(DR_REG_XAX))); 
+    //save all the other GPR
+    for(size_t i=3; i<NUM_GPR_SLOTS; i++)
+    {
+        MINSERT(bb, where, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_REG_RCX, offset_of_gpr(GPR_ORDER[i]), OPSZ_8), OP_REG(GPR_ORDER[i])));
+    }
+
+#else //AArch64
+DR_ASSERT_MSG(false, "insert_save_gpr_and_flags not implemented for this architecture");
+#endif
+}
+
+void insert_restore_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *where)
+{
+#if defined(X86) && defined(X64)
+    //read tls into rcx
+    INSERT_READ_TLS(drcontext, get_index_tls_gpr(), bb, where, DR_REG_RCX);
+    //load saved arith flags to rax
+    MINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(DR_REG_RAX), OP_BASE_DISP(DR_REG_RCX, 0, OPSZ_8)));
+	//load arith flags
+	MINSERT(bb, where, INSTR_CREATE_sahf(drcontext));
+	//load saved rax into rax
+    MINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(DR_REG_RAX), OP_BASE_DISP(DR_REG_RCX, 8, OPSZ_8)));
+	//load back all GPR in reverse, overwrite RCX in the end
+	for(size_t i=NUM_GPR_SLOTS-1; i>=2 /*RCX*/; --i)
+	{
+		MINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(GPR_ORDER[i]), OP_BASE_DISP(DR_REG_RCX, offset_of_gpr(GPR_ORDER[i]), OPSZ_8)));
+	}
+    
+#else //AArch64
+DR_ASSERT_MSG(false, "insert_restore_gpr_and_flags not implemented for this architecture");
+#endif
+}
+
+/**
+ * \brief Prepares the address in the buffer of the tls register to point to the destination register in memory
+ * Assumes the gpr have been saved beforehand !
+ * \param drcontext 
+ * \param bb 
+ * \param where 
+ * \param destination 
+ */
+void insert_set_destination_tls(void *drcontext, instrlist_t *bb, instr_t *where, reg_id_t destination)
+{
+#if defined(X86) && defined(X64)
+	//Result tls adress in OP_A register
+	INSERT_READ_TLS(drcontext, get_index_tls_result(), bb, where, DR_REG_OP_A_ADDR);
+	//Floating registers tls adress in OP_B register
+	INSERT_READ_TLS(drcontext, get_index_tls_float(), bb, where, DR_REG_OP_B_ADDR);
+	//Loads the adress of the destination register who is in the saved array, in OP_C register
+	MINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(DR_REG_OP_C_ADDR), OP_BASE_DISP(DR_REG_OP_B_ADDR, offset_of_simd(destination), reg_get_size(destination))));
+	//Stores the adress in the buffer of the result tls
+	MINSERT(bb, where, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_REG_OP_A_ADDR,0, OPSZ_8), OP_REG(DR_REG_OP_C_ADDR)));
+#else //AArch64
+DR_ASSERT_MSG(false, "insert_set_destination_tls not implemented for this architecture");
+#endif
+}
+
+/**
+ * \brief Inserts prior to \p where meta-instructions to save the floating point registers (xmm-ymm-zmm)
+ * Assumes the gpr have been saved beforehand !
+ * \param drcontext DynamoRIO context
+ * \param bb Current basic bloc
+ * \param where instruction prior to whom we insert the meta-instructions 
+ */
+void insert_save_simd_registers(void *drcontext, instrlist_t *bb, instr_t *where)
+{
+#if defined(X86) && defined(X64)
+	//Loads the adress of the simd registers TLS
+	INSERT_READ_TLS(drcontext, get_index_tls_float(), bb, where, DR_SCRATCH_REG);
+	//By default, SSE
+	reg_id_t start = DR_REG_START_XMM, stop = DR_REG_XMM15;
+	bool is_avx=false;
+	opnd_size_t size = OPSZ_16;
+	if(AVX_512_SUPPORTED)
+	{
+		is_avx = true;
+		start = DR_REG_START_ZMM;
+		stop = DR_REG_STOP_ZMM;
+		size=OPSZ_64;
+	}else if(AVX_SUPPORTED)
+	{
+		is_avx=true;
+		start = DR_REG_START_YMM;
+		stop = DR_REG_YMM15;
+		size = OPSZ_32;
+	}
+	//Save all the SIMD registers
+	for(reg_id_t i=start; i<=stop; i++)
+	{
+		MINSERT(bb, where, MOVE_FLOATING_PACKED(is_avx, drcontext, OP_BASE_DISP(DR_SCRATCH_REG, offset_of_simd(i),size), OP_REG(i)));
+	}
+#else //AArch64
+DR_ASSERT_MSG(false, "insert_save_simd_registers not implemented for this architecture");
+#endif
+}
+
+/**
+ * \brief Inserts prior to \p where meta-instructions to restore the floating point registers (xmm-ymm-zmm)
+ * Assumes the gpr have been saved beforehand !
+ * \param drcontext DynamoRIO context
+ * \param bb Current basic bloc
+ * \param where instruction prior to whom we insert the meta-instructions 
+ */
+void insert_restore_simd_registers(void *drcontext, instrlist_t *bb, instr_t *where)
+{
+#if defined(X86) && defined(X64)
+	//Loads the adress of the simd registers TLS
+	INSERT_READ_TLS(drcontext, get_index_tls_float(), bb, where, DR_SCRATCH_REG);
+	//By default, SSE
+	reg_id_t start = DR_REG_START_XMM, stop = DR_REG_XMM15;
+	bool is_avx=false;
+	opnd_size_t size = OPSZ_16;
+	if(AVX_512_SUPPORTED)
+	{
+		is_avx = true;
+		start = DR_REG_START_ZMM;
+		stop = DR_REG_STOP_ZMM;
+		size=OPSZ_64;
+	}else if(AVX_SUPPORTED)
+	{
+		is_avx=true;
+		start = DR_REG_START_YMM;
+		stop = DR_REG_YMM15;
+		size = OPSZ_32;
+	}
+	//Restore all the SIMD registers
+	for(reg_id_t i=start; i<=stop; i++)
+	{
+		MINSERT(bb, where, MOVE_FLOATING_PACKED(is_avx, drcontext, OP_REG(i), OP_BASE_DISP(DR_SCRATCH_REG, offset_of_simd(i),size)));
+	}
+#else //AArch64
+DR_ASSERT_MSG(false, "insert_save_simd_registers not implemented for this architecture");
+#endif
+}
+
+/**
+ * \brief 
+ * 
+ * \param drcontext 
+ * \param bb 
+ * \param where 
+ * \param src0 
+ * \param src1 
+ * \param src2 
+ */
+void insert_set_operands_all_registers(void* drcontext, instrlist_t* bb, instr_t *where, reg_id_t src0, reg_id_t src1, reg_id_t src2)
+{
+#if defined(X86) && defined(X64)
+	INSERT_READ_TLS(drcontext, get_index_tls_float(), bb, where, DR_REG_OP_A_ADDR);
+	if(src2 == DR_REG_NULL)
+	{
+		//2 registers
+		MINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(DR_REG_OP_B_ADDR), OP_BASE_DISP(DR_REG_OP_A_ADDR, offset_of_simd(src0), reg_get_size(src0))));
+		MINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(DR_REG_OP_A_ADDR), OP_BASE_DISP(DR_REG_OP_A_ADDR, offset_of_simd(src1), reg_get_size(src1))));
+	}else
+	{
+		//3 registers
+		MINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(DR_REG_OP_C_ADDR), OP_BASE_DISP(DR_REG_OP_A_ADDR, offset_of_simd(src0), reg_get_size(src0))));
+		MINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(DR_REG_OP_B_ADDR), OP_BASE_DISP(DR_REG_OP_A_ADDR, offset_of_simd(src1), reg_get_size(src1))));
+		MINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(DR_REG_OP_A_ADDR), OP_BASE_DISP(DR_REG_OP_A_ADDR, offset_of_simd(src2), reg_get_size(src2))));
+	}
+#else //AArch64
+DR_ASSERT_MSG(false, "insert_set_operands_all_registers not implemented for this architecture");
+#endif
+}
+
+void insert_set_operands_base_disp(void* drcontext, instrlist_t* bb, instr_t *where, opnd_t addr, reg_id_t tempindex, reg_id_t destination)
+{
+	INSERT_READ_TLS(drcontext, get_index_tls_gpr(), bb, where, destination);
+	reg_id_t base = opnd_get_base(addr), index = opnd_get_index(addr);
+	if(base != DR_REG_NULL)
+	{
+		MINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(destination), OP_BASE_DISP(destination, offset_of_gpr(base), OPSZ_8)));
+		base = destination;
+	}
+	if(index != DR_REG_NULL)
+	{
+		MINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(tempindex), OP_BASE_DISP(destination, offset_of_gpr(index), OPSZ_8)));
+		index = tempindex;
+	}
+	//TODO
+	MINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(destination), opnd_);
+	
+
+	if(opnd_get_index(addr) == DR_REG_NULL)
+	{
+		//Base + disp
+		MINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(destination), OP_BASE_DISP(destination, offset_of_gpr(opnd_get_base(addr)), OPSZ_8)));
+		MINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(destination), OP_BASE_DISP(destination, opnd_get_disp(addr), opnd_get_size(addr))));
+	}else
+	{
+		//Base + index*scale + disp
+		MINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(tempindex), OP_BASE_DISP(destination, offset_of_gpr(destination), OPSZ_8)));
+		MINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(destination), OP_BASE_DISP(destination, offset_of_gpr(destination), OPSZ_8)));
+	}
+	
+}
+
+/**
+ * \brief 
+ * 
+ * \param drcontext 
+ * \param bb 
+ * \param where 
+ * \param instr 
+ * \param oc 
+ * \param fused 
+ */
+void insert_set_operands(void* drcontext, instrlist_t *bb, instr_t *where, instr_t *instr, OPERATION_CATEGORY oc, bool fused)
+{
+	int mem_src=-1;
+	bool is_base_disp=false;
+	//Get the index of the memory operand, if there is one
+	for (size_t i = 0; i < (fused ? 3 : 2); i++)
+	{
+		opnd_t src = SRC(instr, i);
+		if(OP_IS_ADDR(src) || (OP_IS_BASE_DISP(src) && opnd_get_base(src) == DR_REG_NULL && opnd_get_index(src) == DR_REG_NULL))
+		{
+			mem_src=i;
+			is_base_disp=false;
+			break;
+		}else if(OP_IS_BASE_DISP(src))
+		{
+			mem_src=i;
+			is_base_disp=true;
+			break;
+		}
+	}
+	if(mem_src==-1)
+	{
+		//No memory references, only registers
+		insert_set_operands_all_registers(drcontext, bb, where, GET_REG(SRC(instr, 0)), GET_REG(SRC(instr, 1)), fused ? GET_REG(SRC(instr, 2)) : DR_REG_NULL);
+	}else
+	{
+		
+		//Memory reference
+		reg_id_t parameters
+	}
+	
+
+
 }
