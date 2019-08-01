@@ -119,10 +119,10 @@ void write_symbols_to_file()
 			symbol_file << "# This list contains " << totalSymbols << " symbols of interest, split between " << num_modules << " modules\n";
 			for(size_t i = 0; i < num_modules; i++)
 			{
-				symbol_file << modules_vector[i].module_name << "\n";
+				symbol_file << modules_vector[i].module_name << '\n';
 				size_t symbols_size = modules_vector[i].symbols.size();
 				for(size_t j = 0; j < symbols_size; j++)
-					symbol_file << '\t' << modules_vector[i].module_name << "!" << modules_vector[i].symbols[j] << "\n";
+					symbol_file << '\t' << modules_vector[i].module_name << '!' << modules_vector[i].symbols[j] << '\n';
 			}
 			symbol_file.flush();
 			symbol_file.close();
@@ -143,8 +143,8 @@ static string get_symbol_name(module_data_t* module, app_pc intr_pc)
 		{
 			//We ask a first time to get the length of the name
 			drsym_info_t sym;
-			sym.file = NULL;
-			sym.name = NULL;
+			sym.file = nullptr;
+			sym.name = nullptr;
 			sym.struct_size = sizeof(sym);
 			drsym_error_t sym_error = drsym_lookup_address(module->full_path, intr_pc-module->start, &sym, DRSYM_DEFAULT_FLAGS);
 			if(sym_error == DRSYM_SUCCESS || sym_error == DRSYM_ERROR_LINE_NOT_AVAILABLE)
@@ -315,7 +315,7 @@ static void lookup_or_load_module(const module_data_t* module)
  */
 static void load_lookup_from_modules_vector()
 {
-
+	//TODO : change to begin(...)
 	auto end = remove_if(modules_vector.begin(), modules_vector.end(), [](module_entry const& mentry) {
 								  string module_name = mentry.module_name;
 								  module_data_t* mod = dr_lookup_module_by_name(module_name.c_str());
@@ -330,7 +330,7 @@ static void load_lookup_from_modules_vector()
 	modules_vector.erase(end, modules_vector.end());
 }
 
-bool should_instrument_module(const module_data_t* module)
+bool should_instrument_module(module_data_t const* module)
 {
 	lookup_or_load_module(module);
 	lookup_entry_t* found_module = lookup_find(module->start, IFP_LOOKUP_MODULE);
@@ -345,6 +345,7 @@ bool should_instrument_module(const module_data_t* module)
 
 bool needs_to_instrument(instrlist_t* ilist)
 {
+	//TODO mettre le cas false ici
 	if(ilist != nullptr)
 	{
 		if(interflop_client_mode == IFP_CLIENT_NOLOOKUP)
@@ -356,13 +357,14 @@ bool needs_to_instrument(instrlist_t* ilist)
 			return false;
 
 		instr_t * instr = instrlist_first_app(ilist);
-		if(instr)
+		if(instr != nullptr)
 		{
 			app_pc pc = instr_get_app_pc(instr);
 			if(pc)
 				//We instrument if we found the symbol in the lookup for whitelists, otherwise always for blacklists
 				return lookup_find(pc, IFP_LOOKUP_SYMBOL) != nullptr || interflop_client_mode == IFP_CLIENT_BL_ONLY;
 		}
+		//TODO : fallback here
 	}else
 		//ilist == nullptr
 		return false;
@@ -398,7 +400,7 @@ static void parse_line(string line, bool parsing_whitelist)
 		//Behold the if statements
 		//Checks if it's only the module name or the symbol as well
 		pos = line.find('!');
-		bool whole = pos == string::npos;
+		bool whole = (pos == string::npos);
 		if(whole)
 			//Whole module
 			module = line;
@@ -409,12 +411,13 @@ static void parse_line(string line, bool parsing_whitelist)
 			symbol = line.substr(pos+1);
 		}
 		module_entry entry(module, whole);
-		bool exists = (pos = vec_idx_of<module_entry>(modules_vector, entry)) != modules_vector.size();
+		bool exists = ((pos = vec_idx_of<module_entry>(modules_vector, entry)) != modules_vector.size());
 		if(parsing_whitelist || interflop_client_mode == IFP_CLIENT_BL_ONLY)
 		{
 			//If we're parsing the whitelist, or the blacklist in blacklist only mode, it's only about adding to the lookup
 			if(exists)
 			{
+				//TODO : add module_vector[pos]
 				if(whole)
 				{
 					//Whole module, we clear the symbols
@@ -430,7 +433,7 @@ static void parse_line(string line, bool parsing_whitelist)
 			}else
 			{
 				//It doesn't exist yet, we need to push it
-				modules_vector.push_back(entry);
+				modules_vector.push_back(std::move(entry));
 				if(!whole)
 					modules_vector[pos].symbols.push_back(symbol);
 
@@ -460,7 +463,7 @@ static void parse_line(string line, bool parsing_whitelist)
 	}
 }
 
-static void generate_blacklist_from_file(ifstream& blacklist)
+static void generate_blacklist_from_file(ifstream &blacklist)
 {
 	string buffer;
 	if(blacklist.is_open())
@@ -478,7 +481,7 @@ static void generate_blacklist_from_file(ifstream& blacklist)
 	modules_vector.erase(end, modules_vector.end());
 }
 
-static void generate_whitelist_from_files(ifstream& whitelist, ifstream& blacklist)
+static void generate_whitelist_from_files(ifstream &whitelist, ifstream &blacklist)
 {
 	string buffer;
 	if(whitelist.is_open() && !whitelist.bad() && (!blacklist.is_open() || !blacklist.bad()))

@@ -1,4 +1,4 @@
-	/**
+/**
 	 * DynamoRIO client developped in the scope of INTERFLOP project 
  */
 
@@ -115,7 +115,7 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 	drreg_options.num_spill_slots = 5;
 	drreg_options.struct_size = sizeof(drreg_options_t);
 	drreg_options.do_not_sum_slots = true;
-	drreg_options.error_callback = NULL;
+	drreg_options.error_callback = nullptr;
 	drreg_init(&drreg_options);
 	
 	if(client_mode == IFP_CLIENT_GENERATE)
@@ -128,7 +128,7 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 	}    
 }
 
-static void event_exit(void)
+static void event_exit()
 {
 	drmgr_unregister_tls_field(get_index_tls_result());
 	drmgr_unregister_tls_field(get_index_tls_stack());
@@ -161,11 +161,6 @@ static void thread_exit(void *dr_context) {
 	dr_thread_free(dr_context, GET_TLS(dr_context, get_index_tls_op_C()), MAX_OPND_SIZE_BYTES);
 	dr_thread_free(dr_context, GET_TLS(dr_context, get_index_tls_saved_reg()), 64*3);
 }
-
-
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
 
 #if defined(X86) && DEBUG
 static void print(){
@@ -252,10 +247,6 @@ static void print(){
 }
 #endif
 
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-
 static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t *bb, bool for_trace, bool translating)
 {
 	instr_t *instr, *next_instr;
@@ -278,79 +269,45 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
 				dr_print_instr(drcontext, STDERR, instr, "II : ");
 			}
 				
-			// ****************************************************************************
 			// Reserve two registers
-			// ****************************************************************************
 			reg_id_t buffer_reg  = DR_BUFFER_REG, scratch = DR_SCRATCH_REG;
 			insert_save_scratch_arith_rax(drcontext, bb, instr);
 			
-
-			// ****************************************************************************
 			// push general purpose registers on pseudo stack 
 			// All GPR except DR_BUFFER_REG and DR_SCRATCH_REG
-			// ****************************************************************************
 			insert_push_pseudo_stack_list(drcontext, topush_reg, bb, instr, buffer_reg, scratch, NB_REG_SAVED);
 
-			// ****************************************************************************
 			// Push all Floating point registers
-			// ****************************************************************************
 			insert_save_floating_reg(drcontext, bb, instr, buffer_reg, scratch);
 
-			// ****************************************************************************
-			// ***** Move operands to thread local memory 
-			// ****************************************************************************
+			// Move operands to thread local memory 
 			insert_move_operands_to_tls_memory(drcontext, bb, instr, oc, is_double);
-			// ****************************************************************************
-			// ****************************************************************************
-			// ****************************************************************************
 
-			// ***** Sub stack pointer to handle the case where XSP is equal to XBP and XSP doesn't match the top of the stack *****
-			// ***** Otherwise the call will erase data when pushing the return address *****
-			// ***** If the gap is greater than 32 bytes, the program may crash !!!!!!!!!!!!!!! *****
+			// Sub stack pointer to handle the case where XSP is equal to XBP and XSP doesn't match the top of the stack
+			// Otherwise the call will erase data when pushing the return address
+			// If the gap is greater than 32 bytes, the program may crash !
 #if defined(X86)
 			translate_insert(XINST_CREATE_sub(drcontext, OP_REG(DR_REG_XSP), OP_INT(32)), bb, instr);
 #endif
 
 
-			//****************************************************************************
-			// ***** CALL *****
-			// ****************************************************************************
+			//Call
 			insert_call(drcontext, bb, instr, oc, is_double);
-			// ****************************************************************************
-			// ****************************************************************************
-			// ****************************************************************************
 			
-			// ****************************************************************************
-			// Restore all FLoating point registers 
-			// ****************************************************************************
+			// Restore all FLoating point registers
 			insert_restore_floating_reg(drcontext, bb, instr, buffer_reg, scratch);
 			
-			// ****************************************************************************
 			// Set the result in the corresponding register
-			// ****************************************************************************  
 			insert_set_result_in_corresponding_register(drcontext, bb, instr, is_double, is_scalar);
 
-			// ****************************************************************************
 			// pop general purpose registers on pseudo stack 
 			// All GPR except DR_BUFFER_REG and DR_SCRATCH_REG
-			// ****************************************************************************
 			insert_pop_pseudo_stack_list(drcontext, topop_reg, bb, instr, buffer_reg, scratch, NB_REG_SAVED);
 
+            //Restore arith flags, rax and scratch registers
 			insert_restore_scratch_arith_rax(drcontext, bb, instr);
-			
-			// ****************************************************************************
-			// Restore processor flags
-			// ****************************************************************************
-			//dr_restore_arith_flags(drcontext, bb, instr, SPILL_SLOT_ARITH_FLAG);
-		   
-			// Restore registers
-			// ****************************************************************************
-			//dr_restore_reg(drcontext, bb, instr, buffer_reg, SPILL_SLOT_BUFFER_REG);
-			//dr_restore_reg(drcontext, bb, instr, scratch, SPILL_SLOT_SCRATCH_REG);
 
-			// ****************************************************************************
 			// Remove original instruction
-			// ****************************************************************************
 			instrlist_remove(bb, instr);
 			instr_destroy(drcontext, instr);           
 		}       
@@ -358,21 +315,13 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
 	return DR_EMIT_DEFAULT;
 }
 
-
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-
 static dr_emit_flags_t symbol_lookup_event(void *drcontext, void *tag, instrlist_t *bb, bool for_trace, bool translating, OUT void** user_data)
-{
-	instr_t *instr;
-	OPERATION_CATEGORY oc;
-	
+{	
 	bool already_found_fp_op = false;
 
-	for(instr = instrlist_first_app(bb); instr != NULL; instr = instr_get_next_app(instr))
+	for(instr_t * instr = instrlist_first_app(bb); instr != NULL; instr = instr_get_next_app(instr))
 	{
-		oc = ifp_get_operation_category(instr);
+		OPERATION_CATEGORY oc = ifp_get_operation_category(instr);
 		if(oc != IFP_UNSUPPORTED && oc != IFP_OTHER)
 		{
 			if(!already_found_fp_op)

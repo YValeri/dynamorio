@@ -20,7 +20,7 @@
 #ifdef WINDOWS
 	#define DR_REG_OP_A_ADDR DR_REG_XCX
 	#define DR_REG_OP_B_ADDR DR_REG_XDX
-	#define DR_REG_OP_C_ADDR DR_REG_XDX /* TO UPDATE : check the correct register for windows */
+	#define DR_REG_OP_C_ADDR DR_REG_R8
 	#define DR_REG_RES_ADDR DR_REG_XDI
 #elif defined(AARCH64)
 	#define DR_REG_OP_A_ADDR DR_REG_X0
@@ -156,7 +156,7 @@ void set_index_tls_op_C(int new_tls_value);
 void set_index_tls_stack(int new_tls_value);
 void set_index_tls_saved_reg(int new_tls_value);
 
-void translate_insert(instr_t* newinstr, instrlist_t* ilist, instr_t* instr);
+void translate_insert(instr_t *newinstr, instrlist_t *ilist, instr_t *instr);
 
 void insert_save_scratch_arith_rax(void *drcontext, instrlist_t *bb, instr_t *instr);
 void insert_restore_scratch_arith_rax(void *drcontext, instrlist_t *bb, instr_t *instr);

@@ -71,7 +71,7 @@ static int  tls_result, /* index of thread local storage to store the result of 
 			tls_op_A, tls_op_B, /* index of thread local storage to store the operands of vectorial floating point operations */
 			tls_op_C, /* index of thread local storage to store the third operand in FMA */
 			tls_stack, /* index of thread local storage to store the address of the shallow stack */
-			tls_saved_reg;
+			tls_saved_reg; /* index of the tls where we save the arithmetic flags, rax and the scratch register */
 
 int get_index_tls_result() {return tls_result;}
 int get_index_tls_op_A() {return tls_op_A;}
@@ -110,6 +110,33 @@ struct interflop_backend {
 	}
 };
 
+/*
+template <typename FTYPE, typename BACKEND_FUNCTION, int SIMD_TYPE = IFP_OP_SCALAR>
+struct interflop_backend
+{
+	static_assert(std::is_same<FTYPE, double>::value || std::is_same<FTYPE, float>::value, "message erreur");
+	static_assert(is_callable<Backend_function, Targs...>::value, "Not callable");
+	template<typename ... TARGS>
+	static void apply(TARGS &&... args){
+		//Backend_Function(std::forward<TARGS>(args)[i] ...);
+
+		//Mettre les #define autre part pour avoir une seule interface de backend ici
+		//TODO : séparation des appels tls, set result....
+
+		template<typename callable, int ... I>
+		void for_each(callable t, std::integer_sequence<I> = std::make_index_sequence<I>()){
+			t(I)...;
+		}
+	}
+}
+
+template<typename _ = void>
+struct is_callable:std::false_type{};
+
+template<typename F, typename .. args>
+struct is_callable<decltype((F(args...), void))>:std::true_type{};
+ */
+
 
 template <typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE), int SIMD_TYPE = IFP_OP_SCALAR>
 struct interflop_backend_fused {
@@ -134,41 +161,29 @@ struct interflop_backend_fused {
 	}   
 };
 
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-
 void translate_insert(instr_t* newinstr, instrlist_t* ilist, instr_t* instr) {
 	instr_set_translation(newinstr, instr_get_app_pc(instr));
 	instr_set_app(newinstr);
 	instrlist_preinsert(ilist, instr, newinstr);
 }
 
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-
 void insert_pop_pseudo_stack(void *drcontext, reg_id_t reg, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t temp_buf) {
 	
-	// ****************************************************************************
 	// Retrieve top of the stack address in register buffer_reg
-	// ****************************************************************************
 	INSERT_READ_TLS(drcontext, tls_stack, bb, instr, buffer_reg);
 
-	// ****************************************************************************
 	// Decrement the register containing the address of the top of the stack
-	// ****************************************************************************
 	translate_insert(XINST_CREATE_sub(drcontext, OP_REG(buffer_reg), OP_INT(REG_SIZE(reg))), bb, instr);
-	// ****************************************************************************
+	
 	// Load the value in the defined register
-	// ****************************************************************************
-	if(IS_GPR(reg))
+	if(IS_GPR(reg)){
 		translate_insert(
 			XINST_CREATE_load(drcontext, 
 				OP_REG(reg), 
 				OP_BASE_DISP(buffer_reg, 0, reg_get_size(reg))), 
 			bb, instr); 
-	else 
+	}
+	else {
 #if defined(X86)
 		translate_insert(
 			MOVE_FLOATING_PACKED((IS_YMM(reg) || IS_ZMM(reg)), 
@@ -184,38 +199,29 @@ void insert_pop_pseudo_stack(void *drcontext, reg_id_t reg, instrlist_t *bb, ins
 				OPND_CREATE_BYTE()), 
 			bb, instr);*/
 #endif
-	// ****************************************************************************
+	}
 	// Update tls field with the new address
-	// ****************************************************************************
 	INSERT_WRITE_TLS(drcontext, tls_stack, bb, instr, buffer_reg, temp_buf);
 }
 
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-
 void insert_pop_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_pop_list, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t temp_buf, unsigned int nb_reg) {
-	// ****************************************************************************
+	
 	// Retrieve top of the stack address in register buffer_reg
-	// ****************************************************************************
 	INSERT_READ_TLS(drcontext, tls_stack, bb, instr, buffer_reg);
 
 	int offset = REG_SIZE(reg_to_pop_list[0]) * nb_reg;
 
-	// ****************************************************************************
 	// Decrement the register containing the address of the top of the stack
-	// ****************************************************************************
 	translate_insert(XINST_CREATE_sub(drcontext, OP_REG(buffer_reg), OP_INT(offset)), bb, instr);
-
-	for(unsigned int i = 0 ; i < nb_reg ; i++) {
+	for(unsigned int i = 0 ; i < nb_reg ; ++i) {
 		offset -= REG_SIZE(reg_to_pop_list[i]);
-		if(IS_GPR(reg_to_pop_list[i]))
+		if(IS_GPR(reg_to_pop_list[i])){
 			translate_insert(
 				XINST_CREATE_load(drcontext, 
 					OP_REG(reg_to_pop_list[i]), 
 					OP_BASE_DISP(buffer_reg, offset, reg_get_size(reg_to_pop_list[i]))), 
 				bb, instr); 
-		else 
+		}else{
 #if defined(X86)
 			translate_insert(
 				MOVE_FLOATING_PACKED(
@@ -233,28 +239,19 @@ void insert_pop_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_pop_list, in
 					OPND_CREATE_BYTE()), 
 				bb, instr);*/
 #endif
+		}
 	}
 
-	// ****************************************************************************
 	// Update tls field with the new address
-	// ****************************************************************************
 	INSERT_WRITE_TLS(drcontext, tls_stack, bb, instr, buffer_reg, temp_buf);
 }
 
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-
 void insert_push_pseudo_stack(void *drcontext, reg_id_t reg_to_push, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t temp_buf) {
  
-	// ****************************************************************************
 	// Retrieve top of the stack address in register buffer_reg
-	// ****************************************************************************
 	INSERT_READ_TLS(drcontext, tls_stack, bb, instr, buffer_reg);
 
-	// ****************************************************************************
 	// Store the value of the register to save
-	// ****************************************************************************
 	if(IS_GPR(reg_to_push))
 		translate_insert(
 			XINST_CREATE_store(drcontext, 
@@ -276,25 +273,16 @@ void insert_push_pseudo_stack(void *drcontext, reg_id_t reg_to_push, instrlist_t
 			bb, instr);*/
 #endif
    
-	// ****************************************************************************
-	// Increment the register containing the address of the top of the stack
-	// ****************************************************************************		
+	// Increment the register containing the address of the top of the stack	
 	translate_insert(XINST_CREATE_add(drcontext, OP_REG(buffer_reg), OP_INT(REG_SIZE(reg_to_push))), bb, instr);
 
-	// ****************************************************************************
 	// Update tls field with the new address
-	// ****************************************************************************
 	INSERT_WRITE_TLS(drcontext, tls_stack, bb, instr, buffer_reg, temp_buf);
 }
 
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-
 void insert_push_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_push_list, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t temp_buf, unsigned int nb_reg) {
-	// ****************************************************************************
+
 	// Retrieve top of the stack address in register buffer_reg
-	// ****************************************************************************
 	INSERT_READ_TLS(drcontext, tls_stack, bb, instr, buffer_reg);
 
 	int offset = 0;
@@ -326,23 +314,12 @@ void insert_push_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_push_list, 
 		offset += REG_SIZE(reg_to_push_list[i]);
 	}
 
-	// ****************************************************************************
 	// Increment the register containing the address of the top of the stack
-	// ****************************************************************************
-	//dr_printf("offset push list = %d\n", offset);
-	//translate_insert(INSTR_CREATE_adds_imm(drcontext, OP_REG(buffer_reg), OP_REG(buffer_reg), OP_INT(offset), OP_INT(0)), bb, instr);
 	translate_insert(XINST_CREATE_add(drcontext, OP_REG(buffer_reg), OP_INT(offset)), bb, instr);
 
-	// ****************************************************************************
 	// Update tls field with the new address
-	// ****************************************************************************
 	INSERT_WRITE_TLS(drcontext, tls_stack, bb, instr, buffer_reg, temp_buf);
 }
-
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-
 
 void insert_save_floating_reg(void *drcontext, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t scratch) {
 #if defined(X86)
@@ -360,11 +337,6 @@ void insert_save_floating_reg(void *drcontext, instrlist_t *bb, instr_t *instr, 
 #endif
 }
 
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-
-
 void insert_restore_floating_reg(void *drcontext, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t scratch) {
 #if defined(X86)
 	if(AVX_512_SUPPORTED) {
@@ -381,11 +353,6 @@ void insert_restore_floating_reg(void *drcontext, instrlist_t *bb, instr_t *inst
 #endif
 }
 
-
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-
 void insert_move_operands_to_tls_memory(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double) {
 	/* First set content of the destination regsiter in the tls of the result to save the current value */
 	INSERT_READ_TLS(drcontext, tls_result, bb, instr, DR_REG_XDI);
@@ -396,20 +363,13 @@ void insert_move_operands_to_tls_memory(void *drcontext, instrlist_t *bb, instr_
 
 	if(oc & IFP_OP_SCALAR && !(oc & IFP_OP_FUSED)) {
 		insert_move_operands_to_tls_memory_scalar(drcontext, bb, instr, oc, is_double);
-	}
-	else if(oc & IFP_OP_PACKED && !(oc & IFP_OP_FUSED)) {
+	} else if(oc & IFP_OP_PACKED && !(oc & IFP_OP_FUSED)) {
 		insert_move_operands_to_tls_memory_packed(drcontext, bb, instr, oc);
-	}
-	else if(oc & IFP_OP_FUSED) {
+	} else if(oc & IFP_OP_FUSED) {
 		INSERT_READ_TLS(drcontext, tls_op_C, bb, instr, DR_REG_OP_C_ADDR);
 		insert_move_operands_to_tls_memory_fused(drcontext, bb, instr, oc);
 	}	 
 }
-
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-
 
 void insert_move_operands_to_tls_memory_scalar(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double) {
 	reg_id_t reg_op_addr[] = {DR_REG_OP_B_ADDR, DR_REG_OP_A_ADDR};
@@ -449,19 +409,15 @@ void insert_move_operands_to_tls_memory_scalar(void *drcontext, instrlist_t *bb,
 	}
 }
 
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-
 void insert_move_operands_to_tls_memory_packed(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc) {
 	reg_id_t reg_op_addr[] = {DR_REG_OP_B_ADDR, DR_REG_OP_A_ADDR};
 
 	for(int i = 0 ; i < 2 ; i++) {
-		if(OP_IS_ADDR(SRC(instr, i)))
+		if(OP_IS_ADDR(SRC(instr, i))) {
 			insert_opnd_addr_to_tls_memory_packed(drcontext, SRC(instr, i), reg_op_addr[i], bb, instr, oc);
-		else if(OP_IS_BASE_DISP(SRC(instr, i))) 
+		} else if(OP_IS_BASE_DISP(SRC(instr, i))) {
 			insert_opnd_base_disp_to_tls_memory_packed(drcontext, SRC(instr, i), reg_op_addr[i], bb, instr, oc);
-		else if(IS_REG(SRC(instr, i)))
+		} else if(IS_REG(SRC(instr, i))) {
 #if defined(X86)
 			translate_insert(
 				MOVE_FLOATING_PACKED(
@@ -479,12 +435,9 @@ void insert_move_operands_to_tls_memory_packed(void *drcontext, instrlist_t *bb,
 					OPND_CREATE_DOUBLE()), 
 				bb, instr);*/
 #endif 
+		}
 	}
 }
-
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
 
 void insert_opnd_addr_to_tls_memory_packed(void *drcontext, opnd_t addr_src, reg_id_t base_dst, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc) {
 #if defined(X86)
@@ -516,10 +469,6 @@ void insert_opnd_addr_to_tls_memory_packed(void *drcontext, opnd_t addr_src, reg
 		bb, instr);*/
 #endif
 }
-
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
 
 void insert_opnd_base_disp_to_tls_memory_packed(void *drcontext, opnd_t base_disp_src, reg_id_t base_dst, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc) {
 #if defined(X86)
@@ -556,10 +505,6 @@ void insert_opnd_base_disp_to_tls_memory_packed(void *drcontext, opnd_t base_dis
 #endif
 }
 
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-
 void insert_move_operands_to_tls_memory_fused(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc) {
 	reg_id_t reg_op_addr[] = {DR_REG_OP_C_ADDR, DR_REG_OP_B_ADDR, DR_REG_OP_A_ADDR};
 	int index[3];
@@ -593,10 +538,6 @@ void insert_move_operands_to_tls_memory_fused(void *drcontext, instrlist_t *bb, 
 	}
 }
 
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-
 template <typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE)>
 void insert_corresponding_vect_call(void* drcontext, instrlist_t *bb, instr_t* instr, OPERATION_CATEGORY oc)
 {
@@ -615,10 +556,6 @@ void insert_corresponding_vect_call(void* drcontext, instrlist_t *bb, instr_t* i
 			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, Backend_function>::apply, 0);
 	}
 }
-
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
 
 template <typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE)>
 void insert_corresponding_vect_call_fused(void* drcontext, instrlist_t *bb, instr_t* instr, OPERATION_CATEGORY oc)
@@ -640,10 +577,6 @@ void insert_corresponding_vect_call_fused(void* drcontext, instrlist_t *bb, inst
 			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function>::apply, 0);
 	}
 }
-
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
 
 void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double) {
 	if(oc & IFP_OP_FUSED) {
@@ -692,10 +625,6 @@ void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CAT
 		}
 	}	
 }
-
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
-//######################################################################################################################################################################################
 
 void insert_set_result_in_corresponding_register(void *drcontext, instrlist_t *bb, instr_t *instr, bool is_double, bool is_scalar) {
 	INSERT_READ_TLS(drcontext, tls_result, bb, instr, DR_REG_RES_ADDR);
