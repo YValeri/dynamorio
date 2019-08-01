@@ -362,9 +362,23 @@ void insert_restore_floating_reg(void *drcontext, instrlist_t *bb, instr_t *inst
 void insert_move_operands_to_tls_memory(void *drcontext , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc, bool is_double) {
 
     /* First set content of the destination regsiter in the tls of the result to save the current value */
-    INSERT_READ_TLS(drcontext , tls_result , bb , instr , DR_REG_XDI);
-    translate_insert(MOVE_FLOATING_PACKED((IS_YMM(GET_REG(DST(instr,0))) || IS_ZMM(GET_REG(DST(instr,0)))) , drcontext , OP_BASE_DISP(DR_REG_XDI , 0 , reg_get_size(GET_REG(DST(instr,0)))) , OP_REG(GET_REG(DST(instr,0)))) , bb, instr);
-
+    INSERT_READ_TLS(drcontext , tls_result , bb , instr , DR_SCRATCH_REG);
+#if defined(X86)
+    translate_insert(
+	MOVE_FLOATING_PACKED(
+		(IS_YMM(GET_REG(DST(instr,0))) || IS_ZMM(GET_REG(DST(instr,0)))) , 
+		drcontext , 
+		OP_BASE_DISP(DR_SCRATCH_REG , 0 , reg_get_size(GET_REG(DST(instr,0)))) , 
+		OP_REG(GET_REG(DST(instr,0)))) , 
+	bb, instr);
+#elif defined(AARCH64)
+	translate_insert(
+                XINST_CREATE_store_simd(
+                    drcontext,
+                    OP_BASE_DISP(DR_SCRATCH_REG, 0, reg_get_size(GET_REG(DST(instr,0)))),
+                    OP_REG(GET_REG(DST(instr, 0)))),
+            bb, instr);
+#endif
     INSERT_READ_TLS(drcontext , tls_op_A , bb , instr , DR_REG_OP_A_ADDR);
     INSERT_READ_TLS(drcontext , tls_op_B , bb , instr , DR_REG_OP_B_ADDR);
 
@@ -570,8 +584,17 @@ void insert_move_operands_to_tls_memory_fused(void *drcontext , instrlist_t *bb 
             insert_opnd_base_disp_to_tls_memory_packed(drcontext , SRC(instr,i) , reg_op_addr[index[i]] , bb , instr , oc);
         }
         else if(IS_REG(SRC(instr,i))) {
+#if defined(X86)
             translate_insert(MOVE_FLOATING_PACKED((IS_YMM(GET_REG(SRC(instr,i))) || IS_ZMM(GET_REG(SRC(instr,i)))) , drcontext , OP_BASE_DISP(reg_op_addr[index[i]], 0, reg_get_size(GET_REG(SRC(instr,i)))) , SRC(instr,i)), bb , instr);
-        }
+#elif defined(AARCH64)
+	translate_insert(
+                XINST_CREATE_store_simd(
+                    drcontext,
+                    OP_BASE_DISP(reg_op_addr[index[i]], 0, reg_get_size(GET_REG(SRC(instr, i)))),
+                    SRC(instr, i)),
+            bb, instr);
+#endif        
+	}
     }
 }
 
@@ -721,7 +744,7 @@ void insert_save_scratch_arith_rax(void *drcontext, instrlist_t *bb, instr_t *in
 #elif defined(AARCH64)
     instrlist_meta_preinsert(
         bb, instr,
-        INSTR_CREATE_mrs(dcontext, OP_REG(reg), OP_REG(DR_REG_NZCV)));
+        INSTR_CREATE_mrs(drcontext, OP_REG(reg), OP_REG(DR_REG_NZCV)));
 #endif
     instrlist_meta_preinsert(bb, instr, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_SCRATCH_REG, 8, OPSZ_8), OP_REG(reg))); //store arith flags
 
@@ -746,7 +769,7 @@ void insert_restore_scratch_arith_rax(void *drcontext, instrlist_t *bb, instr_t 
 #elif defined(AARCH64)
     instrlist_meta_preinsert(
         bb, instr,
-        INSTR_CREATE_msr(dcontext, OP_REG(DR_REG_NZCV), OP_REG(reg)));
+        INSTR_CREATE_msr(drcontext, OP_REG(DR_REG_NZCV), OP_REG(reg)));
 #endif
     instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(reg), OP_BASE_DISP(DR_SCRATCH_REG, 0, OPSZ_8)));//load rax into rax
     instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_BUFFER_REG), OP_BASE_DISP(DR_SCRATCH_REG, 24, OPSZ_8)));//load rcx

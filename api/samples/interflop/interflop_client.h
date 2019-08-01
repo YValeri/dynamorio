@@ -25,7 +25,8 @@
 #elif defined(AARCH64)
     #define DR_REG_OP_A_ADDR DR_REG_X0
     #define DR_REG_OP_B_ADDR DR_REG_X1
-    #define DR_REG_RES_ADDR DR_REG_X2
+    #define DR_REG_OP_C_ADDR DR_REG_X2
+    #define DR_REG_RES_ADDR DR_REG_X3
 #else
     #define DR_REG_OP_A_ADDR DR_REG_XDI
     #define DR_REG_OP_B_ADDR DR_REG_XSI
