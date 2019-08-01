@@ -274,9 +274,9 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             bool is_double = ifp_is_double(oc);
             bool is_scalar = ifp_is_scalar(oc);
             
-            if(isDebug()) {
+            //if(isDebug()) {
                 dr_print_instr(drcontext, STDERR, instr , "II : ");
-            }
+            //}
                 
             // ****************************************************************************
             // Reserve two registers

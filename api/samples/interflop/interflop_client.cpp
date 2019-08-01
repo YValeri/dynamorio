@@ -71,7 +71,7 @@ struct interflop_backend {
 #if defined(X86)
             res = Backend_function(vect_a[i],vect_b[i]);
 #elif defined(AARCH64)
-		res = Backend_function(vect_b[i], vect_a[i]);
+        res = Backend_function(vect_b[i], vect_a[i]);
 #endif
             *(((FTYPE*)GET_TLS(dr_get_current_drcontext(), tls_result))+i) = res;
         }   
@@ -138,7 +138,7 @@ void insert_pop_pseudo_stack(void *drcontext , reg_id_t reg, instrlist_t *bb , i
                 OP_BASE_DISP(buffer_reg, 0, reg_get_size(reg))), 
             bb, instr);
 #elif defined(AARCH64)
-	DR_ASSERT_MSG(false, "Not implemented, ld1 isn't working properly yet.");
+    DR_ASSERT_MSG(false, "Not implemented, ld1 isn't working properly yet.");
         /*translate_insert(
             INSTR_CREATE_ld1_multi_1(drcontext,
                 OP_REG(reg),
@@ -158,8 +158,8 @@ void insert_pop_pseudo_stack(void *drcontext , reg_id_t reg, instrlist_t *bb , i
 
 void insert_pop_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_pop_list, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t temp_buf, unsigned int nb_reg) {
 
-	if(nb_reg == 0)
-		return;
+    if(nb_reg == 0)
+        return;
     // ****************************************************************************
     // Retrieve top of the stack address in register buffer_reg
     // ****************************************************************************
@@ -167,7 +167,7 @@ void insert_pop_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_pop_list, in
 
 
     int offset = REG_SIZE(reg_to_pop_list[0]) * nb_reg;
-	translate_insert(XINST_CREATE_sub(drcontext, OP_REG(buffer_reg), OP_INT(offset)), bb, instr);
+    translate_insert(XINST_CREATE_sub(drcontext, OP_REG(buffer_reg), OP_INT(offset)), bb, instr);
 
     for(unsigned int i = 0 ; i < nb_reg ; i++) {
         offset -= REG_SIZE(reg_to_pop_list[i]);
@@ -186,7 +186,7 @@ void insert_pop_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_pop_list, in
                     OP_BASE_DISP(buffer_reg, offset, reg_get_size(reg_to_pop_list[i]))), 
                 bb, instr);
 #elif defined(AARCH64)
-	DR_ASSERT_MSG(false, "Not implemented yet, ld1 isn't working properly yet.");
+    DR_ASSERT_MSG(false, "Not implemented yet, ld1 isn't working properly yet.");
             /*translate_insert(
                 INSTR_CREATE_ld1_multi_1(
                     drcontext,
@@ -200,7 +200,7 @@ void insert_pop_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_pop_list, in
     // ****************************************************************************
     // Decrement the register containing the address of the top of the stack
     // ****************************************************************************
-	//dr_printf("offset pop list = %d\n", offset);
+    //dr_printf("offset pop list = %d\n", offset);
     //translate_insert(XINST_CREATE_add(drcontext, OP_REG(buffer_reg), OP_INT(offset)), bb, instr);
 
     // ****************************************************************************
@@ -235,18 +235,18 @@ void insert_push_pseudo_stack(void *drcontext, reg_id_t reg_to_push, instrlist_t
                 drcontext, OP_BASE_DISP(buffer_reg, 0, reg_get_size(reg_to_push)), 
                 OP_REG(reg_to_push)), bb, instr);
 #elif defined(AARCH64)
-	DR_ASSERT_MSG(false, "Not implemented yet, st1 isn't working properly.");
+    DR_ASSERT_MSG(false, "Not implemented yet, st1 isn't working properly.");
         /*translate_insert(
             INSTR_CREATE_st1_multi_1(drcontext,
                 OP_BASE_DISP(buffer_reg, 0, OPSZ_16),
                 OP_REG(reg_to_push), 
-		OPND_CREATE_BYTE()), 
+        OPND_CREATE_BYTE()), 
             bb, instr);*/
 #endif
    
     // ****************************************************************************
     // Increment the register containing the address of the top of the stack
-    // ****************************************************************************	    
+    // ****************************************************************************     
     translate_insert(XINST_CREATE_add(drcontext, OP_REG(buffer_reg), OP_INT(REG_SIZE(reg_to_push))), bb, instr);
 
     // ****************************************************************************
@@ -260,8 +260,8 @@ void insert_push_pseudo_stack(void *drcontext, reg_id_t reg_to_push, instrlist_t
 //######################################################################################################################################################################################
 
 void insert_push_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_push_list, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t temp_buf, unsigned int nb_reg) {
-	if(nb_reg == 0)
-		return ;    
+    if(nb_reg == 0)
+        return ;    
 
     // ****************************************************************************
     // Retrieve top of the stack address in register buffer_reg
@@ -277,7 +277,7 @@ void insert_push_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_push_list, 
                     drcontext, 
                     OP_BASE_DISP(buffer_reg, offset, reg_get_size(reg_to_push_list[i])), 
                     OP_REG(reg_to_push_list[i])), bb, instr); 
-	    else
+        else
 
 #if defined(X86)
             translate_insert(
@@ -287,12 +287,12 @@ void insert_push_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_push_list, 
                     OP_BASE_DISP(buffer_reg, offset, reg_get_size(reg_to_push_list[i])), 
                     OP_REG(reg_to_push_list[i])), bb, instr);
 #elif defined(AARCH64)
-		DR_ASSERT_MSG(false, "Not implemented yet, st1 isn't working properly.");
+        DR_ASSERT_MSG(false, "Not implemented yet, st1 isn't working properly.");
             /*translate_insert(
                 INSTR_CREATE_st1_multi_1(drcontext,
                     OP_BASE_DISP(buffer_reg, offset, OPSZ_16),
                     OP_REG(reg_to_push_list[i]), 
-			OPND_CREATE_BYTE()), 
+            OPND_CREATE_BYTE()), 
                 bb, instr);*/
 #endif
 
@@ -447,7 +447,7 @@ void insert_move_operands_to_tls_memory_packed(void *drcontext, instrlist_t *bb,
                     SRC(instr,i)), 
                 bb, instr);
 #elif defined(AARCH64)
-		DR_ASSERT_MSG(false, "Not implemented, st1 isn't working properly.");
+        DR_ASSERT_MSG(false, "Not implemented, st1 isn't working properly.");
            /*translate_insert(
                 INSTR_CREATE_st1_multi_1(drcontext,
                     OP_BASE_DISP(reg_op_addr[i], 0, OPSZ_2),
@@ -477,7 +477,7 @@ void insert_opnd_addr_to_tls_memory_packed(void *drcontext , opnd_t addr_src , r
         translate_insert(INSTR_CREATE_vmovupd(drcontext, OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_ZMM_BUFFER)), OP_REG(DR_REG_ZMM_BUFFER)), bb, instr);
     }
 #elif defined(AARCH64)
-	DR_ASSERT_MSG(false, "Not implemented, ld1/st1 not working properly");
+    DR_ASSERT_MSG(false, "Not implemented, ld1/st1 not working properly");
     /*translate_insert(
         INSTR_CREATE_ld1_multi_1(drcontext,
             OP_REG(DR_REG_MULTIPLE), 
@@ -518,7 +518,7 @@ void insert_opnd_base_disp_to_tls_memory_packed(void *drcontext, opnd_t base_dis
         translate_insert(INSTR_CREATE_vmovupd(drcontext , OP_BASE_DISP(base_dst, 0, reg_get_size(DR_REG_ZMM_BUFFER)) , OP_REG(DR_REG_ZMM_BUFFER)) , bb  , instr);
     }
 #elif defined(AARCH64)
-	DR_ASSERT_MSG(false, "Not implemented, ld1/st1 not working properly");
+    DR_ASSERT_MSG(false, "Not implemented, ld1/st1 not working properly");
     /*translate_insert(
         INSTR_CREATE_ld1_multi_1(drcontext,
             OP_REG(DR_REG_MULTIPLE), 
@@ -709,33 +709,46 @@ void insert_set_result_in_corresponding_register(void *drcontext , instrlist_t *
 
 void insert_save_scratch_arith_rax(void *drcontext, instrlist_t *bb, instr_t *instr)
 {
-    dr_save_reg(drcontext, bb, instr, DR_SCRATCH_REG,SPILL_SLOT_SCRATCH_REG); //save rdx to spill slot
+    reg_id_t reg = IF_X86_ELSE(DR_REG_XAX, DR_REG_R0);
+
+    dr_save_reg(drcontext, bb, instr, DR_SCRATCH_REG, SPILL_SLOT_SCRATCH_REG); //save rdx to spill slot
 
     INSERT_READ_TLS(drcontext, get_index_tls_saved_reg(), bb, instr, DR_SCRATCH_REG); //read tls
 
-    instrlist_meta_preinsert(bb, instr, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_SCRATCH_REG, 0, OPSZ_8),OP_REG(DR_REG_XAX))); //store rax
-    
+    instrlist_meta_preinsert(bb, instr, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_SCRATCH_REG, 0, OPSZ_8), OP_REG(reg))); //store rax
+#if defined(X86)
     instrlist_meta_preinsert(bb, instr, INSTR_CREATE_lahf(drcontext)); //store arith flags to rax
-    
-    instrlist_meta_preinsert(bb, instr, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_SCRATCH_REG, 8, OPSZ_8),OP_REG(DR_REG_XAX))); //store arith flags
-    
-    dr_restore_reg(drcontext, bb, instr, DR_REG_XAX, SPILL_SLOT_SCRATCH_REG); //restore rdx into rax
-    
-    instrlist_meta_preinsert(bb, instr, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_SCRATCH_REG, 16, OPSZ_8),OP_REG(DR_REG_XAX))); //store rdx
+#elif defined(AARCH64)
+    instrlist_meta_preinsert(
+        bb, instr,
+        INSTR_CREATE_mrs(dcontext, OP_REG(reg), OP_REG(DR_REG_NZCV)));
+#endif
+    instrlist_meta_preinsert(bb, instr, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_SCRATCH_REG, 8, OPSZ_8), OP_REG(reg))); //store arith flags
+
+    dr_restore_reg(drcontext, bb, instr, reg, SPILL_SLOT_SCRATCH_REG); //restore rdx into rax
+
+    instrlist_meta_preinsert(bb, instr, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_SCRATCH_REG, 16, OPSZ_8), OP_REG(reg))); //store rdx
 
     instrlist_meta_preinsert(bb, instr, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_SCRATCH_REG, 24, OPSZ_8), OP_REG(DR_BUFFER_REG))); //store rcx
     
-    instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_REG_XAX), OP_BASE_DISP(DR_SCRATCH_REG, 0, OPSZ_8))); //restore rax from saved location
-    
+    instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(reg), OP_BASE_DISP(DR_SCRATCH_REG, 0, OPSZ_8))); //restore rax from saved location
+
     dr_restore_reg(drcontext, bb, instr, DR_SCRATCH_REG, SPILL_SLOT_SCRATCH_REG); //restore rdx into rdx
 }
 
 void insert_restore_scratch_arith_rax(void *drcontext, instrlist_t *bb, instr_t *instr)
 {
+    reg_id_t reg = IF_X86_ELSE(DR_REG_XAX, DR_REG_R0);
     INSERT_READ_TLS(drcontext, get_index_tls_saved_reg(), bb, instr, DR_SCRATCH_REG); //read tls into rdx
-    instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_REG_RAX), OP_BASE_DISP(DR_SCRATCH_REG, 8, OPSZ_8)));//load arith flags to rax
+    instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(reg), OP_BASE_DISP(DR_SCRATCH_REG, 8, OPSZ_8)));//load arith flags to rax
+#if defined(X86)    
     instrlist_meta_preinsert(bb, instr, INSTR_CREATE_sahf(drcontext));//load arith flags
-    instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_REG_RAX), OP_BASE_DISP(DR_SCRATCH_REG, 0, OPSZ_8)));//load rax into rax
+#elif defined(AARCH64)
+    instrlist_meta_preinsert(
+        bb, instr,
+        INSTR_CREATE_msr(dcontext, OP_REG(DR_REG_NZCV), OP_REG(reg)));
+#endif
+    instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(reg), OP_BASE_DISP(DR_SCRATCH_REG, 0, OPSZ_8)));//load rax into rax
     instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_BUFFER_REG), OP_BASE_DISP(DR_SCRATCH_REG, 24, OPSZ_8)));//load rcx
     instrlist_meta_preinsert(bb, instr, XINST_CREATE_load(drcontext, OP_REG(DR_SCRATCH_REG), OP_BASE_DISP(DR_SCRATCH_REG, 16, OPSZ_8)));//load rdx
 }
