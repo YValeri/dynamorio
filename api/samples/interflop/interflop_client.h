@@ -194,5 +194,6 @@ void insert_save_simd_registers(void *drcontext, instrlist_t *bb, instr_t *where
 void insert_set_destination_tls(void *drcontext, instrlist_t *bb, instr_t *where, reg_id_t destination);
 void insert_restore_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *where);
 void insert_save_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *where);
+void insert_restore_rsp(void *drcontext, instrlist_t *bb, instr_t *where);
 
 #endif

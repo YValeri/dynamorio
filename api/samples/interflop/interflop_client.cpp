@@ -1125,3 +1125,9 @@ void insert_set_operands(void* drcontext, instrlist_t *bb, instr_t *where, instr
         insert_set_operands_mem_reference(drcontext, bb, where, instr, fused, mem_src, reg_op_addr);
 	}
 }
+
+void insert_restore_rsp(void *drcontext, instrlist_t *bb, instr_t *where)
+{
+    INSERT_READ_TLS(drcontext, get_index_tls_gpr(), bb, where, DR_REG_RSP);
+    MINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(DR_REG_RSP), OP_BASE_DISP(DR_REG_RSP, offset_of_gpr(DR_REG_RSP), OPSZ_8)));
+}

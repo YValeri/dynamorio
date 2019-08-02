@@ -280,115 +280,62 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
         return DR_EMIT_DEFAULT;
     }
 
+    dr_printf("**\n");
+    for(instr = instrlist_first_app(bb); instr!=nullptr; instr = instr_get_next_app(instr))
+    {
+        dr_print_instr(drcontext, STDERR, instr, "");
+    }
     static int nb=0;
 
     for(instr = instrlist_first_app(bb); instr != NULL; instr = next_instr)
     {
-        next_instr = instr_get_next_app(instr);
         oc = ifp_get_operation_category(instr);
+        bool registers_saved=false;
+        bool should_continue=false;
+        do{
+            next_instr = instr_get_next_app(instr);
 
-        if(oc != IFP_UNSUPPORTED && oc != IFP_OTHER) {
-            bool is_double = ifp_is_double(oc);
-            bool is_scalar = ifp_is_scalar(oc);
-            
-            if(isDebug()) {
-                dr_printf("%d ", nb++);
-                dr_print_instr(drcontext, STDERR, instr , "II : ");
+            if(ifp_is_instrumented(oc)) {
+                bool is_double = ifp_is_double(oc);
+                
+                if(isDebug()) {
+                    dr_printf("%d ", nb++);
+                    dr_print_instr(drcontext, STDERR, instr , ": ");
+                }
+                
+                if(!registers_saved)
+                {
+                    insert_save_gpr_and_flags(drcontext, bb, instr);
+                    insert_save_simd_registers(drcontext, bb, instr);
+                }
+
+                insert_set_destination_tls(drcontext, bb, instr, GET_REG(DST(instr, 0)));
+
+                insert_set_operands(drcontext, bb, instr, instr, oc);
+                insert_restore_rsp(drcontext, bb, instr);
+                if(!registers_saved)
+                {
+                    //insert_restore_rsp(drcontext, bb, instr);
+                    translate_insert(XINST_CREATE_sub(drcontext, OP_REG(DR_REG_XSP), OP_INT(32)), bb, instr);
+                }
+                registers_saved=true;
+                insert_call(drcontext, bb, instr, oc, is_double);
+                oc = ifp_get_operation_category(next_instr);
+                should_continue = next_instr != nullptr && ifp_is_instrumented(oc);
+                if(!should_continue)
+                {
+                    //It's not a floating point operation
+                    insert_restore_simd_registers(drcontext, bb, instr);
+                    insert_restore_gpr_and_flags(drcontext, bb, instr);
+                }
+                //dr_insert_clean_call(drcontext, bb, instr, (void*)print, true, 0);
+                // Remove original instruction
+                instrlist_remove(bb, instr);
+                instr_destroy(drcontext, instr);
+                registers_saved=true;
             }
-                
-            // ****************************************************************************
-            // Reserve two registers
-            // ****************************************************************************
-            //reg_id_t buffer_reg  = DR_BUFFER_REG, scratch = DR_SCRATCH_REG;
-            //insert_save_scratch_arith_rax(drcontext, bb, instr);
-            
-                
-            insert_save_gpr_and_flags(drcontext, bb, instr);
-
-            insert_save_simd_registers(drcontext, bb, instr);
-
-            insert_set_destination_tls(drcontext, bb, instr, GET_REG(DST(instr, 0)));
-
-            insert_set_operands(drcontext, bb, instr, instr, oc);
-
-            translate_insert(XINST_CREATE_sub(drcontext, OP_REG(DR_REG_XSP), OP_INT(32)), bb, instr);
-
-            insert_call(drcontext, bb, instr, oc, is_double);
-
-            insert_restore_simd_registers(drcontext, bb, instr);
-
-            insert_restore_gpr_and_flags(drcontext, bb, instr);
-            
-
-            // ****************************************************************************
-            // push general purpose registers on pseudo stack 
-            // All GPR except DR_BUFFER_REG and DR_SCRATCH_REG
-            // ****************************************************************************
-            //insert_push_pseudo_stack_list(drcontext, topush_reg, bb, instr, buffer_reg, scratch, NB_REG_SAVED);
-
-            // ****************************************************************************
-            // Push all Floating point registers
-            // ****************************************************************************
-            //insert_save_floating_reg(drcontext, bb, instr, buffer_reg, scratch);
-
-            // ****************************************************************************
-            // ***** Move operands to thread local memory 
-            // ****************************************************************************
-            //insert_move_operands_to_tls_memory(drcontext, bb, instr, oc, is_double);
-            // ****************************************************************************
-            // ****************************************************************************
-            // ****************************************************************************
-
-            // ***** Sub stack pointer to handle the case where XSP is equal to XBP and XSP doesn't match the top of the stack *****
-            // ***** Otherwise the call will erase data when pushing the return address *****
-            // ***** If the gap is greater than 32 bytes, the program may crash !!!!!!!!!!!!!!! *****
-#if defined(X86)
-            //translate_insert(XINST_CREATE_sub(drcontext, OP_REG(DR_REG_XSP), OP_INT(32)), bb, instr);
-#endif
-
-
-            //****************************************************************************
-            // ***** CALL *****
-            // ****************************************************************************
-            //insert_call(drcontext, bb, instr, oc, is_double);
-            // ****************************************************************************
-            // ****************************************************************************
-            // ****************************************************************************
-            
-            // ****************************************************************************
-            // Restore all FLoating point registers 
-            // ****************************************************************************
-            //insert_restore_floating_reg(drcontext, bb, instr, buffer_reg, scratch);
-            
-            // ****************************************************************************
-            // Set the result in the corresponding register
-            // ****************************************************************************  
-            //insert_set_result_in_corresponding_register(drcontext, bb, instr, is_double, is_scalar);
-
-            // ****************************************************************************
-            // pop general purpose registers on pseudo stack 
-            // All GPR except DR_BUFFER_REG and DR_SCRATCH_REG
-            // ****************************************************************************
-            //insert_pop_pseudo_stack_list(drcontext, topop_reg, bb, instr, buffer_reg, scratch, NB_REG_SAVED);
-
-            //insert_restore_scratch_arith_rax(drcontext, bb, instr);
-            
-            // ****************************************************************************
-            // Restore processor flags
-            // ****************************************************************************
-            //dr_restore_arith_flags(drcontext , bb , instr , SPILL_SLOT_ARITH_FLAG);
-           
-            // Restore registers
-            // ****************************************************************************
-            //dr_restore_reg(drcontext , bb , instr , buffer_reg , SPILL_SLOT_BUFFER_REG);
-            //dr_restore_reg(drcontext , bb , instr , scratch , SPILL_SLOT_SCRATCH_REG);
-
-            // ****************************************************************************
-            // Remove original instruction
-            // ****************************************************************************
-            instrlist_remove(bb, instr);
-            instr_destroy(drcontext, instr);           
-        }       
+            instr = next_instr;
+        }while(should_continue);
     }
     return DR_EMIT_DEFAULT;
 }
