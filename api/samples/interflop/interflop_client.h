@@ -149,6 +149,9 @@ int get_index_tls_op_B();
 int get_index_tls_op_C();
 int get_index_tls_stack();
 int get_index_tls_saved_reg();
+int get_index_tls_float();
+int get_index_tls_gpr();
+
 
 void set_index_tls_result(int new_tls_value);
 void set_index_tls_op_A(int new_tls_value);
@@ -156,6 +159,8 @@ void set_index_tls_op_B(int new_tls_value);
 void set_index_tls_op_C(int new_tls_value);
 void set_index_tls_stack(int new_tls_value);
 void set_index_tls_saved_reg(int new_tls_value);
+void set_index_tls_gpr(int new_tls_value);
+void set_index_tls_float(int new_tls_value);
 
 void translate_insert(instr_t* newinstr, instrlist_t* ilist, instr_t* instr);
 
@@ -182,5 +187,12 @@ void insert_set_result_in_corresponding_register(void *drcontext, instrlist_t *b
 
 void insert_opnd_base_disp_to_tls_memory_packed(void *drcontext , opnd_t opnd_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr , OPERATION_CATEGORY oc);
 void insert_opnd_addr_to_tls_memory_packed(void *drcontext , opnd_t addr_src , reg_id_t base_dst , instrlist_t *bb , instr_t *instr, OPERATION_CATEGORY oc);
+
+void insert_set_operands(void* drcontext, instrlist_t *bb, instr_t *where, instr_t *instr, OPERATION_CATEGORY oc);
+void insert_restore_simd_registers(void *drcontext, instrlist_t *bb, instr_t *where);
+void insert_save_simd_registers(void *drcontext, instrlist_t *bb, instr_t *where);
+void insert_set_destination_tls(void *drcontext, instrlist_t *bb, instr_t *where, reg_id_t destination);
+void insert_restore_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *where);
+void insert_save_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *where);
 
 #endif
