@@ -246,7 +246,7 @@ add_sample_client(inscount    "inscount.cpp"    "drmgr;droption")
 add_sample_client(opcodes     "opcodes.c"       "drmgr;drreg;drx")
 add_sample_client(stl_test    "stl_test.cpp"    "")
 
-add_sample_client(interflop    "interflop.cpp;interflop/interflop_operations.cpp;interflop/backend_verrou/interflop_verrou.cxx;interflop/symbol_config.cpp;interflop/interflop_client.cpp"  "drmgr;drreg;drsyms")
+add_sample_client(interflop    "interflop.cpp;interflop/interflop_operations.cpp;interflop/backend_verrou/interflop_verrou.cxx;interflop/symbol_config.cpp;interflop/interflop_client.cpp;interflop/analyse.cpp"  "drmgr;drreg;drsyms")
 
 # add utils.h for installation  # NON-PUBLIC
 set(srcs ${srcs} "utils.h")     # NON-PUBLIC
