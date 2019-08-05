@@ -14,6 +14,7 @@
 
 #include "interflop/symbol_config.hpp"
 #include "interflop/interflop_client.h"
+#include "interflop/analyse.hpp"
 
 #if defined(X86)
 	static reg_id_t topush_reg[] = {
@@ -98,6 +99,12 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 	//Configure verrou in random rounding mode
 	Interflop::verrou_prepare();
 
+	if(analyse_config_from_args(argc, argv)){
+		dr_abort_with_code(0);
+		return;
+	    }
+
+	    print_register_vectors();
 	
 	set_index_tls_result(drmgr_register_tls_field());
 	set_index_tls_stack(drmgr_register_tls_field());
