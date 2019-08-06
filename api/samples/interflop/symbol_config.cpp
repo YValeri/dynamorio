@@ -253,7 +253,6 @@ void log_symbol(instrlist_t* ilist)
  */
 static void lookup_or_load_module(const module_data_t* module)
 {
-	dr_printf("Load module\n");
 	//If we find the module in the lookup, we don't need to load it
 	if(lookup_find(module->start, IFP_LOOKUP_MODULE))
 		return;
