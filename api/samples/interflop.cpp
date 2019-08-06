@@ -90,6 +90,7 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 {
     drsym_init(0);
     symbol_lookup_config_from_args(argc, argv);
+    //print_lookup();
     interflop_client_mode_t client_mode = get_client_mode();
     if(client_mode == IFP_CLIENT_HELP)
     {
@@ -136,7 +137,7 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
     drreg_options.do_not_sum_slots=true;
     drreg_options.error_callback=NULL;
     drreg_init(&drreg_options);
-    
+    dr_printf("Client mode : %d", get_client_mode());
     if(client_mode == IFP_CLIENT_GENERATE)
     {
         drmgr_register_bb_instrumentation_event(symbol_lookup_event, NULL, NULL);

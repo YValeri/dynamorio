@@ -1,4 +1,5 @@
 #include "interflop_operations.hpp"
+#define PREFIX_EVEX 0x000100000
 
 static unsigned int get_size_flag(instr_t* instr)
 {
@@ -38,12 +39,20 @@ static unsigned int get_size_flag(instr_t* instr)
 
 enum OPERATION_CATEGORY ifp_get_operation_category(instr_t* instr)
 {
+#ifdef X86
+	//TODO Support for AVX-512
+	if(instr_get_prefix_flag(instr, PREFIX_EVEX))
+	{
+		return IFP_UNSUPPORTED;
+	}
+#endif
+
 	//TODO Need to complete
 	switch(instr_get_opcode(instr))
 	{
 
 #ifdef X86
-		// ####### SCALAR #######
+		// ####### SSE SCALAR #######
 		case OP_addss: //SSE scalar float add
 			return IFP_ADDS;
 
@@ -66,6 +75,31 @@ enum OPERATION_CATEGORY ifp_get_operation_category(instr_t* instr)
 			return IFP_DIVD;
 
 		case OP_divss: //SSE scalar float div
+			return IFP_DIVS;
+
+		// ####### AVX SCALAR #######
+		case OP_vaddss: //AVX scalar float add
+			return IFP_ADDS;
+
+		case OP_vaddsd: //AVX scalar double add
+			return IFP_ADDD;
+
+		case OP_vsubsd: //AVX scalar double sub
+			return IFP_SUBD;
+
+		case OP_vsubss: //AVX scalar float sub
+			return IFP_SUBS;
+
+		case OP_vmulsd: //AVX scalar double mul
+			return IFP_MULD;
+
+		case OP_vmulss: //AVX scalar float mul
+			return IFP_MULS;
+
+		case OP_vdivsd: //AVX scalar double div
+			return IFP_DIVD;
+
+		case OP_vdivss: //AVX scalar float div
 			return IFP_DIVS;
 
 		// ###### SIMD ######
@@ -281,12 +315,6 @@ enum OPERATION_CATEGORY ifp_get_operation_category(instr_t* instr)
 
 		case OP_vfnmsub231pd:
 			return (OPERATION_CATEGORY)(IFP_NS231PD | get_size_flag(instr));
-
-		// ###### UNSUPPORTED ######
-
-		case OP_vaddsd: //AVX-512  scalar double add with special rounding
-		case OP_vaddss: //AVX-512  scalar float add with special rounding
-			return IFP_UNSUPPORTED;
 
 #elif defined(AARCH64)
 		case OP_fadd:

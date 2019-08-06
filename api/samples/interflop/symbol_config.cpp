@@ -253,6 +253,7 @@ void log_symbol(instrlist_t* ilist)
  */
 static void lookup_or_load_module(const module_data_t* module)
 {
+	dr_printf("Load module\n");
 	//If we find the module in the lookup, we don't need to load it
 	if(lookup_find(module->start, IFP_LOOKUP_MODULE))
 		return;
@@ -361,14 +362,17 @@ bool needs_to_instrument(instrlist_t* ilist)
 		{
 			app_pc pc = instr_get_app_pc(instr);
 			if(pc)
-				//We instrument if we found the symbol in the lookup for whitelists, otherwise always for blacklists
-				return lookup_find(pc, IFP_LOOKUP_SYMBOL) != nullptr || interflop_client_mode == IFP_CLIENT_BL_ONLY;
+			{
+				return (lookup_find(pc, IFP_LOOKUP_SYMBOL) != nullptr) ^ (interflop_client_mode == IFP_CLIENT_BL_ONLY);
+			}
 		}
 		//TODO : fallback here
 	}else
+	{
 		//ilist == nullptr
 		return false;
-
+	}
+	
 	//Something went wrong, so we assume we didn't find the symbol
 	return interflop_client_mode == IFP_CLIENT_NOLOOKUP || interflop_client_mode == IFP_CLIENT_BL_ONLY; 
 	
@@ -433,7 +437,7 @@ static void parse_line(string line, bool parsing_whitelist)
 			}else
 			{
 				//It doesn't exist yet, we need to push it
-				modules_vector.push_back(std::move(entry));
+				modules_vector.push_back(entry);
 				if(!whole)
 					modules_vector[pos].symbols.push_back(symbol);
 
