@@ -18,20 +18,22 @@
 #define PRINT_ERROR_MESSAGE(message) dr_fprintf(STDERR, "%s\n", (message));
 
 #ifdef WINDOWS
-	#define DR_REG_OP_A_ADDR DR_REG_XCX
-	#define DR_REG_OP_B_ADDR DR_REG_XDX
-	#define DR_REG_OP_C_ADDR DR_REG_R8
-	#define DR_REG_RES_ADDR DR_REG_XDI
+    #define DR_REG_OP_A_ADDR DR_REG_XCX
+    #define DR_REG_OP_B_ADDR DR_REG_XDX
+    #define DR_REG_OP_C_ADDR DR_REG_R8
+    #define DR_REG_RES_ADDR DR_REG_XDI
+    #define DR_REG_BASE DR_REG_XAX
 #elif defined(AARCH64)
 	#define DR_REG_OP_A_ADDR DR_REG_X0
 	#define DR_REG_OP_B_ADDR DR_REG_X1
 	#define DR_REG_OP_C_ADDR DR_REG_X2
 	#define DR_REG_RES_ADDR DR_REG_X3
 #else
-	#define DR_REG_OP_A_ADDR DR_REG_XDI
-	#define DR_REG_OP_B_ADDR DR_REG_XSI
-	#define DR_REG_OP_C_ADDR DR_REG_XDX
-	#define DR_REG_RES_ADDR DR_REG_XDI
+    #define DR_REG_OP_A_ADDR DR_REG_XDI
+    #define DR_REG_OP_B_ADDR DR_REG_XSI
+    #define DR_REG_OP_C_ADDR DR_REG_XDX
+    #define DR_REG_RES_ADDR DR_REG_XDI
+    #define DR_REG_BASE DR_REG_XAX
 #endif
 
 #if defined(X86)
@@ -44,11 +46,11 @@
 	#define DR_REG_ZMM_BUFFER DR_REG_ZMM31
 	#define DR_REG_ZMM_BUFFER_2 DR_REG_ZMM30
 
-	#define DR_BUFFER_REG DR_REG_XCX
-	#define DR_SCRATCH_REG DR_REG_XDX
+    #define DR_BUFFER_REG DR_REG_XDX
+    #define DR_SCRATCH_REG DR_REG_XCX
 
-	#define AVX_2_SUPPORTED (proc_has_feature(FEATURE_AVX2))
-	#define AVX_512_SUPPORTED (proc_has_feature(FEATURE_AVX512F))
+    #define AVX_SUPPORTED (proc_has_feature(FEATURE_AVX))
+    #define AVX_512_SUPPORTED (proc_has_feature(FEATURE_AVX512F))
 
 #elif defined(AARCH64)
 	#define DR_REG_MULTIPLE DR_REG_Q31
@@ -148,6 +150,9 @@ int get_index_tls_op_B();
 int get_index_tls_op_C();
 int get_index_tls_stack();
 int get_index_tls_saved_reg();
+int get_index_tls_float();
+int get_index_tls_gpr();
+
 
 void set_index_tls_result(int new_tls_value);
 void set_index_tls_op_A(int new_tls_value);
@@ -155,6 +160,8 @@ void set_index_tls_op_B(int new_tls_value);
 void set_index_tls_op_C(int new_tls_value);
 void set_index_tls_stack(int new_tls_value);
 void set_index_tls_saved_reg(int new_tls_value);
+void set_index_tls_gpr(int new_tls_value);
+void set_index_tls_float(int new_tls_value);
 
 void translate_insert(instr_t *newinstr, instrlist_t *ilist, instr_t *instr);
 
@@ -181,5 +188,13 @@ void insert_set_result_in_corresponding_register(void *drcontext, instrlist_t *b
 
 void insert_opnd_base_disp_to_tls_memory_packed(void *drcontext, opnd_t opnd_src, reg_id_t base_dst, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc);
 void insert_opnd_addr_to_tls_memory_packed(void *drcontext, opnd_t addr_src, reg_id_t base_dst, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc);
+
+void insert_set_operands(void* drcontext, instrlist_t *bb, instr_t *where, instr_t *instr, OPERATION_CATEGORY oc);
+void insert_restore_simd_registers(void *drcontext, instrlist_t *bb, instr_t *where);
+void insert_save_simd_registers(void *drcontext, instrlist_t *bb, instr_t *where);
+void insert_set_destination_tls(void *drcontext, instrlist_t *bb, instr_t *where, reg_id_t destination);
+void insert_restore_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *where);
+void insert_save_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *where);
+void insert_restore_rsp(void *drcontext, instrlist_t *bb, instr_t *where);
 
 #endif
