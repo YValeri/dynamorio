@@ -83,6 +83,33 @@ struct Op<double> {
 
 		return res;
 	}
+
+	static double nfmadd(double a, double b, double c) {
+		double res;
+
+#ifdef USE_VERROU_FMA
+		interflop_verrou_madd_double(-a, b, c, &res, NULL);
+#else
+		double coeff;
+		interflop_verrou_mul_double(a, b, &coeff, NULL);
+		interflop_verrou_add_double(-coeff, c, &res, NULL);
+#endif
+		return res;
+	}
+
+	static double nfmsub(double a, double b, double c) {
+		double res;
+
+#ifdef USE_VERROU_FMA
+		interflop_verrou_madd_double(-a, b, -c, &res, NULL);
+#else
+		double coeff;
+		interflop_verrou_mul_double(a, b, &coeff, NULL);
+		interflop_verrou_sub_double(-coeff, c, &res, NULL);
+#endif
+
+		return res;
+	}
 };
 
 
@@ -135,6 +162,33 @@ struct Op<float> {
 		float coeff;
 		interflop_verrou_mul_float(a, b, &coeff, NULL);
 		interflop_verrou_sub_float(coeff, c, &res, NULL);
+#endif
+
+		return res;
+	}
+
+	static float nfmadd(float a, float b, float c) {
+		float res;
+
+#ifdef USE_VERROU_FMA
+		interflop_verrou_madd_float(-a, b, c, &res, NULL);
+#else
+		float coeff;
+		interflop_verrou_mul_float(a, b, &coeff, NULL);
+		interflop_verrou_add_float(-coeff, c, &res, NULL);
+#endif
+		return res;
+	}
+
+	static float nfmsub(float a, float b, float c) {
+		float res;
+
+#ifdef USE_VERROU_FMA
+		interflop_verrou_madd_float(-a, b, -c, &res, NULL);
+#else
+		float coeff;
+		interflop_verrou_mul_float(a, b, &coeff, NULL);
+		interflop_verrou_sub_float(-coeff, c, &res, NULL);
 #endif
 
 		return res;
