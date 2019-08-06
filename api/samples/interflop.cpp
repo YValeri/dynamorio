@@ -106,13 +106,14 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
     //Configure verrou in random rounding mode
     Interflop::verrou_prepare();
 
+/*
     if(analyse_config_from_args(argc, argv)){
 		dr_abort_with_code(0);
 		return;
 	}
     if(is_debug()){
         print_register_vectors();
-    }
+    }*/
 	
     
     set_index_tls_result(drmgr_register_tls_field());
