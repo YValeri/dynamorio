@@ -799,7 +799,6 @@ void insert_restore_scratch_arith_rax(void *drcontext, instrlist_t *bb, instr_t 
  */
 void insert_save_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *where)
 {
-    (DR_REG_STOP_64 - DR_REG_START_64+1);
 #if defined(X86) && defined(X64)
     //save rcx to spill slot
     dr_save_reg(drcontext, bb, where, DR_REG_RCX, SPILL_SLOT_SCRATCH_REG); 
@@ -832,15 +831,15 @@ void insert_restore_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *whe
     //read tls into rcx
     INSERT_READ_TLS(drcontext, get_index_tls_gpr(), bb, where, DR_REG_RCX);
     //load saved arith flags to rax
-    AINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(DR_REG_RAX), OP_BASE_DISP(DR_REG_RCX, 0, OPSZ_8)));
+    MINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(DR_REG_RAX), OP_BASE_DISP(DR_REG_RCX, 0, OPSZ_8)));
 	//load arith flags
-	AINSERT(bb, where, INSTR_CREATE_sahf(drcontext));
+	MINSERT(bb, where, INSTR_CREATE_sahf(drcontext));
 	//load saved rax into rax
-    AINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(DR_REG_RAX), OP_BASE_DISP(DR_REG_RCX, 8, OPSZ_8)));
+    MINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(DR_REG_RAX), OP_BASE_DISP(DR_REG_RCX, 8, OPSZ_8)));
 	//load back all GPR in reverse, overwrite RCX in the end
 	for(size_t i=NUM_GPR_SLOTS-1; i>=2 /*RCX*/; --i)
 	{
-		AINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(GPR_ORDER[i]), OP_BASE_DISP(DR_REG_RCX, offset_of_gpr(GPR_ORDER[i]), OPSZ_8)));
+		MINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(GPR_ORDER[i]), OP_BASE_DISP(DR_REG_RCX, offset_of_gpr(GPR_ORDER[i]), OPSZ_8)));
 	}
     
 #else //AArch64
@@ -864,9 +863,9 @@ void insert_set_destination_tls(void *drcontext, instrlist_t *bb, instr_t *where
 	//Floating registers tls adress in OP_B register
 	INSERT_READ_TLS(drcontext, get_index_tls_float(), bb, where, DR_REG_OP_B_ADDR);
 	//Loads the adress of the destination register who is in the saved array, in OP_C register
-	AINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(DR_REG_OP_C_ADDR), OP_BASE_DISP(DR_REG_OP_B_ADDR, offset_of_simd(destination), OPSZ_lea)));
+	MINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(DR_REG_OP_C_ADDR), OP_BASE_DISP(DR_REG_OP_B_ADDR, offset_of_simd(destination), OPSZ_lea)));
 	//Stores the adress in the buffer of the result tls
-	AINSERT(bb, where, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_REG_OP_A_ADDR,0, OPSZ_8), OP_REG(DR_REG_OP_C_ADDR)));
+	MINSERT(bb, where, XINST_CREATE_store(drcontext, OP_BASE_DISP(DR_REG_OP_A_ADDR,0, OPSZ_8), OP_REG(DR_REG_OP_C_ADDR)));
 #else //AArch64
 DR_ASSERT_MSG(false, "insert_set_destination_tls not implemented for this architecture");
 #endif
@@ -904,7 +903,7 @@ void insert_save_simd_registers(void *drcontext, instrlist_t *bb, instr_t *where
 	//Save all the SIMD registers
 	for(reg_id_t i=start; i<=stop; i++)
 	{
-		AINSERT(bb, where, MOVE_FLOATING_PACKED(is_avx, drcontext, OP_BASE_DISP(DR_SCRATCH_REG, offset_of_simd(i),size), OP_REG(i)));
+		MINSERT(bb, where, MOVE_FLOATING_PACKED(is_avx, drcontext, OP_BASE_DISP(DR_SCRATCH_REG, offset_of_simd(i),size), OP_REG(i)));
 	}
 #else //AArch64
 DR_ASSERT_MSG(false, "insert_save_simd_registers not implemented for this architecture");
@@ -943,7 +942,7 @@ void insert_restore_simd_registers(void *drcontext, instrlist_t *bb, instr_t *wh
 	//Restore all the SIMD registers
 	for(reg_id_t i=start; i<=stop; i++)
 	{
-		AINSERT(bb, where, MOVE_FLOATING_PACKED(is_avx, drcontext, OP_REG(i), OP_BASE_DISP(DR_SCRATCH_REG, offset_of_simd(i),size)));
+		MINSERT(bb, where, MOVE_FLOATING_PACKED(is_avx, drcontext, OP_REG(i), OP_BASE_DISP(DR_SCRATCH_REG, offset_of_simd(i),size)));
 	}
 #else //AArch64
 DR_ASSERT_MSG(false, "insert_save_simd_registers not implemented for this architecture");
@@ -967,15 +966,15 @@ static void insert_set_operands_all_registers(void* drcontext, instrlist_t* bb, 
 	{
 		//2 registers
         INSERT_READ_TLS(drcontext, get_index_tls_float(), bb, where, out_reg[1]);
-		AINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(out_reg[0]), OP_BASE_DISP(out_reg[1], offset_of_simd(src0), OPSZ_lea)));
-		AINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(out_reg[1]), OP_BASE_DISP(out_reg[1], offset_of_simd(src1), OPSZ_lea)));
+		MINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(out_reg[0]), OP_BASE_DISP(out_reg[1], offset_of_simd(src0), OPSZ_lea)));
+		MINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(out_reg[1]), OP_BASE_DISP(out_reg[1], offset_of_simd(src1), OPSZ_lea)));
 	}else
 	{
 		//3 registers
         INSERT_READ_TLS(drcontext, get_index_tls_float(), bb, where, out_reg[2]);
-		AINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(out_reg[0]), OP_BASE_DISP(out_reg[2], offset_of_simd(src0), OPSZ_lea)));
-		AINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(out_reg[1]), OP_BASE_DISP(out_reg[2], offset_of_simd(src1), OPSZ_lea)));
-		AINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(out_reg[2]), OP_BASE_DISP(out_reg[2], offset_of_simd(src2), OPSZ_lea)));
+		MINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(out_reg[0]), OP_BASE_DISP(out_reg[2], offset_of_simd(src0), OPSZ_lea)));
+		MINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(out_reg[1]), OP_BASE_DISP(out_reg[2], offset_of_simd(src1), OPSZ_lea)));
+		MINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(out_reg[2]), OP_BASE_DISP(out_reg[2], offset_of_simd(src2), OPSZ_lea)));
 	}
 #else //AArch64
 DR_ASSERT_MSG(false, "insert_set_operands_all_registers not implemented for this architecture");
@@ -988,20 +987,20 @@ static void insert_set_operands_base_disp(void* drcontext, instrlist_t* bb, inst
 	reg_id_t base = opnd_get_base(addr), index = opnd_get_index(addr);
     if(index != DR_REG_NULL)
 	{
-		AINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(tempindex), OP_BASE_DISP(destination, offset_of_gpr(index), OPSZ_8)));
+		MINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(tempindex), OP_BASE_DISP(destination, offset_of_gpr(index), OPSZ_8)));
 		index = tempindex;
 	}
 	if(base != DR_REG_NULL)
 	{
-		AINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(destination), OP_BASE_DISP(destination, offset_of_gpr(base), OPSZ_8)));
+		MINSERT(bb, where, XINST_CREATE_load(drcontext, OP_REG(destination), OP_BASE_DISP(destination, offset_of_gpr(base), OPSZ_8)));
 		base = destination;
 	}
-	AINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(destination), opnd_create_base_disp(base, index, opnd_get_scale(addr), opnd_get_disp(addr), OPSZ_lea)));
+	MINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(destination), opnd_create_base_disp(base, index, opnd_get_scale(addr), opnd_get_disp(addr), OPSZ_lea)));
 }
 
 static void insert_set_operands_addr(void* drcontext, instrlist_t* bb, instr_t *where, void* addr, reg_id_t destination, reg_id_t scratch)
 {
-    AINSERT(bb, where, XINST_CREATE_load_int(drcontext, OP_REG(destination), OPND_CREATE_INTPTR(addr)));
+    MINSERT(bb, where, XINST_CREATE_load_int(drcontext, OP_REG(destination), OPND_CREATE_INTPTR(addr)));
     /*return;
     //We can't move an immediate of 64 bit directly (for some reason), so we need to use a trick
     ptr_int_t high = (ptr_uint_t)((uint64_t)addr >> 32);
@@ -1052,7 +1051,7 @@ static void insert_set_operands_mem_reference(void* drcontext, instrlist_t *bb, 
         if(i != mem_src_idx)
         {
             reg_id_t reg = GET_REG(SRC(instr, i));
-            AINSERT(bb, where, INSTR_CREATE_lea(drcontext, 
+            MINSERT(bb, where, INSTR_CREATE_lea(drcontext, 
                                                 OP_REG(out_regs[i]), 
                                                 OP_BASE_DISP(out_regs[last_reg_idx], offset_of_simd(reg), OPSZ_lea)));
         }
@@ -1097,8 +1096,8 @@ void insert_set_operands(void* drcontext, instrlist_t *bb, instr_t *where, instr
         }
     }else
     {
-        reg_op_addr[0] = DR_REG_OP_B_ADDR;
-        reg_op_addr[1] = DR_REG_OP_A_ADDR;
+        reg_op_addr[0] = DR_REG_OP_A_ADDR;
+        reg_op_addr[1] = DR_REG_OP_B_ADDR;
         reg_op_addr[2] = DR_REG_NULL;
     }
     

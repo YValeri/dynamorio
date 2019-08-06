@@ -24,7 +24,7 @@ void test(double a , double b , double *res) {
 
 int main(int argc , char *argv[]) {
     
-    double a=10 , b=20, res=500;
+    double a=10*argc , b=20, res=500;
 
 
     //*res=a+b;
@@ -36,8 +36,8 @@ int main(int argc , char *argv[]) {
     printf("MID : %f\n",res);
 
     //#pragma omp parallel for reduction(+:res)
-    for(long i = 0 ; i < 10 ; i++) {
-        res += (a*b);
+    for(long i = 0 ; i < 100 ; i++) {
+        res -= (a*b);
     }
 
     printf("END : %f\n",res);
@@ -52,7 +52,7 @@ int main(int argc , char *argv[]) {
     #pragma omp parallel for
     for(int i = 0 ; i < 10 ; i++) {
         #pragma omp critical
-         v1 = _mm_add_ps(v2 , v1);
+         v1 = _mm_sub_ps(v2 , v1);
     }
     
 

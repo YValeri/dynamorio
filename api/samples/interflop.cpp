@@ -271,6 +271,250 @@ static void print() {
 //######################################################################################################################################################################################
 //######################################################################################################################################################################################
 
+enum register_status_t : uint{
+    IFP_REG_CORRUPTED=32,
+    IFP_REG_SAVED=1,
+    IFP_REG_MODIFIED=2,
+    IFP_REG_RESTORED=4,
+    IFP_REG_MODIFIED_IN_MEMORY=8,
+    IFP_REG_ORIGINAL=16,
+    IFP_REG_VALID= IFP_REG_RESTORED | IFP_REG_ORIGINAL,
+    IFP_REG_INVALID = IFP_REG_CORRUPTED | IFP_REG_MODIFIED_IN_MEMORY,
+    IFP_REG_VALID_IN_MEMORY = IFP_REG_SAVED | IFP_REG_MODIFIED_IN_MEMORY,
+    IFP_REG_INVALID_IN_MEMORY = IFP_REG_MODIFIED | IFP_REG_ORIGINAL
+};
+
+reg_id_t get_biggest_simd_version(reg_id_t simd)
+{
+    DR_ASSERT_MSG(reg_is_simd(simd), "NOT AN SIMD REGISTER");
+    reg_id_t dstbase=DR_REG_START_XMM, srcbase=DR_REG_START_XMM;
+    if(AVX_512_SUPPORTED)
+    {
+        dstbase=DR_REG_START_ZMM;
+    }else if(AVX_SUPPORTED)
+    {
+        dstbase = DR_REG_START_YMM;
+    }
+    if(reg_is_strictly_zmm(simd)){
+        srcbase = DR_REG_START_ZMM;
+    }else if(reg_is_strictly_ymm(simd)){
+        srcbase = DR_REG_START_YMM;
+    }
+    return dstbase+(simd-srcbase);
+}
+
+struct register_requirement_t
+{
+    register_requirement_t(reg_id_t _reg, register_status_t _status): reg(_reg), status(_status){}
+    bool operator==(reg_id_t _reg)const{return reg==_reg;}
+    reg_id_t reg;
+    register_status_t status;
+};
+
+typedef register_requirement_t register_modification_t;
+
+struct sub_block{
+    bool instrumentable;
+    bool modifies_arith_flags;
+    std::vector<register_requirement_t> requirements;
+    std::vector<register_modification_t> modifications;
+    uint64 numberOfInstructions;
+    bool is_last;
+};
+
+std::vector<register_requirement_t> get_backend_requirements()
+{
+    //TODO Get the actual required registers from library analysis
+
+    //FIXME Currently treats every register as needed to be saved for the backend
+    static std::vector<register_modification_t> modifications;
+    if(modifications.empty())
+    {
+        for(ushort i=DR_REG_START_GPR; i<=DR_REG_STOP_GPR; i++)
+        {
+            modifications.emplace_back(i, IFP_REG_VALID_IN_MEMORY);
+        }
+        for(ushort i=DR_REG_START_XMM; i<= DR_REG_START_XMM+(AVX_512_SUPPORTED ? 31 : 15); i++)
+        {
+            modifications.emplace_back(get_biggest_simd_version(i), IFP_REG_VALID_IN_MEMORY);
+        }
+    }
+    return modifications;
+}
+
+std::vector<register_modification_t> get_backend_modifications()
+{
+    //TODO Get the actual modified registers from library analysis
+
+    //FIXME Currently treats every register as corrupted by the backend
+    static std::vector<register_modification_t> modifications;
+    if(modifications.empty())
+    {
+        for(ushort i=DR_REG_START_GPR; i<=DR_REG_STOP_GPR; i++)
+        {
+            modifications.emplace_back(i, IFP_REG_CORRUPTED);
+        }
+        for(ushort i=DR_REG_START_XMM; i<= DR_REG_START_XMM+(AVX_512_SUPPORTED ? 31 : 15); i++)
+        {
+            modifications.emplace_back(get_biggest_simd_version(i), IFP_REG_CORRUPTED);
+        }
+    }
+    return modifications;
+}
+
+static void add_or_modify(std::vector<register_requirement_t>& vec, register_requirement_t && value)
+{
+    std::size_t i=0;
+    for(; i<vec.size(); i++)
+    {
+        if(vec[i].reg == value.reg)
+        {
+            vec[i].status = value.status;
+            break;
+        }
+    }
+    if(i==vec.size())
+    {
+        vec.push_back(value);
+    }
+}
+
+static std::vector<sub_block> preanalysis(void *drcontext, void* tag, instrlist_t *bb)
+{
+    std::vector<sub_block> blocks;
+    instr_t *instr, *next_instr;
+    OPERATION_CATEGORY oc;
+    bool shouldContinue;
+    for(instr = instrlist_first_app(bb); instr != NULL; instr = next_instr){
+        oc = ifp_get_operation_category(instr);
+        sub_block currBlock; 
+        currBlock.instrumentable = ifp_is_instrumented(oc);
+        currBlock.modifies_arith_flags = currBlock.instrumentable;
+        currBlock.numberOfInstructions=0;
+        currBlock.is_last=false;
+        if(currBlock.instrumentable)
+        {
+            currBlock.requirements = get_backend_requirements();
+            currBlock.modifications = get_backend_modifications();
+        }
+        shouldContinue=true;
+        do
+        {
+            int numSrc = instr_num_srcs(instr);
+            int numDst = instr_num_dsts(instr);
+
+            for(int i=0; i < numSrc; i++)
+            {
+                opnd_t src = instr_get_src(instr, i);
+                if(opnd_is_reg(src))
+                {
+                    //currBlock.requirements.push_back(register_requirement_t(opnd_get_reg(src), currBlock.instrumentable ? IFP_REG_VALID_IN_MEMORY : IFP_REG_VALID));
+                    add_or_modify(currBlock.requirements, register_requirement_t(opnd_get_reg(src), currBlock.instrumentable ? IFP_REG_VALID_IN_MEMORY : IFP_REG_VALID));
+                }else if(opnd_is_base_disp(src))
+                {
+                    reg_id_t base = opnd_get_base(src), index = opnd_get_index(src);
+                    if(base != DR_REG_NULL)
+                    {
+                        add_or_modify(currBlock.requirements, register_requirement_t(base, currBlock.instrumentable ? IFP_REG_VALID_IN_MEMORY : IFP_REG_VALID));
+                    }
+                    if(index != DR_REG_NULL)
+                    {
+                        add_or_modify(currBlock.requirements, register_requirement_t(index, currBlock.instrumentable ? IFP_REG_VALID_IN_MEMORY : IFP_REG_VALID));
+                    }
+                }
+            }
+            for(int i=0; i<numDst; i++)
+            {
+                opnd_t dst = instr_get_dst(instr, i);
+                if(opnd_is_reg(dst)){
+                    if(currBlock.instrumentable){
+                        add_or_modify(currBlock.requirements, register_requirement_t(opnd_get_reg(dst), IFP_REG_VALID_IN_MEMORY));
+                        add_or_modify(currBlock.modifications, register_modification_t(opnd_get_reg(dst), IFP_REG_MODIFIED_IN_MEMORY));
+                    }else
+                    {
+                        add_or_modify(currBlock.modifications, register_modification_t(opnd_get_reg(dst), IFP_REG_MODIFIED));
+                    }
+                }else if(opnd_is_base_disp(dst))
+                {
+                    //Only in non instrumentable
+                    reg_id_t base = opnd_get_base(dst), index = opnd_get_index(dst);
+                    if(base != DR_REG_NULL)
+                    {
+                        add_or_modify(currBlock.requirements, register_requirement_t(base, IFP_REG_VALID));
+                    }
+                    if(index != DR_REG_NULL)
+                    {
+                        add_or_modify(currBlock.requirements, register_requirement_t(index, IFP_REG_VALID));
+                    }
+                }
+            }
+            if(!currBlock.instrumentable)
+            {
+                currBlock.modifies_arith_flags |= ((instr_get_eflags(instr, DR_QUERY_INCLUDE_ALL) & (EFLAGS_READ_ARITH|EFLAGS_WRITE_ARITH)) != 0);
+            }
+            currBlock.numberOfInstructions++;
+            next_instr = instr_get_next_app(instr);
+            instr = next_instr;
+            if(next_instr != nullptr)
+            {
+                oc = ifp_get_operation_category(next_instr);
+                if(ifp_is_instrumented(oc) != currBlock.instrumentable)
+                {
+                    shouldContinue=false;
+                }
+            }else
+            {
+                currBlock.is_last=true;
+                shouldContinue=false;
+            }
+            
+        }while (next_instr != nullptr && shouldContinue);
+        blocks.push_back(currBlock);
+    }
+    return blocks;
+}
+
+static std::vector<register_requirement_t> get_original_status_vector()
+{
+    std::vector<register_requirement_t> status;
+    for(ushort i=DR_REG_START_GPR; i<=DR_REG_STOP_GPR; i++)
+    {
+        status.emplace_back(i, IFP_REG_ORIGINAL);
+    }
+    for(ushort i=DR_REG_START_XMM; i<= DR_REG_START_XMM+(AVX_512_SUPPORTED ? 31 : 15); i++)
+    {
+        status.emplace_back(get_biggest_simd_version(i), IFP_REG_ORIGINAL);
+    }
+    return status;
+}
+
+static std::string stringStatus(register_status_t status)
+{
+    switch(status)
+    {
+        case IFP_REG_CORRUPTED:
+        return std::string("corrupted");
+        case IFP_REG_INVALID:
+        return std::string("invalid");
+        case IFP_REG_INVALID_IN_MEMORY:
+        return std::string("invalid in mem");
+        case IFP_REG_MODIFIED:
+        return std::string("modified");
+        case IFP_REG_MODIFIED_IN_MEMORY:
+        return std::string("modified in mem");
+        case IFP_REG_ORIGINAL:
+        return std::string("original");
+        case IFP_REG_RESTORED:
+        return std::string("restored");
+        case IFP_REG_SAVED:
+        return std::string("saved");
+        case IFP_REG_VALID:
+        return std::string("valid");
+        case IFP_REG_VALID_IN_MEMORY:
+        return std::string("valid in mem");
+    }
+}
+
 static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t *bb, bool for_trace, bool translating)
 {
     instr_t *instr, *next_instr;
@@ -280,15 +524,27 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
         return DR_EMIT_DEFAULT;
     }
 
-    dr_printf("**\n");
+    /*dr_printf("**\n");
     for(instr = instrlist_first_app(bb); instr!=nullptr; instr = instr_get_next_app(instr))
     {
         dr_print_instr(drcontext, STDERR, instr, "");
-    }
-    static int nb=0;
+    }*/
 
+    
+    std::vector<sub_block> blocks = preanalysis(drcontext, tag, bb);
+    if(blocks.empty() || blocks.size() == 1 && !blocks[0].instrumentable)
+    {
+        //No instrumentable sub_block
+        return DR_EMIT_DEFAULT;
+    }
+
+    static int nb=0;
+    int block_idx=0, instrCount=0;
+
+    
     for(instr = instrlist_first_app(bb); instr != NULL; instr = next_instr)
     {
+        sub_block currBlock = blocks[block_idx];
         oc = ifp_get_operation_category(instr);
         bool registers_saved=false;
         bool should_continue=false;
@@ -296,12 +552,13 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
             next_instr = instr_get_next_app(instr);
 
             if(ifp_is_instrumented(oc)) {
-                bool is_double = ifp_is_double(oc);
-                
+
                 if(isDebug()) {
                     dr_printf("%d ", nb++);
-                    dr_print_instr(drcontext, STDERR, instr , ": ");
+                    dr_print_instr(drcontext, STDOUT, instr , ": ");
                 }
+
+                bool is_double = ifp_is_double(oc);
                 
                 if(!registers_saved)
                 {
