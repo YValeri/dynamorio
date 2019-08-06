@@ -2,7 +2,7 @@
 #include "dr_defines.h"
 #include "drsyms.h"
 #include "symbol_config.hpp"
-#include "ifp_string_constants.hpp"
+#include "utils.hpp"
 #include <fstream>
 #include <algorithm>
 
@@ -14,10 +14,9 @@ static string get_symbol_name(module_data_t* module, app_pc intr_pc);
 static void parse_line(string line, bool parsing_whitelist);
 static void load_lookup_from_modules_vector();
 
-//Current functionning mode of the client, defines the behavior
-static interflop_client_mode_t interflop_client_mode;
-
 static ofstream symbol_file;
+static ifstream blacklist, whitelist;
+static std::string blacklist_filename, whitelist_filename;
 
 /*Note:
 TODO : the modules_vector can contain symbols with a wildcard
@@ -35,12 +34,6 @@ static vector<module_entry> modules_vector;
 static vector<lookup_entry_t> lookup_vector;
 
 static bool whitelist_parsed = false;
-static bool debug_enabled = false;
-
-bool is_debug()
-{
-	return debug_enabled;
-}
 
 void print_lookup()
 {
@@ -56,20 +49,6 @@ void print_lookup()
 
 /* ### UTILITIES ### */
 
-inline void print_help()
-{
-	dr_printf(IFP_HELP_STRING);
-}
-
-interflop_client_mode_t get_client_mode()
-{
-	return interflop_client_mode;
-}
-
-void set_client_mode(interflop_client_mode_t mode)
-{
-	interflop_client_mode = mode;
-}
 
 /**
  * \brief Returns the index of \elem, \p vec .size() if it's not found
@@ -91,7 +70,7 @@ static inline size_t vec_idx_of(vector<T, allocator<T>> vec, T elem)
  */
 static bool need_cleanup_module(module_entry & entry)
 {
-	if(entry.all_symbols && interflop_client_mode != IFP_CLIENT_BL_WL)
+	if(entry.all_symbols && get_client_mode() != IFP_CLIENT_BL_WL)
 	{
 		entry.symbols.clear();
 		return false;
@@ -106,11 +85,11 @@ static bool need_cleanup_module(module_entry & entry)
 
 void write_symbols_to_file()
 {
-	if(interflop_client_mode == IFP_CLIENT_GENERATE)
+	if(get_client_mode() == IFP_CLIENT_GENERATE)
 	{
 		if(symbol_file.is_open() && symbol_file.good())
 		{
-			symbol_file << IFP_SYMBOL_FILE_HEADER;
+			write_to_file_symbol_file_header(symbol_file);
 			size_t num_modules = modules_vector.size();
 			size_t totalSymbols = 0;
 			for(size_t i = 0; i<num_modules; i++)
@@ -278,7 +257,7 @@ static void lookup_or_load_module(const module_data_t* module)
 
 #endif //WINDOWS
 		//When the module isn't total, or there can be exceptions to the total module, we need to register each symbol
-		if(!lentry.total || interflop_client_mode == IFP_CLIENT_BL_WL)
+		if(!lentry.total || get_client_mode() == IFP_CLIENT_BL_WL)
 		{
 			size_t modoff;
 			drsym_info_t info;
@@ -336,11 +315,11 @@ bool should_instrument_module(module_data_t const* module)
 	lookup_entry_t* found_module = lookup_find(module->start, IFP_LOOKUP_MODULE);
 	if(found_module != nullptr)
 		//We found the module in the list, we need to instrument it if it's not blacklisted totally
-		return (interflop_client_mode == IFP_CLIENT_BL_ONLY && !found_module->total) ||
-				interflop_client_mode == IFP_CLIENT_WL_ONLY || interflop_client_mode == IFP_CLIENT_BL_WL;
+		return (get_client_mode() == IFP_CLIENT_BL_ONLY && !found_module->total) ||
+				get_client_mode() == IFP_CLIENT_WL_ONLY || get_client_mode() == IFP_CLIENT_BL_WL;
 	else
 		//We didn't find the module in the lookup, we instrument it if we're not white listing
-		return interflop_client_mode == IFP_CLIENT_BL_ONLY || interflop_client_mode == IFP_CLIENT_NOLOOKUP;
+		return get_client_mode() == IFP_CLIENT_BL_ONLY || get_client_mode() == IFP_CLIENT_NOLOOKUP;
 }
 
 bool needs_to_instrument(instrlist_t* ilist)
@@ -348,11 +327,11 @@ bool needs_to_instrument(instrlist_t* ilist)
 	//TODO mettre le cas false ici
 	if(ilist != nullptr)
 	{
-		if(interflop_client_mode == IFP_CLIENT_NOLOOKUP)
+		if(get_client_mode() == IFP_CLIENT_NOLOOKUP)
 			//We always instrument in NOLOOKUP
 			return true;
 
-		if(interflop_client_mode == IFP_CLIENT_GENERATE || interflop_client_mode == IFP_CLIENT_HELP)
+		if(get_client_mode() == IFP_CLIENT_GENERATE || get_client_mode() == IFP_CLIENT_HELP)
 			//We never instrument in GENERATE or HELP (nor that this check is strictly necessary)
 			return false;
 
@@ -362,7 +341,7 @@ bool needs_to_instrument(instrlist_t* ilist)
 			app_pc pc = instr_get_app_pc(instr);
 			if(pc)
 				//We instrument if we found the symbol in the lookup for whitelists, otherwise always for blacklists
-				return lookup_find(pc, IFP_LOOKUP_SYMBOL) != nullptr || interflop_client_mode == IFP_CLIENT_BL_ONLY;
+				return lookup_find(pc, IFP_LOOKUP_SYMBOL) != nullptr || get_client_mode() == IFP_CLIENT_BL_ONLY;
 		}
 		//TODO : fallback here
 	}else
@@ -370,7 +349,7 @@ bool needs_to_instrument(instrlist_t* ilist)
 		return false;
 
 	//Something went wrong, so we assume we didn't find the symbol
-	return interflop_client_mode == IFP_CLIENT_NOLOOKUP || interflop_client_mode == IFP_CLIENT_BL_ONLY; 
+	return get_client_mode() == IFP_CLIENT_NOLOOKUP || get_client_mode() == IFP_CLIENT_BL_ONLY; 
 	
 }
 
@@ -378,7 +357,7 @@ bool needs_to_instrument(instrlist_t* ilist)
 
 static void parse_line(string line, bool parsing_whitelist)
 {
-	DR_ASSERT_MSG(parsing_whitelist || (interflop_client_mode == IFP_CLIENT_BL_ONLY || whitelist_parsed), "Wrong parsing order for blacklist/whitelist");
+	DR_ASSERT_MSG(parsing_whitelist || (get_client_mode() == IFP_CLIENT_BL_ONLY || whitelist_parsed), "Wrong parsing order for blacklist/whitelist");
 	//Remove comments
 	size_t pos = line.find('#');
 	if(pos != string::npos)
@@ -412,7 +391,7 @@ static void parse_line(string line, bool parsing_whitelist)
 		}
 		module_entry entry(module, whole);
 		bool exists = ((pos = vec_idx_of<module_entry>(modules_vector, entry)) != modules_vector.size());
-		if(parsing_whitelist || interflop_client_mode == IFP_CLIENT_BL_ONLY)
+		if(parsing_whitelist || get_client_mode() == IFP_CLIENT_BL_ONLY)
 		{
 			//If we're parsing the whitelist, or the blacklist in blacklist only mode, it's only about adding to the lookup
 			if(exists)
@@ -526,19 +505,139 @@ static lookup_entry_t* lookup_find(app_pc pc, ifp_lookup_type_t lookup_type)
 	return nullptr;
 }
 
+static bool WL_argument_detected(int i, int argc, const char* argv[]){
+        //If we have a blacklist
+        if(get_client_mode() == IFP_CLIENT_BL_ONLY || 
+               get_client_mode() == IFP_CLIENT_BL_WL){ 
+                set_client_mode(IFP_CLIENT_BL_WL);
+        }else{
+                set_client_mode(IFP_CLIENT_WL_ONLY);
+        }
+
+        //If the filename is precised
+        if(i < argc){
+        	whitelist_filename = argv[i];
+                return false;
+        }
+        dr_fprintf(STDERR, 
+                "NOT ENOUGH ARGUMENTS : Lacking the file associated with \"%s\"\n", 
+                argv[i-1]);
+        set_client_mode(IFP_CLIENT_HELP);
+        return true;
+}
+
+static bool BL_argument_detected(int i, int argc, const char* argv[]){
+        //If we have a blacklist
+        if(get_client_mode() == IFP_CLIENT_WL_ONLY || 
+               get_client_mode() == IFP_CLIENT_BL_WL){ 
+                set_client_mode(IFP_CLIENT_BL_WL);
+        }else{
+                set_client_mode(IFP_CLIENT_BL_ONLY);
+        }
+
+        //If the filename is precised
+        if(i < argc){
+        	blacklist_filename = argv[i];
+                return false;
+        }
+        dr_fprintf(STDERR, 
+                "NOT ENOUGH ARGUMENTS : Lacking the file associated with \"%s\"\n", 
+                argv[i-1]);
+        set_client_mode(IFP_CLIENT_HELP);
+        return true;
+}
+
+static bool G_argument_detected(int i, int argc, const char* argv[]){
+        if(i < argc){
+                symbol_file.open(argv[i]);
+                if(!symbol_file.fail()){
+                        return false;
+                }
+                dr_fprintf(STDERR, 
+                        "FILE OPEN FAILURE : Couldn't open the file associated with \"%s\"\n", 
+                        argv[i-1]);
+        }else{
+                dr_fprintf(STDERR, 
+                        "NOT ENOUGH ARGUMENTS : Lacking the file associated with \"%s\"\n", 
+                        argv[i-1]);
+        }
+        set_client_mode(IFP_CLIENT_HELP);
+        return true;
+}
+
+static bool symbol_should_continue_parsing(){
+	return get_client_mode() != IFP_CLIENT_HELP && 
+                        get_client_mode() != IFP_CLIENT_GENERATE;
+}
+
+bool symbol_argument_parser(std::string arg, int* i, int argc, const char* argv[]){
+	if(!symbol_should_continue_parsing()){
+		return false;
+	}
+
+	if(arg == "--no-lookup" || arg == "-n"){
+		set_client_mode(IFP_CLIENT_NOLOOKUP);
+	}else if(arg == "--whitelist" || arg == "-w"){ //Whitelist
+        	*i += 1;
+		return WL_argument_detected(*i, argc, argv);
+	}else if(arg == "--blacklist" || arg == "-b"){ //Blacklist
+        	*i += 1;
+		return BL_argument_detected(*i, argc, argv);
+	}else if(arg == "--generate" || arg == "-g"){
+        	set_client_mode(IFP_CLIENT_GENERATE);
+        	*i += 1;
+                return G_argument_detected(*i, argc, argv);
+        }else{
+                inc_error();
+        }
+        return false;
+}
+
+void symbol_client_mode_manager(){
+	switch(get_client_mode()){
+		case IFP_CLIENT_BL_ONLY:
+			blacklist.open(blacklist_filename);
+			DR_ASSERT_MSG(!blacklist.fail(), "Can't open blacklist file");
+
+			generate_blacklist_from_file(blacklist);
+			load_lookup_from_modules_vector();
+			break;
+		case IFP_CLIENT_WL_ONLY:
+			whitelist.open(whitelist_filename);
+			DR_ASSERT_MSG(!whitelist.fail(), "Can't open whitelist file");
+
+			generate_whitelist_from_file(whitelist);
+			load_lookup_from_modules_vector();
+			break;
+		case IFP_CLIENT_BL_WL:
+			whitelist.open(whitelist_filename);
+			DR_ASSERT_MSG(!whitelist.fail(), "Can't open whitelist file");
+			blacklist.open(blacklist_filename);
+			DR_ASSERT_MSG(!blacklist.fail(), "Can't open blacklist file");
+			generate_whitelist_from_files(whitelist, blacklist);
+			load_lookup_from_modules_vector();
+			break;
+		default:
+			break;
+	}
+	if(blacklist.is_open()) 
+		blacklist.close();
+	if(whitelist.is_open()) 
+		whitelist.close();
+}
+
 /* ### ARGUMENTS PARSING ### */
 
-void symbol_lookup_config_from_args(int argc, const char* argv[])
+/*void symbol_lookup_config_from_args(int argc, const char* argv[])
 {
 	interflop_client_mode = IFP_CLIENT_DEFAULT;
 	string blacklist_filename, whitelist_filename;
-	debug_enabled = false;
 	bool no_lookup_argument = false; //Defines if the no-lookup argument has been found, allows to distinguish from default
 	for(int i = 1; i<argc; i++)
 	{
 		string arg(argv[i]);
 		if(arg == "--debug" || arg == "-d")
-			debug_enabled = true;
+			set_debug_enabled(true);
 		else if(interflop_client_mode != IFP_CLIENT_GENERATE && 
 			interflop_client_mode != IFP_CLIENT_HELP && !no_lookup_argument)
 		{
@@ -641,4 +740,4 @@ void symbol_lookup_config_from_args(int argc, const char* argv[])
 		blacklist.close();
 	if(whitelist.is_open()) 
 		whitelist.close();
-}
+}*/

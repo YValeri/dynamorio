@@ -8,17 +8,6 @@
 #include <string>
 #include <vector>
 
-/** Specifies the behavior of the client */
-typedef enum{
-	IFP_CLIENT_DEFAULT = 0, /** Default */
-	IFP_CLIENT_NOLOOKUP = 0, /** Don't look at symbols */
-	IFP_CLIENT_GENERATE = 1, /** Generate the symbols from an execution */
-	IFP_CLIENT_BL_ONLY = 2, /** Don't instrument the symbols in the blacklist */
-	IFP_CLIENT_WL_ONLY = 4, /** Instrument only the symbols in the whitelist */
-	IFP_CLIENT_BL_WL = 6, /** Instrument the symbols in the whitelist that aren't in the blacklist */
-	IFP_CLIENT_HELP = -1 /** Display arguments help */
-} interflop_client_mode_t;
-
 /** Specifies the type of lookup we are requesting */
 typedef enum {
 	IFP_LOOKUP_MODULE = true, /** Lookup the module */
@@ -116,26 +105,6 @@ typedef struct _lookup_entry_t
 } lookup_entry_t;
 
 /**
- * \brief Prints the help of the client
- * 
- */
-void print_help();
-
-/**
- * \brief Get the current client mode
- * 
- * \return interflop_client_mode_t Client mode
- */
-interflop_client_mode_t get_client_mode();
-
-/**
- * \brief Sets the client mode
- * 
- * \param mode 
- */
-void set_client_mode(interflop_client_mode_t mode);
-
-/**
  * \brief Sets the client mode and initialises the symbol lookups
  */
 void symbol_lookup_config_from_args(int argc, const char* argv[]);
@@ -166,7 +135,7 @@ bool should_instrument_module(const module_data_t* module);
  */
 void print_lookup();
 
-bool is_debug();
+bool symbol_argument_parser(std::string arg, int* i, int argc, const char* argv[]);
+void symbol_client_mode_manager();
 
 #endif //SYMBOL_CONFIG_HEADER
-
