@@ -262,5 +262,13 @@ inline bool ifp_is_512(enum OPERATION_CATEGORY oc)
 {
 	return (oc & IFP_OP_512) != 0;
 }
+inline bool ifp_is_fused(enum OPERATION_CATEGORY oc)
+{
+    return (oc & IFP_OP_FUSED) != 0;
+}
+inline bool ifp_is_instrumented(enum OPERATION_CATEGORY oc)
+{
+    return (oc != IFP_OP_OTHER && oc != IFP_OP_UNSUPPORTED);
+}
 
 #endif // INTERFLOP_OPERATION_HEADER

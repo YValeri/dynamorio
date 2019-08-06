@@ -4,6 +4,7 @@
 #include "../include/dr_ir_opnd.h"
 #include "drmgr.h"
 #include "drsyms.h"
+#include "symbol_config.hpp"
 #include <string.h>
 
 #include <algorithm>
@@ -137,10 +138,10 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
 
     for(instr = instrlist_first_app(list_bb); instr != NULL; instr = next_instr){
         next_instr = instr_get_next_app(instr);
-        //if(isDebug()){
+        if(is_debug()){
             print_tabs(tabs);
             dr_print_instr(drcontext, STDOUT, instr , "ENUM_SYMBOLS : ");
-        //}
+        }
 
         fill_reg_vect(instr, fused);
 
@@ -158,18 +159,18 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
             if(std::find(app_pc_vect.begin(), app_pc_vect.end(), apc) 
                 == app_pc_vect.end()){
                 app_pc_vect.push_back(apc);
-                //if(isDebug()){
+                if(is_debug()){
                     print_tabs(tabs);
                     dr_printf("on ajoute l'app_pc = %p au vecteur\n\n\n", apc);
-                //}
+                }
                 
                 show_instr_of_symbols(drcontext, lib_data, 
                     apc - lib_data->start, tabs + 1, fused);
             }else{
-                //if(isDebug()){
+                if(is_debug()){
                     print_tabs(tabs);
                     dr_printf("l'app_pc = %p a déjà été vu\n\n\n", apc);
-                //}
+                }
             }
 
             show_instr_of_symbols(drcontext, lib_data, 

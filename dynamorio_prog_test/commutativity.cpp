@@ -7,6 +7,7 @@ int main(int argc, char const *argv[])
     if(argc < 5)
     {
         cerr << "Put 3 floating values as arguments, and a 4th as the expected result" << endl;
+        return 1;
     }
     double a,b,c, expected;
 
