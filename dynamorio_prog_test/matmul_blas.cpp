@@ -45,7 +45,7 @@ int main(int argc , char *argv[]) {
         B[i] = 2 / ((double) (i+(i%MATRIX_SIZE)+1));
         AB[i] = 0;
     }
-
+    printf("%lf\n", A[3]);
     matrix_multiplcation(A , MATRIX_SIZE , MATRIX_SIZE , B , MATRIX_SIZE , MATRIX_SIZE , AB , false , false , 0);
 
 /*

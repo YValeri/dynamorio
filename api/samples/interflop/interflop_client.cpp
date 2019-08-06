@@ -3,6 +3,7 @@
 
 
 #if defined(X86)
+    #define INSTR_IS_ANY_SSE(instr) (instr_is_sse(instr) || instr_is_sse2(instr) || instr_is_sse3(instr) || instr_is_sse41(instr) || instr_is_sse42(instr) || instr_is_sse4A(instr))
 	static reg_id_t XMM_REG[] = {
 		DR_REG_XMM0, DR_REG_XMM1, DR_REG_XMM2, DR_REG_XMM3, DR_REG_XMM4, 
 		DR_REG_XMM5, DR_REG_XMM6, DR_REG_XMM7, DR_REG_XMM8, DR_REG_XMM9, 
@@ -1042,8 +1043,16 @@ void insert_set_operands(void* drcontext, instrlist_t *bb, instr_t *where, instr
         }
     }else
     {
-        reg_op_addr[0] = DR_REG_OP_A_ADDR;
-        reg_op_addr[1] = DR_REG_OP_B_ADDR;
+        //FIXME : Dynamorio currently inverses the SSE instructions compared to AVX, needs to be checked by unit testing
+        if(INSTR_IS_ANY_SSE(instr))
+        {
+            reg_op_addr[0] = DR_REG_OP_B_ADDR;
+            reg_op_addr[1] = DR_REG_OP_A_ADDR;
+        }else
+        {
+            reg_op_addr[0] = DR_REG_OP_A_ADDR;
+            reg_op_addr[1] = DR_REG_OP_B_ADDR;
+        }
         reg_op_addr[2] = DR_REG_NULL;
     }
     
