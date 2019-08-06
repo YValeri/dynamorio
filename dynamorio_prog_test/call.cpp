@@ -103,9 +103,7 @@ int main(int argc , char *argv[]) {
     
     _mm256_permute_pd(vv2 , 6);
     __m256d vv4 = _mm256_fmsub_pd(vv3 , vv1 , vv2);
-    
-    //__m256d vv5 = _mm256_fmsub_pd(vv3 , vv4 , vv2);
-    //__m256d vv6 = _mm256_fmsub_pd(vv4 , vv1 , vv5);
+
     
 
      _mm256_store_pd(GGGG , vv4);
@@ -114,6 +112,19 @@ int main(int argc , char *argv[]) {
     for(int i = 0 ; i < 4 ; i++) {
         printf("%.2f ",GGGG[i]);
     }
+
+
+    __m256d vv5 = _mm256_fnmadd_pd(vv2 , vv4 , vv3);
+
+     _mm256_store_pd(GGGG , vv5);
+
+    printf("\n"); 
+
+    printf("Negated FMA : ");
+    for(int i = 0 ; i < 4 ; i++) {
+        printf("%.2f ",GGGG[i]);
+    }
+
     printf("\n"); 
 
 

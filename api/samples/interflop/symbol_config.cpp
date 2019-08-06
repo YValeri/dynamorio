@@ -600,8 +600,7 @@ void symbol_lookup_config_from_args(int argc, const char* argv[])
 			{
 				interflop_client_mode = IFP_CLIENT_HELP;
 				break;
-			}else
-				DR_ASSERT_MSG(false, "Unknown command line option\n");
+			}
 		}
 	}
 

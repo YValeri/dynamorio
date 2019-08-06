@@ -110,33 +110,6 @@ struct interflop_backend {
 	}
 };
 
-/*
-template <typename FTYPE, typename BACKEND_FUNCTION, int SIMD_TYPE = IFP_OP_SCALAR>
-struct interflop_backend
-{
-	static_assert(std::is_same<FTYPE, double>::value || std::is_same<FTYPE, float>::value, "message erreur");
-	static_assert(is_callable<Backend_function, Targs...>::value, "Not callable");
-	template<typename ... TARGS>
-	static void apply(TARGS &&... args){
-		//Backend_Function(std::forward<TARGS>(args)[i] ...);
-
-		//Mettre les #define autre part pour avoir une seule interface de backend ici
-		//TODO : séparation des appels tls, set result....
-
-		template<typename callable, int ... I>
-		void for_each(callable t, std::integer_sequence<I> = std::make_index_sequence<I>()){
-			t(I)...;
-		}
-	}
-}
-
-template<typename _ = void>
-struct is_callable:std::false_type{};
-
-template<typename F, typename .. args>
-struct is_callable<decltype((F(args...), void))>:std::true_type{};
- */
-
 
 template <typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE), int SIMD_TYPE = IFP_OP_SCALAR>
 struct interflop_backend_fused {
@@ -581,16 +554,32 @@ void insert_corresponding_vect_call_fused(void* drcontext, instrlist_t *bb, inst
 void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double) {
 	if(oc & IFP_OP_FUSED) {
 		if(oc & IFP_OP_FMA) {
-			if(is_double)
-				insert_corresponding_vect_call_fused<double, Interflop::Op<double>::fmadd>(drcontext, bb, instr, oc);
-			else
-				insert_corresponding_vect_call_fused<float, Interflop::Op<float>::fmadd>(drcontext, bb, instr, oc);
+			if(!(oc & IFP_OP_NEG)) {
+				if(is_double)
+					insert_corresponding_vect_call_fused<double, Interflop::Op<double>::fmadd>(drcontext, bb, instr, oc);
+				else
+					insert_corresponding_vect_call_fused<float, Interflop::Op<float>::fmadd>(drcontext, bb, instr, oc);
+			}
+			else {
+				if(is_double)
+					insert_corresponding_vect_call_fused<double, Interflop::Op<double>::nfmadd>(drcontext, bb, instr, oc);
+				else
+					insert_corresponding_vect_call_fused<float, Interflop::Op<float>::nfmadd>(drcontext, bb, instr, oc);
+			}
 		}
 		else if(oc & IFP_OP_FMS) {
-			if(is_double)
-				insert_corresponding_vect_call_fused<double, Interflop::Op<double>::fmsub>(drcontext, bb, instr, oc);
-			else
-				insert_corresponding_vect_call_fused<float, Interflop::Op<float>::fmsub>(drcontext, bb, instr, oc);
+			if(!(oc & IFP_OP_NEG)) {
+				if(is_double)
+					insert_corresponding_vect_call_fused<double, Interflop::Op<double>::fmsub>(drcontext, bb, instr, oc);
+				else
+					insert_corresponding_vect_call_fused<float, Interflop::Op<float>::fmsub>(drcontext, bb, instr, oc);
+			}
+			else {
+				if(is_double)
+					insert_corresponding_vect_call_fused<double, Interflop::Op<double>::nfmsub>(drcontext, bb, instr, oc);
+				else
+					insert_corresponding_vect_call_fused<float, Interflop::Op<float>::nfmsub>(drcontext, bb, instr, oc);
+			}
 		}
 	}
 	else {
