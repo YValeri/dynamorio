@@ -1,7 +1,8 @@
 #include "test_instructions.h"
 
 int main(int argc, char const *argv[])
-{
+{   
+    /* Default seed get a static test case for comparison when running with dynamoRIO */
     unsigned int seed = 42;
 
     if(argc == 2) seed = atoi(argv[1]);
