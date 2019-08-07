@@ -30,7 +30,6 @@ test_instructions_fma.out: test_instructions.h
 	$(CC) -o test_instructions_fma.out test_instructions_fma.cpp -mfma $(FLAG)
 
 
-
 .PHONY: clean
 
 clean:
