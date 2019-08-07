@@ -31,22 +31,22 @@ static const char* IFP_HELP_STRING =
 "\t -g [filename]\n\t --generate [filename]\n\t Generates the list of symbols in the given program and writes it to the given file, doesn't instrument anything\n\n"
 "\n";
 
-static bool debug_enabled = false;
+static int log_level = 0;
 
 static int error_count = 0;
 
 //Current functionning mode of the client, defines the behavior
-static interflop_client_mode_t interflop_client_mode;
+static interflop_client_mode_t interflop_client_mode = IFP_CLIENT_DEFAULT;
 
 //Current functionning mode of the analysis, defines the behavior
-static interflop_analyse_mode_t interflop_analyse_mode;
+static interflop_analyse_mode_t interflop_analyse_mode = IFP_ANALYSE_NEEDED;
 
-void set_debug_enabled(bool mode){
-	debug_enabled = mode;
+void set_log_level(int level){
+	log_level = level;
 }
 
-bool is_debug_enabled(){
-	return debug_enabled;
+bool get_log_level(){
+	return log_level;
 }
 
 void print_help(){
@@ -82,27 +82,39 @@ bool is_number(const std::string& s){
         s.end(), [](char c) { return !std::isdigit(c); }) == s.end();
 }
 
-static bool utils_argument_parser(const std::string arg){
-        if(arg == "--debug" || arg == "-d"){
-                set_debug_enabled(true);
-        }else if(arg == "--help" || arg == "-h"){
-                print_help();
-                return true;
-        }else{
-                inc_error();
+static bool utils_argument_parser(const std::string arg, int *i, int argc, const char* argv[]){
+    if(arg == "--debug" || arg == "-d"){
+        if(get_log_level() < 1){
+            set_log_level(1);
         }
-        return false;
+    }else if(arg == "--help" || arg == "-h"){
+        print_help();
+        return true;
+    }else if(arg == "--loglevel" || arg == "-l"){
+        *i += 1;
+        if(*i < argc){
+            std::string level(argv[*i]);
+            if(!is_number(level)){
+                dr_fprintf(STDERR, 
+                        "LOGLEVEL FAILURE : Couldn't change the loglevel to \"%s\"\n", 
+                        argv[*i]);
+                set_client_mode(IFP_CLIENT_HELP);
+                return true;
+            }
+            set_log_level(std::stoi(level));
+        }
+    }else{
+        inc_error();
+    }
+    return false;
 }
 
 bool arguments_parser(int argc, const char* argv[]){
-        set_client_mode(IFP_CLIENT_DEFAULT);
-        set_analyse_mode(IFP_ANALYSE_NEEDED);
-
 	for(int i = 1; i < argc; ++i){
                 error_count = 0;
-        	std::string arg(argv[i]);
+            	std::string arg(argv[i]);
                 if(is_debug_enabled()){
-		      std::cout << arg << '\n';
+                    std::cout << arg << '\n';
                 }
                 if(utils_argument_parser(arg)){
                         return true;

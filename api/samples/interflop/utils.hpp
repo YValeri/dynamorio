@@ -21,9 +21,9 @@ typedef enum{
 
 #define UNKNOWN_ARGUMENT 3
 
-void set_debug_enabled(bool);
+void set_log_level(int);
 
-bool is_debug_enabled();
+int get_log_level();
 
 /**
  * \brief Prints the help of the client
@@ -45,7 +45,7 @@ interflop_client_mode_t get_client_mode();
  * 
  * \param mode 
  */
-void set_client_mode(interflop_client_mode_t mode);
+void set_client_mode(interflop_client_mode_t);
 
 /**
  * \brief Get the current analyse mode
@@ -59,12 +59,12 @@ interflop_analyse_mode_t get_analyse_mode();
  * 
  * \param mode 
  */
-void set_analyse_mode(interflop_analyse_mode_t mode);
+void set_analyse_mode(interflop_analyse_mode_t);
 
 void inc_error();
 
-bool is_number(const std::string& s);
+bool is_number(const std::string&);
 
-bool arguments_parser(int argc, const char* argv[]);
+bool arguments_parser(int, const char**);
 
 #endif
