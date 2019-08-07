@@ -5,6 +5,7 @@
 #include "drmgr.h"
 #include "drsyms.h"
 #include "symbol_config.hpp"
+#include "utils.hpp"
 #include <string.h>
 
 #include <algorithm>
@@ -32,6 +33,40 @@ std::vector<reg_id_t> get_fused_gpr_reg(){
 
 std::vector<reg_id_t> get_fused_float_reg(){
     return fused_float_reg;
+}
+
+std::vector<reg_id_t> get_all_registers(){
+    std::vector<reg_id_t> ret;
+
+    for(auto reg: gpr_reg){
+        if(std::find(ret.begin(), ret.end(), reg) 
+                == ret.end()){
+            ret.push_back(reg);
+        }
+    }
+
+    for(auto reg: float_reg){
+        if(std::find(ret.begin(), ret.end(), reg) 
+                == ret.end()){
+            ret.push_back(reg);
+        }
+    }
+
+    for(auto reg: fused_gpr_reg){
+        if(std::find(ret.begin(), ret.end(), reg) 
+                == ret.end()){
+            ret.push_back(reg);
+        }
+    }
+
+    for(auto reg: fused_float_reg){
+        if(std::find(ret.begin(), ret.end(), reg) 
+                == ret.end()){
+            ret.push_back(reg);
+        }
+    }
+
+    return ret;
 }
 
 static void print_tabs(int tabs){
@@ -64,10 +99,10 @@ static void add_to_vect(reg_id_t reg, bool fused){
     bool overlaps = false;
 
     if(reg_is_gpr(reg)){
-        for(auto temp: (fused ? fused_gpr_reg : gpr_reg)){
-            if(reg == temp)
+        for(auto path: (fused ? fused_gpr_reg : gpr_reg)){
+            if(reg == path)
                 overlaps = true;
-            if(reg_overlap(reg, temp))
+            if(reg_overlap(reg, path))
                 overlaps = true;
             if(overlaps)
                 break;
@@ -79,10 +114,10 @@ static void add_to_vect(reg_id_t reg, bool fused){
 
     }else if(reg_is_strictly_xmm(reg) || reg_is_strictly_ymm(reg)
         || reg_is_strictly_zmm(reg)){
-        for(auto temp: (fused ? fused_float_reg : float_reg)){
-            if(reg == temp)
+        for(auto path: (fused ? fused_float_reg : float_reg)){
+            if(reg == path)
                 overlaps = true;
-            if(reg_overlap(reg, temp))
+            if(reg_overlap(reg, path))
                 overlaps = true;
             if(overlaps)
                 break;
@@ -138,7 +173,7 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
 
     for(instr = instrlist_first_app(list_bb); instr != NULL; instr = next_instr){
         next_instr = instr_get_next_app(instr);
-        if(is_debug()){
+        if(is_debug_enabled()){
             print_tabs(tabs);
             dr_print_instr(drcontext, STDOUT, instr , "ENUM_SYMBOLS : ");
         }
@@ -159,7 +194,7 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
             if(std::find(app_pc_vect.begin(), app_pc_vect.end(), apc) 
                 == app_pc_vect.end()){
                 app_pc_vect.push_back(apc);
-                if(is_debug()){
+                if(is_debug_enabled()){
                     print_tabs(tabs);
                     dr_printf("on ajoute l'app_pc = %p au vecteur\n\n\n", apc);
                 }
@@ -167,7 +202,7 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
                 show_instr_of_symbols(drcontext, lib_data, 
                     apc - lib_data->start, tabs + 1, fused);
             }else{
-                if(is_debug()){
+                if(is_debug_enabled()){
                     print_tabs(tabs);
                     dr_printf("l'app_pc = %p a déjà été vu\n\n\n", apc);
                 }
@@ -191,26 +226,20 @@ static void write_vect(std::ofstream& analyse_file, std::vector<reg_id_t> vect,
     }
 }
 
-static bool write_reg_to_file(const char* path){
+static void write_reg_to_file(const char* path){
     std::ofstream analyse_file;
     analyse_file.open(path);
     if(analyse_file.fail()){
         dr_fprintf(STDERR, "FAILED TO OPEN THE GIVEN FILE FOR WRITING : \"%s\"\n", 
             path);
-        return true;
+    }else{
+        write_vect(analyse_file, gpr_reg, "gpr_reg");
+        write_vect(analyse_file, float_reg, "float_reg");
+        write_vect(analyse_file, fused_gpr_reg, "fused_gpr_reg");
+        write_vect(analyse_file, fused_float_reg, "fused_float_reg");
+        analyse_file.flush();
+        analyse_file.close();
     }
-    write_vect(analyse_file, gpr_reg, "gpr_reg");
-    write_vect(analyse_file, float_reg, "float_reg");
-    write_vect(analyse_file, fused_gpr_reg, "fused_gpr_reg");
-    write_vect(analyse_file, fused_float_reg, "fused_float_reg");
-    analyse_file.flush();
-    analyse_file.close();
-    return true;;
-}
-
-static bool is_number(const std::string& s){
-    return !s.empty() && std::find_if(s.begin(), 
-        s.end(), [](char c) { return !std::isdigit(c); }) == s.end();
 }
 
 static bool read_reg_from_file(const char* path){
@@ -263,7 +292,7 @@ static bool read_reg_from_file(const char* path){
     return false;
 }
 
-static bool enum_symbols(const char *name, size_t modoffs, void *data){
+bool enum_symbols(const char *name, size_t modoffs, void *data){
     void *drcontext = nullptr;
     module_data_t* lib_data = nullptr;
 
@@ -285,30 +314,83 @@ static bool enum_symbols(const char *name, size_t modoffs, void *data){
     return true;
 }
 
-static void path_to_library(char* temp, size_t length){
-    dr_get_current_directory(temp, length);
-    strcat(temp, "/api/bin/libinterflop.so");
+static void path_to_library(char* path, size_t length){
+    dr_get_current_directory(path, length);
+    strcat(path, "/api/bin/libinterflop.so");
 }
 
-bool analyse_config_from_args(int argc, const char* argv[])
+static bool AA_argument_detected(const char* file){
+    char path[256];
+    path_to_library(path, 256);
+    if(drsym_enumerate_symbols(path, enum_symbols, 
+        NULL, DRSYM_DEFAULT_FLAGS) == DRSYM_SUCCESS){
+        write_reg_to_file(file);
+    }else{
+        dr_fprintf(STDERR, 
+            "ANALYSE FAILURE : Couldn't finish analysing the symbols of the library\n");
+    }
+    return true;
+}
+
+bool analyse_argument_parser(std::string arg, int* i, const char* argv[]){
+    if(arg == "--analyse_abort" || arg == "-aa"){
+        *i += 1;
+        return AA_argument_detected(argv[*i]);
+    }else if(arg == "--analyse_file" || arg == "-af"){
+        set_analyse_mode(IFP_ANALYSE_NOT_NEEDED);
+        *i += 1;
+        return read_reg_from_file(argv[*i]);
+    }else if(arg == "--analyse_run" || arg == "-ar"){
+        set_analyse_mode(IFP_ANALYSE_NOT_NEEDED);
+        char path[256];
+        path_to_library(path, 256);
+        if(drsym_enumerate_symbols(path, enum_symbols, NULL, DRSYM_DEFAULT_FLAGS)
+            != DRSYM_SUCCESS){
+            dr_fprintf(STDERR, 
+                "ANALYSE FAILURE : Couldn't finish analysing the backend\n");
+            return true;
+        }
+    }else{
+        inc_error();
+    }
+    return false;
+}
+
+void analyse_mode_manager(){
+    switch(get_analyse_mode()){
+        case IFP_ANALYSE_NEEDED:
+            char path[256];
+            path_to_library(path, 256);
+            if(drsym_enumerate_symbols(path, enum_symbols, NULL, DRSYM_DEFAULT_FLAGS) 
+                != DRSYM_SUCCESS){
+                DR_ASSERT_MSG(false, 
+                    "ANALYSE FAILURE : Couldn't finish analysing the backend\n");
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+/*bool analyse_config_from_args(int argc, const char* argv[])
 {
-    char temp[256];
-    path_to_library(temp, 256);
+    char path[256];
+    path_to_library(path, 256);
     for(int i=1; i<argc; i++){
         std::string arg(argv[i]);
         if(arg == "--analyse_abort" || arg == "-aa"){
-            if(drsym_enumerate_symbols(temp, enum_symbols, 
-                NULL, DRSYM_DEFAULT_FLAGS) != DRSYM_SUCCESS){
-                return true;
+            if(drsym_enumerate_symbols(path, enum_symbols, 
+                NULL, DRSYM_DEFAULT_FLAGS) == DRSYM_SUCCESS){
+                write_reg_to_file(argv[++i]);
             }
-            return write_reg_to_file(argv[++i]);
+            return true;
         }else if(arg == "--analyse_from_file" || arg == "-af"){
             return read_reg_from_file(argv[++i]);
         }
     }
-    if(drsym_enumerate_symbols(temp, enum_symbols, NULL, DRSYM_DEFAULT_FLAGS)
+    if(drsym_enumerate_symbols(path, enum_symbols, NULL, DRSYM_DEFAULT_FLAGS)
         != DRSYM_SUCCESS){
         return true;
     }
     return false;
-}
+}*/
