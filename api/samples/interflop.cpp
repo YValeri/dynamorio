@@ -15,6 +15,7 @@
 #include "interflop/symbol_config.hpp"
 #include "interflop/interflop_client.h"
 #include "interflop/analyse.hpp"
+#include "interflop/utils.hpp"
 
 #if defined(X86)
 	static reg_id_t topush_reg[] = {
@@ -81,53 +82,16 @@ void printMessage(int msg)
 static void module_load_handler(void* drcontext, const module_data_t* module, bool loaded)
 {
 	dr_module_set_should_instrument(module->handle, should_instrument_module(module));
-}    
+}
 
-// Main function to setup the dynamoRIO client
-DR_EXPORT void dr_client_main(  client_id_t id, // client ID
-								int argc,   
-								const char *argv[])
-{
+static void api_initialisation(){
     drsym_init(0);
-    symbol_lookup_config_from_args(argc, argv);
-    interflop_client_mode_t client_mode = get_client_mode();
-    if(client_mode == IFP_CLIENT_HELP)
-    {
-        dr_abort_with_code(0);
-        return;
-    }
 
-    // Init DynamoRIO MGR extension ()
+    // Init DynamoRIO MGR extension
     drmgr_init();
-    
-    // Define the functions to be called before exiting this client program
-    dr_register_exit_event(event_exit);
 
     //Configure verrou in random rounding mode
     Interflop::verrou_prepare();
-
-/*
-    if(analyse_config_from_args(argc, argv)){
-		dr_abort_with_code(0);
-		return;
-	}
-    if(is_debug()){
-        print_register_vectors();
-    }*/
-	
-    
-    set_index_tls_result(drmgr_register_tls_field());
-    set_index_tls_float(drmgr_register_tls_field());
-    set_index_tls_gpr(drmgr_register_tls_field());
-    //set_index_tls_stack(drmgr_register_tls_field());
-    //set_index_tls_op_A(drmgr_register_tls_field());
-    //set_index_tls_op_B(drmgr_register_tls_field());
-    //set_index_tls_op_C(drmgr_register_tls_field());
-    //set_index_tls_saved_reg(drmgr_register_tls_field());
-
-    drmgr_register_thread_init_event(thread_init);
-    drmgr_register_thread_exit_event(thread_exit);
-
 
     drreg_options_t drreg_options;
     drreg_options.conservative = true;
@@ -136,14 +100,63 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
     drreg_options.do_not_sum_slots=true;
     drreg_options.error_callback=NULL;
     drreg_init(&drreg_options);
-    if(client_mode == IFP_CLIENT_GENERATE)
-    {
+}
+
+static void api_register(){
+    // Define the functions to be called before exiting this client program
+    dr_register_exit_event(event_exit);
+
+    drmgr_register_thread_init_event(thread_init);
+    drmgr_register_thread_exit_event(thread_exit);
+
+    if(get_client_mode() == IFP_CLIENT_GENERATE){
         drmgr_register_bb_instrumentation_event(symbol_lookup_event, NULL, NULL);
-    }else
-    {
+    }else{
         drmgr_register_module_load_event(module_load_handler);
         drmgr_register_bb_app2app_event(app2app_bb_event, NULL);
-    }    
+    }  
+}
+
+static void tls_register(){
+    set_index_tls_result(drmgr_register_tls_field());
+    set_index_tls_float(drmgr_register_tls_field());
+    set_index_tls_gpr(drmgr_register_tls_field());
+    //set_index_tls_stack(drmgr_register_tls_field());
+    //set_index_tls_op_A(drmgr_register_tls_field());
+    //set_index_tls_op_B(drmgr_register_tls_field());
+    //set_index_tls_op_C(drmgr_register_tls_field());
+    //set_index_tls_saved_reg(drmgr_register_tls_field());
+}
+
+// Main function to setup the dynamoRIO client
+DR_EXPORT void dr_client_main(  client_id_t id, // client ID
+								int argc,   
+								const char *argv[])
+{
+    api_initialisation();
+
+    if(arguments_parser(argc, argv)){
+        dr_abort_with_code(0);
+        return;
+    }
+
+    api_register();
+
+    tls_register();
+
+    if(is_debug_enabled()){
+        print_register_vectors();
+    }
+
+    std::vector<reg_id_t> registers = get_all_registers();
+
+    for(auto i = registers.begin(); i != registers.end(); ++i){
+        dr_printf("%s", get_register_name(*i));
+        if(i+1 != registers.end()){
+            dr_printf(", ");
+        }
+    }
+    dr_printf("\n");
 }
 
 static void event_exit()
@@ -151,8 +164,7 @@ static void event_exit()
 	drmgr_unregister_tls_field(get_index_tls_result());
 	drmgr_unregister_tls_field(get_index_tls_stack());
 
-	if(get_client_mode() == IFP_CLIENT_GENERATE)
-	{
+	if(get_client_mode() == IFP_CLIENT_GENERATE){
 		write_symbols_to_file();
 	}
 	drreg_exit();
@@ -562,7 +574,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
 
             if(ifp_is_instrumented(oc)) {
 
-                if(is_debug()) {
+                if(is_debug_enabled()) {
                     dr_printf("%d ", nb++);
                     dr_print_instr(drcontext, STDOUT, instr , ": ");
                 }
@@ -620,7 +632,7 @@ static dr_emit_flags_t symbol_lookup_event(void *drcontext, void *tag, instrlist
 				already_found_fp_op = true;
 				log_symbol(bb);
 			}
-			if(is_debug())
+			if(is_debug_enabled())
 			{
 				dr_print_instr(drcontext, STDERR, instr, "Found : ");
 			}else
