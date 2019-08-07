@@ -248,6 +248,8 @@ add_sample_client(stl_test    "stl_test.cpp"    "")
 
 add_sample_client(interflop    "interflop.cpp;interflop/interflop_operations.cpp;interflop/backend_verrou/interflop_verrou.cxx;interflop/symbol_config.cpp;interflop/interflop_client.cpp;interflop/analyse.cpp;interflop/utils.cpp"  "drmgr;drreg;drsyms")
 
+add_sample_client(regcount    "regcount.cpp"  "drmgr;drreg")
+
 # add utils.h for installation  # NON-PUBLIC
 set(srcs ${srcs} "utils.h")     # NON-PUBLIC
 
