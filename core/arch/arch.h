@@ -236,6 +236,12 @@ preserve_xmm_caller_saved(void)
  */
 extern bool *d_r_avx512_code_in_use;
 
+/* This flag indicates a client that had been compiled with AVX-512. In all other than
+ * "earliest" inject methods, the initial value of d_r_is_avx512_code_in_use() will be
+ * set to true, to prevent a client from clobbering potential application state.
+ */
+extern bool d_r_client_avx512_code_in_use;
+
 /* This routine determines whether zmm registers should be saved. */
 static inline bool
 d_r_is_avx512_code_in_use()
@@ -251,6 +257,19 @@ d_r_set_avx512_code_in_use(bool in_use)
     SELF_PROTECT_DATASEC(DATASEC_RARELY_PROT);
 }
 
+static inline bool
+d_r_is_client_avx512_code_in_use()
+{
+    return d_r_client_avx512_code_in_use;
+}
+
+static inline void
+d_r_set_client_avx512_code_in_use()
+{
+    SELF_UNPROTECT_DATASEC(DATASEC_RARELY_PROT);
+    ATOMIC_1BYTE_WRITE(&d_r_client_avx512_code_in_use, (bool)true, false);
+    SELF_PROTECT_DATASEC(DATASEC_RARELY_PROT);
+}
 #endif
 
 typedef enum {
@@ -366,6 +385,8 @@ typedef struct _clean_call_info_t {
     bool skip_clear_flags;
     int num_simd_skip;
     bool simd_skip[MCXT_NUM_SIMD_SLOTS];
+    int num_opmask_skip;
+    bool opmask_skip[MCXT_NUM_OPMASK_SLOTS];
     uint num_regs_skip;
     bool reg_skip[NUM_GP_REGS];
     bool preserve_mcontext; /* even if skip reg save, preserve mcontext shape */
@@ -1310,7 +1331,7 @@ new_bsdthread_setup(priv_mcontext_t *mc);
 #endif
 
 void
-get_xmm_vals(priv_mcontext_t *mc);
+get_simd_vals(priv_mcontext_t *mc);
 
 /* i#350: Fast safe_read without dcontext.  On success or failure, returns the
  * current source pointer.  Requires fault handling to be set up.
@@ -1408,17 +1429,20 @@ typedef struct _slot_t {
 
 /* data structure of clean call callee information. */
 typedef struct _callee_info_t {
-    bool bailout;      /* if we bail out on function analysis */
-    uint num_args;     /* number of args that will passed in */
-    int num_instrs;    /* total number of instructions of a function */
-    app_pc start;      /* entry point of a function  */
-    app_pc bwd_tgt;    /* earliest backward branch target */
-    app_pc fwd_tgt;    /* last forward branch target */
-    int num_simd_used; /* number of SIMD registers (xmms) used by callee */
-    /* SIMD (xmm/ymm) registers usage. Part of the array might be left
+    bool bailout;        /* if we bail out on function analysis */
+    uint num_args;       /* number of args that will passed in */
+    int num_instrs;      /* total number of instructions of a function */
+    app_pc start;        /* entry point of a function  */
+    app_pc bwd_tgt;      /* earliest backward branch target */
+    app_pc fwd_tgt;      /* last forward branch target */
+    int num_simd_used;   /* number of SIMD registers (xmms) used by callee */
+    int num_opmask_used; /* number of mask registers used by callee */
+    /* SIMD ([xyz]mm) registers usage. Part of the array might be left
      * uninitialized if proc_num_simd_registers() < MCXT_NUM_SIMD_SLOTS.
      */
     bool simd_used[MCXT_NUM_SIMD_SLOTS];
+    /* AVX-512 mask register usage. */
+    bool opmask_used[MCXT_NUM_OPMASK_SLOTS];
     bool reg_used[NUM_GP_REGS];         /* general purpose registers usage */
     int num_callee_save_regs;           /* number of regs callee saved */
     bool callee_save_regs[NUM_GP_REGS]; /* callee-save registers */

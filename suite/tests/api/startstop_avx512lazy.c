@@ -1,5 +1,5 @@
 /* **********************************************************
- * Copyright (c) 2015-2017 Google, Inc.  All rights reserved.
+ * Copyright (c) 2019 Google, Inc.  All rights reserved.
  * **********************************************************/
 
 /*
@@ -13,7 +13,7 @@
  *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
  *
- * * Neither the name of Google, Inc. nor the names of its contributors may be
+ * * Neither the name of VMware, Inc. nor the names of its contributors may be
  *   used to endorse or promote products derived from this software without
  *   specific prior written permission.
  *
@@ -30,28 +30,37 @@
  * DAMAGE.
  */
 
-/* cache_fifo: represents a single hardware cache with FIFO algo.
- */
+#include <assert.h>
+#include <stdio.h>
+#include <math.h>
+#include <stdint.h>
+#include "configure.h"
+#include "dr_api.h"
+#include "tools.h"
 
-#ifndef _CACHE_FIFO_H_
-#define _CACHE_FIFO_H_ 1
+int
+main(void)
+{
+    print("Initializing DynamoRIO\n");
 
-#include "cache.h"
+    /* Initialize DR */
+    dr_app_setup();
 
-class cache_fifo_t : public cache_t {
-public:
-    virtual bool
-    init(int associativity, int line_size, int total_size, caching_device_t *parent,
-         caching_device_stats_t *stats, prefetcher_t *prefetcher, bool inclusive = false,
-         bool coherent_cache = false, int id_ = -1,
-         snoop_filter_t *snoop_filter_ = nullptr,
-         const std::vector<caching_device_t *> &children = {});
+    print("Starting DynamoRIO\n");
 
-protected:
-    virtual void
-    access_update(int line_idx, int way);
-    virtual int
-    replace_which_way(int line_idx);
-};
+    dr_app_start();
 
-#endif /* _CACHE_FIFO_H_ */
+    if (!dr_app_running_under_dynamorio())
+        print("ERROR: should be under DynamoRIO after dr_app_start!\n");
+
+    dr_app_stop();
+
+    if (dr_app_running_under_dynamorio())
+        print("ERROR: should not be under DynamoRIO after dr_app_stop!\n");
+
+    dr_app_cleanup();
+
+    print("Ok\n");
+
+    return 0;
+}

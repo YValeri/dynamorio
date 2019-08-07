@@ -1031,6 +1031,11 @@ function(template2expect outexpect template runops key)
     # so currently this is unused.
     set(rundefs "${rundefs} -DCYGWIN")
   endif ()
+  if (DEFINED ${key}_runavx512)
+    set(rundefs "${rundefs} -D__AVX__ -D__AVX512F__")
+  elseif (DEFINED ${key}_runavx)
+    set(rundefs "${rundefs} -D__AVX__")
+  endif ()
 
   string(STRIP "${rundefs}" rundefs)
 
@@ -2112,7 +2117,18 @@ if (CLIENT_INTERFACE)
   endif (NOT ARM)
   tobuild_ci(client.unregister client-interface/unregister.c "" "" "")
   if (NOT ARM) # FIXME i#2094: implement cleancall optimizations on ARM
-    tobuild_ci(client.cleancall-opt-1 client-interface/cleancall-opt-1.c "" "-opt_cleancall 1" "")
+    tobuild_ci(client.cleancall-opt-1 client-interface/cleancall-opt-1.c ""
+      "-opt_cleancall 1" "")
+    if (proc_supports_avx512)
+      # XXX i#1312: This is untested on Windows.
+      tobuild_ci(client.avx512cleancall-opt-1 client-interface/cleancall-opt-1.c ""
+        "-opt_cleancall 1" "")
+      append_property_string(TARGET client.avx512cleancall-opt-1 COMPILE_FLAGS
+        "${CFLAGS_AVX512}")
+      append_property_string(TARGET client.avx512cleancall-opt-1.dll COMPILE_FLAGS
+        "${CFLAGS_AVX512}")
+    endif ()
+
     tobuild_ci(client.inline client-interface/inline.c "" "-opt_cleancall 3" "")
     if (CMAKE_COMPILER_IS_CLANG)
       optimize(client.inline.dll)
@@ -2536,8 +2552,15 @@ endif ()
       "" "-thread_private -cache_bb_unit_init 4K" "")
   endif ()
 
-  if (X86) # Tests x86 reachability.
-    tobuild_ci(client.reachability client-interface/reachability.c "" "" "")
+  if (X86)
+    if (X64) # Tests x86 reachability.
+      tobuild_ci(client.reachability client-interface/reachability.c ""
+        # The vm_base options were added in order to expose bugs that fail to xl8 reachable
+        # addresses to the executable view within the scheme of satisfy_w_xor_x.
+        "-no_vm_base_near_app -vm_base 0x100000000" "")
+    else ()
+      tobuild_ci(client.reachability client-interface/reachability.c "" "" "")
+    endif ()
   endif ()
 
   if (X86) # FIXME i#1551, i#1569: fix bugs on ARM and AArch64
@@ -2562,10 +2585,33 @@ endif ()
     tobuild_ci(client.avx512lazy client-interface/avx512lazy.c "" "" "")
     set_target_properties(client.avx512lazy PROPERTIES COMPILE_FLAGS "${CFLAGS_AVX512}")
 
+    # XXX i#1312: This is untested on Windows.
+    tobuild_ci(client.avx512lazy-initial client-interface/avx512lazy.c "" "" "")
+    set_target_properties(client.avx512lazy-initial PROPERTIES COMPILE_FLAGS
+      "${CFLAGS_AVX512}")
+    append_property_string(TARGET client.avx512lazy-initial.dll COMPILE_FLAGS
+      "${CFLAGS_AVX512} -DCLIENT_COMPILED_WITH_AVX512")
+
     if (UNIX)
       # XXX i#1312: we do not yet support AVX-512 Windows context switching.
       tobuild_ci(client.avx512ctx client-interface/avx512ctx.c "" "" "")
       set_target_properties(client.avx512ctx PROPERTIES COMPILE_FLAGS "${CFLAGS_AVX512}")
+      target_include_directories(client.avx512ctx PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/client-interface)
+
+      # This could be generalized in a new function. Currently this is the only api-style
+      # test that also has a client library.
+      add_library(api.startstop_avx512lazy.dll SHARED api/startstop_avx512lazy.dll.c)
+      setup_test_client_dll_basics(api.startstop_avx512lazy.dll)
+      append_property_string(TARGET api.startstop_avx512lazy.dll COMPILE_FLAGS
+        "${CFLAGS_AVX512}")
+      get_client_path(client_path api.startstop_avx512lazy.dll api.startstop_avx512lazy)
+      tobuild_api(api.startstop_avx512lazy api/startstop_avx512lazy.c
+        "-client_lib ${client_path}" "" OFF OFF)
+      append_property_string(TARGET api.startstop_avx512lazy COMPILE_FLAGS
+        "${CFLAGS_AVX512}")
+      append_property_string(TARGET api.startstop_avx512lazy.dll COMPILE_FLAGS
+        "${CFLAGS_AVX512}")
     endif (UNIX)
   endif ()
 
@@ -2728,6 +2774,10 @@ endif ()
           "-config_file ${config_files_dir}/cores-1-levels-3-no-missfile.conf"
           "${annotation_test_args}")
         set(tool.drcachesim.threads_timeout 150) # This test is long.
+
+        torunonly_drcachesim(coherence client.annotation-concurrency "-coherence"
+          "${annotation_test_args}")
+        set(tool.drcachesim.coherence_timeout 150) # This test is long.
 
         # TLB simulator's multi-thread sanity check
         torunonly_drcachesim(TLB-threads client.annotation-concurrency
@@ -3312,6 +3362,13 @@ if (UNIX)
   # FIXME i#58: port test to MacOS
   if (NOT ARM AND NOT AARCH64 AND NOT APPLE)
     tobuild(linux.sigcontext linux/sigcontext.c)
+    if (proc_supports_avx512)
+      append_property_string(TARGET linux.sigcontext COMPILE_FLAGS "${CFLAGS_AVX512}")
+      set(linux.sigcontext_runavx512 1)
+    elseif (proc_supports_avx)
+      append_property_string(TARGET linux.sigcontext COMPILE_FLAGS "${CFLAGS_AVX}")
+      set(linux.sigcontext_runavx 1)
+    endif ()
   endif ()
   if (NOT APPLE)
     tobuild(linux.thread linux/thread.c)
@@ -3447,11 +3504,19 @@ if (UNIX)
   set(linux.persist-use_FLAKY_depends linux.persist_FLAKY)
 
   if (LINUX AND X86 AND X64 AND HAVE_RSEQ)
-    # The rseq feature is Linux-only.
+    # The rseq kernel feature is Linux-only.
     # TODO i#2350: Port the assembly in the test to 32-bit, ARM, AArch64.
     tobuild(linux.rseq linux/rseq.c)
+    # Test the other sections.  Unfortunately we need a separate binary for each.
+    tobuild(linux.rseq_table linux/rseq.c)
+    append_property_string(TARGET linux.rseq_table
+      COMPILE_FLAGS "-DRSEQ_TEST_USE_OLD_SECTION_NAME")
+    tobuild(linux.rseq_noarray linux/rseq.c)
+    append_property_string(TARGET linux.rseq_noarray
+      COMPILE_FLAGS "-DRSEQ_TEST_USE_NO_ARRAY")
     # Test attaching, which has a separate lazy rseq check.
     tobuild_api(api.rseq linux/rseq.c "" "" OFF OFF)
+    link_with_pthread(api.rseq)
     append_property_string(TARGET api.rseq COMPILE_FLAGS "-DRSEQ_TEST_ATTACH")
   endif ()
 else (UNIX)

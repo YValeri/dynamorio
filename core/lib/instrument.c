@@ -112,6 +112,9 @@ do_file_write(file_t f, const char *fmt, va_list ap);
  */
 DR_API const char *unique_build_number = STRINGIFY(UNIQUE_BUILD_NUMBER);
 
+/* The flag d_r_client_avx512_code_in_use is described in arch.h. */
+#    define DR_CLIENT_AVX512_CODE_IN_USE_NAME "_DR_CLIENT_AVX512_CODE_IN_USE_"
+
 /* Acquire when registering or unregistering event callbacks
  * Also held when invoking events, which happens much more often
  * than registration changes, so we use rwlock
@@ -619,6 +622,14 @@ add_client_lib(const char *path, const char *id_str, const char *options)
                         BUFFER_SIZE_ELEMENTS(client_libs[idx].options));
                 NULL_TERMINATE_BUFFER(client_libs[idx].options);
             }
+#    ifdef X86
+            bool *client_avx512_code_in_use = (bool *)lookup_library_routine(
+                client_lib, DR_CLIENT_AVX512_CODE_IN_USE_NAME);
+            if (client_avx512_code_in_use != NULL) {
+                if (*client_avx512_code_in_use)
+                    d_r_set_client_avx512_code_in_use();
+            }
+#    endif
 
             /* We'll look up dr_client_main and call it in instrument_init */
         }
@@ -693,6 +704,16 @@ instrument_init(void)
     size_t i;
 
     init_client_aux_libs();
+
+#    ifdef X86
+    if (IF_WINDOWS_ELSE(!dr_earliest_injected, !DYNAMO_OPTION(early_inject))) {
+        /* A client that had been compiled with AVX-512 may clobber an application's
+         * state. AVX-512 context switching will not be lazy in this case.
+         */
+        if (d_r_is_client_avx512_code_in_use())
+            d_r_set_avx512_code_in_use(true);
+    }
+#    endif
 
     if (num_client_libs > 0) {
         /* We no longer distinguish in-DR vs in-client crashes, as many crashes in
@@ -2953,10 +2974,12 @@ raw_mem_alloc(size_t size, uint prot, void *addr, dr_alloc_flags_t flags)
             : (TEST(DR_ALLOC_COMMIT_ONLY, flags) ? RAW_ALLOC_COMMIT_ONLY : 0);
 #    endif
         if (IF_WINDOWS(TEST(DR_ALLOC_COMMIT_ONLY, flags) &&) addr != NULL &&
-            !app_memory_pre_alloc(get_thread_private_dcontext(), addr, size, prot, false))
+            !app_memory_pre_alloc(get_thread_private_dcontext(), addr, size, prot, false,
+                                  true /*update*/, false /*!image*/)) {
             p = NULL;
-        else
+        } else {
             p = os_raw_mem_alloc(addr, size, prot, os_flags, &error_code);
+        }
     }
 
     if (p != NULL) {
@@ -3048,6 +3071,10 @@ custom_memory_shared(bool alloc, void *drcontext, dr_alloc_flags_t flags, size_t
                       !TEST(DR_ALLOC_COMMIT_ONLY, flags),
                   "dr_custom_alloc: cannot combine reserve-only + commit-only");
 #    endif
+    CLIENT_ASSERT(!TEST(DR_ALLOC_CACHE_REACHABLE, flags) ||
+                      !DYNAMO_OPTION(satisfy_w_xor_x),
+                  "dr_custom_alloc: DR_ALLOC_CACHE_REACHABLE memory is not "
+                  "supported with -satisfy_w_xor_x");
     if (TEST(DR_ALLOC_NON_HEAP, flags)) {
         CLIENT_ASSERT(drcontext == NULL,
                       "dr_custom_alloc: drcontext must be NULL for non-heap");
@@ -3220,8 +3247,9 @@ dr_memory_protect(void *base, size_t size, uint new_prot)
     CLIENT_ASSERT(!standalone_library, "API not supported in standalone mode");
     if (!dynamo_vm_area_overlap(base, ((byte *)base) + size)) {
         uint mod_prot = new_prot;
-        uint res = app_memory_protection_change(get_thread_private_dcontext(), base, size,
-                                                new_prot, &mod_prot, NULL);
+        uint res =
+            app_memory_protection_change(get_thread_private_dcontext(), base, size,
+                                         new_prot, &mod_prot, NULL, false /*!image*/);
         if (res != DO_APP_MEM_PROT_CHANGE) {
             if (res == FAIL_APP_MEM_PROT_CHANGE || res == PRETEND_APP_MEM_PROT_CHANGE) {
                 return false;
@@ -5417,11 +5445,14 @@ dr_insert_clean_call_ex_varg(void *drcontext, instrlist_t *ilist, instr_t *where
 #if defined(X64) && defined(WINDOWS)
         cci.num_simd_skip = 6;
 #else
-        /* all 8 (or 16) are scratch */
+        /* all 8, 16 or 32 are scratch */
         cci.num_simd_skip = proc_num_simd_registers();
+        cci.num_opmask_skip = proc_num_opmask_registers();
 #endif
         for (i = 0; i < cci.num_simd_skip; i++)
             cci.simd_skip[i] = true;
+        for (i = 0; i < cci.num_opmask_skip; i++)
+            cci.opmask_skip[i] = true;
             /* now remove those used for param/retval */
 #ifdef X64
         if (TEST(DR_CLEANCALL_NOSAVE_XMM_NONPARAM, save_flags)) {

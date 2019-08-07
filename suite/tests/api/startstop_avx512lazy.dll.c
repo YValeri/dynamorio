@@ -1,5 +1,5 @@
 /* **********************************************************
- * Copyright (c) 2015-2017 Google, Inc.  All rights reserved.
+ * Copyright (c) 2019 Google, Inc.  All rights reserved.
  * **********************************************************/
 
 /*
@@ -20,7 +20,7 @@
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL VMWARE, INC. OR CONTRIBUTORS BE LIABLE
+ * ARE DISCLAIMED. IN NO EVENT SHALL GOOGLE, INC. OR CONTRIBUTORS BE LIABLE
  * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
  * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
@@ -30,28 +30,22 @@
  * DAMAGE.
  */
 
-/* cache_fifo: represents a single hardware cache with FIFO algo.
- */
+#include "dr_api.h"
+#include "client_tools.h"
+#include <string.h>
 
-#ifndef _CACHE_FIFO_H_
-#define _CACHE_FIFO_H_ 1
+#define CHECK(x, msg)                                                                \
+    do {                                                                             \
+        if (!(x)) {                                                                  \
+            dr_fprintf(STDERR, "CHECK failed %s:%d: %s\n", __FILE__, __LINE__, msg); \
+            dr_abort();                                                              \
+        }                                                                            \
+    } while (0);
 
-#include "cache.h"
-
-class cache_fifo_t : public cache_t {
-public:
-    virtual bool
-    init(int associativity, int line_size, int total_size, caching_device_t *parent,
-         caching_device_stats_t *stats, prefetcher_t *prefetcher, bool inclusive = false,
-         bool coherent_cache = false, int id_ = -1,
-         snoop_filter_t *snoop_filter_ = nullptr,
-         const std::vector<caching_device_t *> &children = {});
-
-protected:
-    virtual void
-    access_update(int line_idx, int way);
-    virtual int
-    replace_which_way(int line_idx);
-};
-
-#endif /* _CACHE_FIFO_H_ */
+DR_EXPORT void
+dr_init(client_id_t id)
+{
+    dr_fprintf(STDERR, "Initializing client\n");
+    CHECK(dr_mcontext_zmm_fields_valid(),
+          "Error: dr_mcontext_zmm_fields_valid() should return true.");
+}
