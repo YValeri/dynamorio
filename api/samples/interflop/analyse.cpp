@@ -173,7 +173,7 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
 
     for(instr = instrlist_first_app(list_bb); instr != NULL; instr = next_instr){
         next_instr = instr_get_next_app(instr);
-        if(is_debug_enabled()){
+        if(get_log_level() >= 3){
             print_tabs(tabs);
             dr_print_instr(drcontext, STDOUT, instr , "ENUM_SYMBOLS : ");
         }
@@ -194,7 +194,7 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
             if(std::find(app_pc_vect.begin(), app_pc_vect.end(), apc) 
                 == app_pc_vect.end()){
                 app_pc_vect.push_back(apc);
-                if(is_debug_enabled()){
+                if(get_log_level() >= 3){
                     print_tabs(tabs);
                     dr_printf("on ajoute l'app_pc = %p au vecteur\n\n\n", apc);
                 }
@@ -202,7 +202,7 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
                 show_instr_of_symbols(drcontext, lib_data, 
                     apc - lib_data->start, tabs + 1, fused);
             }else{
-                if(is_debug_enabled()){
+                if(get_log_level() >= 3){
                     print_tabs(tabs);
                     dr_printf("l'app_pc = %p a déjà été vu\n\n\n", apc);
                 }

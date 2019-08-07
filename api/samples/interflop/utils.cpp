@@ -42,27 +42,27 @@ static interflop_client_mode_t interflop_client_mode = IFP_CLIENT_DEFAULT;
 static interflop_analyse_mode_t interflop_analyse_mode = IFP_ANALYSE_NEEDED;
 
 void set_log_level(int level){
-	log_level = level;
+    log_level = level;
 }
 
-bool get_log_level(){
-	return log_level;
+int get_log_level(){
+    return log_level;
 }
 
 void print_help(){
-	dr_printf(IFP_HELP_STRING);
+    dr_printf(IFP_HELP_STRING);
 }
 
 void write_to_file_symbol_file_header(std::ofstream& output){
-	output << IFP_SYMBOL_FILE_HEADER;
+    output << IFP_SYMBOL_FILE_HEADER;
 }
 
 interflop_client_mode_t get_client_mode(){
-	return interflop_client_mode;
+    return interflop_client_mode;
 }
 
 void set_client_mode(interflop_client_mode_t mode){
-	interflop_client_mode = mode;
+    interflop_client_mode = mode;
 }
 
 interflop_analyse_mode_t get_analyse_mode(){
@@ -102,6 +102,12 @@ static bool utils_argument_parser(const std::string arg, int *i, int argc, const
                 return true;
             }
             set_log_level(std::stoi(level));
+        }else{
+                dr_fprintf(STDERR, 
+                        "NOT ENOUGH ARGUMENTS : Lacking the loglevel associated with \"%s\"\n", 
+                        argv[*i - 1]);
+                set_client_mode(IFP_CLIENT_HELP);
+                return true;
         }
     }else{
         inc_error();
@@ -110,13 +116,13 @@ static bool utils_argument_parser(const std::string arg, int *i, int argc, const
 }
 
 bool arguments_parser(int argc, const char* argv[]){
-	for(int i = 1; i < argc; ++i){
+    for(int i = 1; i < argc; ++i){
                 error_count = 0;
-            	std::string arg(argv[i]);
-                if(is_debug_enabled()){
+                std::string arg(argv[i]);
+                if(get_log_level() >= 2){
                     std::cout << arg << '\n';
                 }
-                if(utils_argument_parser(arg)){
+                if(utils_argument_parser(arg, &i, argc, argv)){
                         return true;
                 }else if(symbol_argument_parser(arg, &i, argc, argv)){
                         return true;
@@ -126,10 +132,11 @@ bool arguments_parser(int argc, const char* argv[]){
                         dr_fprintf(STDERR, 
                                 "Unknown command line option\n");
                         return true;
-		}
-	}
+        }
+    }
 
         symbol_client_mode_manager();
         analyse_mode_manager();
         return false;
 }
+

@@ -144,19 +144,20 @@ DR_EXPORT void dr_client_main(  client_id_t id, // client ID
 
     tls_register();
 
-    if(is_debug_enabled()){
+    if(get_log_level() >= 2){
         print_register_vectors();
-    }
+    }else if(get_log_level() == 1){
+        std::vector<reg_id_t> registers = get_all_registers();
 
-    std::vector<reg_id_t> registers = get_all_registers();
-
-    for(auto i = registers.begin(); i != registers.end(); ++i){
-        dr_printf("%s", get_register_name(*i));
-        if(i+1 != registers.end()){
-            dr_printf(", ");
+        dr_printf("Registers used by backend :\n");
+        for(auto i = registers.begin(); i != registers.end(); ++i){
+            dr_printf("%s", get_register_name(*i));
+            if(i+1 != registers.end()){
+                dr_printf(", ");
+            }
         }
+        dr_printf("\n");
     }
-    dr_printf("\n");
 }
 
 static void event_exit()
@@ -574,7 +575,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
 
             if(ifp_is_instrumented(oc)) {
 
-                if(is_debug_enabled()) {
+                if(get_log_level() >= 1) {
                     dr_printf("%d ", nb++);
                     dr_print_instr(drcontext, STDOUT, instr , ": ");
                 }
@@ -632,7 +633,7 @@ static dr_emit_flags_t symbol_lookup_event(void *drcontext, void *tag, instrlist
 				already_found_fp_op = true;
 				log_symbol(bb);
 			}
-			if(is_debug_enabled())
+			if(get_log_level() >= 1)
 			{
 				dr_print_instr(drcontext, STDERR, instr, "Found : ");
 			}else

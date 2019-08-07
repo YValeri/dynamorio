@@ -5,18 +5,18 @@
 
 /** Specifies the behavior of the client */
 typedef enum{
-	IFP_CLIENT_DEFAULT = 0, /** Default */
-	IFP_CLIENT_NOLOOKUP = 0, /** Don't look at symbols */
-	IFP_CLIENT_GENERATE = 1, /** Generate the symbols from an execution */
-	IFP_CLIENT_BL_ONLY = 2, /** Don't instrument the symbols in the blacklist */
-	IFP_CLIENT_WL_ONLY = 4, /** Instrument only the symbols in the whitelist */
-	IFP_CLIENT_BL_WL = 6, /** Instrument the symbols in the whitelist that aren't in the blacklist */
-	IFP_CLIENT_HELP = -1 /** Display arguments help */
+    IFP_CLIENT_DEFAULT = 0, /** Default */
+    IFP_CLIENT_NOLOOKUP = 0, /** Don't look at symbols */
+    IFP_CLIENT_GENERATE = 1, /** Generate the symbols from an execution */
+    IFP_CLIENT_BL_ONLY = 2, /** Don't instrument the symbols in the blacklist */
+    IFP_CLIENT_WL_ONLY = 4, /** Instrument only the symbols in the whitelist */
+    IFP_CLIENT_BL_WL = 6, /** Instrument the symbols in the whitelist that aren't in the blacklist */
+    IFP_CLIENT_HELP = -1 /** Display arguments help */
 } interflop_client_mode_t;
 
 typedef enum{
-	IFP_ANALYSE_NOT_NEEDED = 0, /* Backend analysis not needed */
-	IFP_ANALYSE_NEEDED = 1 /* Backend analysis needed */
+    IFP_ANALYSE_NOT_NEEDED = 0, /* Backend analysis not needed */
+    IFP_ANALYSE_NEEDED = 1 /* Backend analysis needed */
 } interflop_analyse_mode_t;
 
 #define UNKNOWN_ARGUMENT 3
