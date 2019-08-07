@@ -101,7 +101,9 @@ static bool utils_argument_parser(const std::string arg, int *i, int argc, const
                 set_client_mode(IFP_CLIENT_HELP);
                 return true;
             }
-            set_log_level(std::stoi(level));
+            if(get_log_level() < std::stoi(level)){
+                set_log_level(std::stoi(level));
+            }
         }else{
                 dr_fprintf(STDERR, 
                         "NOT ENOUGH ARGUMENTS : Lacking the loglevel associated with \"%s\"\n", 
@@ -119,14 +121,11 @@ bool arguments_parser(int argc, const char* argv[]){
     for(int i = 1; i < argc; ++i){
                 error_count = 0;
                 std::string arg(argv[i]);
-                if(get_log_level() >= 2){
-                    std::cout << arg << '\n';
-                }
                 if(utils_argument_parser(arg, &i, argc, argv)){
                         return true;
                 }else if(symbol_argument_parser(arg, &i, argc, argv)){
                         return true;
-                }else if(analyse_argument_parser(arg, &i, argv)){
+                }else if(analyse_argument_parser(arg, &i, argc, argv)){
                         return true;
                 }else if(error_count == UNKNOWN_ARGUMENT){
                         dr_fprintf(STDERR, 
@@ -139,4 +138,3 @@ bool arguments_parser(int argc, const char* argv[]){
         analyse_mode_manager();
         return false;
 }
-

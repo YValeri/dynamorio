@@ -16,8 +16,6 @@ static std::vector<app_pc> app_pc_vect;
 
 static std::vector<reg_id_t> gpr_reg;
 static std::vector<reg_id_t> float_reg;
-static std::vector<reg_id_t> fused_gpr_reg;
-static std::vector<reg_id_t> fused_float_reg;
 
 std::vector<reg_id_t> get_gpr_reg(){
     return gpr_reg;
@@ -25,14 +23,6 @@ std::vector<reg_id_t> get_gpr_reg(){
 
 std::vector<reg_id_t> get_float_reg(){
     return float_reg;
-}
-
-std::vector<reg_id_t> get_fused_gpr_reg(){
-    return fused_gpr_reg;
-}
-
-std::vector<reg_id_t> get_fused_float_reg(){
-    return fused_float_reg;
 }
 
 std::vector<reg_id_t> get_all_registers(){
@@ -46,20 +36,6 @@ std::vector<reg_id_t> get_all_registers(){
     }
 
     for(auto reg: float_reg){
-        if(std::find(ret.begin(), ret.end(), reg) 
-                == ret.end()){
-            ret.push_back(reg);
-        }
-    }
-
-    for(auto reg: fused_gpr_reg){
-        if(std::find(ret.begin(), ret.end(), reg) 
-                == ret.end()){
-            ret.push_back(reg);
-        }
-    }
-
-    for(auto reg: fused_float_reg){
         if(std::find(ret.begin(), ret.end(), reg) 
                 == ret.end()){
             ret.push_back(reg);
@@ -88,18 +64,14 @@ void print_register_vectors(){
     print_vect(gpr_reg);
     dr_printf("\nList of float registers : \n\t");
     print_vect(float_reg);
-    dr_printf("\nList of fused gpr registers : \n\t");
-    print_vect(fused_gpr_reg);
-    dr_printf("\nList of fused float registers : \n\t");
-    print_vect(fused_float_reg);
     dr_printf("\n");
 }
 
-static void add_to_vect(reg_id_t reg, bool fused){
+static void add_to_vect(reg_id_t reg){
     bool overlaps = false;
 
     if(reg_is_gpr(reg)){
-        for(auto path: (fused ? fused_gpr_reg : gpr_reg)){
+        for(auto path: gpr_reg){
             if(reg == path)
                 overlaps = true;
             if(reg_overlap(reg, path))
@@ -109,12 +81,12 @@ static void add_to_vect(reg_id_t reg, bool fused){
         }
 
         if(!overlaps){
-            (fused ? fused_gpr_reg : gpr_reg).push_back(reg);
+            gpr_reg.push_back(reg);
         }
 
     }else if(reg_is_strictly_xmm(reg) || reg_is_strictly_ymm(reg)
         || reg_is_strictly_zmm(reg)){
-        for(auto path: (fused ? fused_float_reg : float_reg)){
+        for(auto path: float_reg){
             if(reg == path)
                 overlaps = true;
             if(reg_overlap(reg, path))
@@ -124,12 +96,12 @@ static void add_to_vect(reg_id_t reg, bool fused){
         }
 
         if(!overlaps){
-            (fused ? fused_float_reg : float_reg).push_back(reg);
+            float_reg.push_back(reg);
         }
     }
 }
 
-static void fill_reg_vect(instr_t *instr, bool fused){
+static void fill_reg_vect(instr_t *instr){
     opnd_t operand;
     reg_id_t reg1, reg2;
     int limit;
@@ -145,8 +117,8 @@ static void fill_reg_vect(instr_t *instr, bool fused){
             reg1 = opnd_get_base(operand);
             reg2 = opnd_get_index(operand);
         }
-        add_to_vect(reg1, fused);
-        add_to_vect(reg2, fused);
+        add_to_vect(reg1);
+        add_to_vect(reg2);
     }
 
     limit = instr_num_dsts(instr);
@@ -160,13 +132,13 @@ static void fill_reg_vect(instr_t *instr, bool fused){
             reg1 = opnd_get_base(operand);
             reg2 = opnd_get_index(operand);
         }
-        add_to_vect(reg1, fused);
-        add_to_vect(reg2, fused);
+        add_to_vect(reg1);
+        add_to_vect(reg2);
     }
 }
 
 static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data, 
-    size_t offset, int tabs, bool fused){
+    size_t offset, int tabs){
     instrlist_t* list_bb = decode_as_bb(drcontext, lib_data->start + offset);
     instr_t *instr = nullptr, *next_instr = nullptr;
     app_pc apc = 0;
@@ -178,7 +150,7 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
             dr_print_instr(drcontext, STDOUT, instr , "ENUM_SYMBOLS : ");
         }
 
-        fill_reg_vect(instr, fused);
+        fill_reg_vect(instr);
 
         if(instr_is_ubr(instr) || instr_is_cbr(instr) ||
             instr_get_opcode(instr) == OP_jmp_ind ||
@@ -186,7 +158,7 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
             show_instr_of_symbols(drcontext, lib_data, 
                 instr_get_app_pc(instr) 
                     - lib_data->start 
-                    + instr_length(drcontext, instr), tabs, fused);
+                    + instr_length(drcontext, instr), tabs);
         }
 
         if(instr_is_call(instr)) {
@@ -200,7 +172,7 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
                 }
                 
                 show_instr_of_symbols(drcontext, lib_data, 
-                    apc - lib_data->start, tabs + 1, fused);
+                    apc - lib_data->start, tabs + 1);
             }else{
                 if(get_log_level() >= 3){
                     print_tabs(tabs);
@@ -211,7 +183,7 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
             show_instr_of_symbols(drcontext, lib_data, 
                 instr_get_app_pc(instr) 
                     - lib_data->start 
-                    + instr_length(drcontext, instr), tabs, fused);
+                    + instr_length(drcontext, instr), tabs);
         }
     }
 
@@ -235,8 +207,6 @@ static void write_reg_to_file(const char* path){
     }else{
         write_vect(analyse_file, gpr_reg, "gpr_reg");
         write_vect(analyse_file, float_reg, "float_reg");
-        write_vect(analyse_file, fused_gpr_reg, "fused_gpr_reg");
-        write_vect(analyse_file, fused_float_reg, "fused_float_reg");
         analyse_file.flush();
         analyse_file.close();
     }
@@ -245,7 +215,8 @@ static void write_reg_to_file(const char* path){
 static bool read_reg_from_file(const char* path){
     std::ifstream analyse_file;
     std::string buffer;
-    int line_number = 0, vector_number = 0;
+    int line_number = 0;
+    bool float_vect = false;
 
     analyse_file.open(path);
     if(analyse_file.fail()){
@@ -256,30 +227,11 @@ static bool read_reg_from_file(const char* path){
     while(std::getline(analyse_file, buffer)){
         std::cout << buffer << '\n';
         if(buffer == "gpr_reg"){
-            vector_number = 1;
+            float_vect = false;
         }else if(buffer == "float_reg"){
-            vector_number = 2;
-        }else if(buffer == "fused_gpr_reg"){
-            vector_number = 3;
-        }else if(buffer == "fused_float_reg"){
-            vector_number = 4;
+            float_vect = true;
         }else if(is_number(buffer)){
-            switch(vector_number){
-                case 1:
-                    gpr_reg.push_back((reg_id_t)std::stoi(buffer));
-                    break;
-                case 2:
-                    float_reg.push_back((reg_id_t)std::stoi(buffer));
-                    break;
-                case 3:
-                    fused_gpr_reg.push_back((reg_id_t)std::stoi(buffer));
-                    break;
-                case 4:
-                    fused_float_reg.push_back((reg_id_t)std::stoi(buffer));
-                    break;
-                default:
-                    return true;
-            }
+            (float_vect ? float_reg : gpr_reg).push_back((reg_id_t)std::stoi(buffer));
         }else{
             dr_fprintf(STDERR, "FAILED TO CORRECTLY READ THE FILE : Problem on file line %d = \"%s\"\n", 
                 line_number, buffer);
@@ -297,17 +249,10 @@ bool enum_symbols(const char *name, size_t modoffs, void *data){
     module_data_t* lib_data = nullptr;
 
     std::string str(name);
-    if(str.find("backend<>::apply") != std::string::npos) {
+    if(str.find("<>::apply") != std::string::npos) {
         drcontext = dr_get_current_drcontext();
         lib_data = dr_lookup_module_by_name("libinterflop.so");
-        show_instr_of_symbols(drcontext, lib_data, modoffs, 0, false);
-        dr_free_module_data(lib_data);
-    }
-
-    if(str.find("backend_fused<>::apply") != std::string::npos) {
-        drcontext = dr_get_current_drcontext();
-        lib_data = dr_lookup_module_by_name("libinterflop.so");
-        show_instr_of_symbols(drcontext, lib_data, modoffs, 0, true);
+        show_instr_of_symbols(drcontext, lib_data, modoffs, 0);
         dr_free_module_data(lib_data);
     }
 
@@ -332,7 +277,7 @@ static bool AA_argument_detected(const char* file){
     return true;
 }
 
-bool analyse_argument_parser(std::string arg, int* i, const char* argv[]){
+bool analyse_argument_parser(std::string arg, int* i, int argc, const char* argv[]){
     if(arg == "--analyse_abort" || arg == "-aa"){
         *i += 1;
         return AA_argument_detected(argv[*i]);
@@ -394,3 +339,4 @@ void analyse_mode_manager(){
     }
     return false;
 }*/
+
