@@ -12,7 +12,7 @@ commutativity.out: commutativity.cpp
 	$(CC) -o commutativity.out commutativity.cpp $(FLAG)
 
 divtest.out: divtest.cpp
-	$(CC) -o divtest.out divtest.cpp $(FLAG)
+	$(CC) -o divtest.out divtest.cpp $(FLAG) -masm=intel
 
 matmul_blas.out: matmul_blas.cpp
 	$(CC) -o matmul_blas.out matmul_blas.cpp -lopenblas $(FLAG)
