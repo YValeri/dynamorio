@@ -5,8 +5,6 @@
 #define BACKEND_INTERFLOP 
 
 
-#pragma once
-
 #include "../backend_verrou/interflop_verrou.h"
 
 
@@ -23,7 +21,7 @@ static void verrou_prepare() {
 }
 
 static void verrou_end() {
-interflop_verrou_finalyze(verrou_context);
+	interflop_verrou_finalyze(verrou_context);
 }
 
 

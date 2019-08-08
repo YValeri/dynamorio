@@ -446,12 +446,6 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
         return DR_EMIT_DEFAULT;
     }
 
-    /*dr_printf("**\n");
-    for(instr = instrlist_first_app(bb); instr!=nullptr; instr = instr_get_next_app(instr))
-    {
-        dr_print_instr(drcontext, STDERR, instr, "");
-    }*/
-
     
     std::vector<sub_block> blocks = preanalysis(drcontext, tag, bb);
     if(blocks.empty() || blocks.size() == 1 && !blocks[0].instrumentable)
