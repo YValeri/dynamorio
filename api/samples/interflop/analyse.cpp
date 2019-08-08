@@ -12,6 +12,11 @@
 #include <fstream>
 #include <iostream>
 
+static bool NEED_SSE_INVERSE = false;
+
+bool get_need_sse_inverse() { return NEED_SSE_INVERSE; }
+void set_need_sse_inverse(bool new_value) { NEED_SSE_INVERSE = new_value; }
+
 static std::vector<app_pc> app_pc_vect;
 
 static std::vector<reg_id_t> gpr_reg;
@@ -190,6 +195,36 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
     instrlist_clear_and_destroy(drcontext, list_bb);
 }
 
+static void analyse_symbol_test_sse_src(void *drcontext, module_data_t* lib_data, size_t offset) {
+
+    instrlist_t* list_bb = decode_as_bb(drcontext, lib_data->start + offset);
+    instr_t *instr = nullptr, *next_instr = nullptr;
+    app_pc apc = 0;
+
+    reg_id_t reg_src0_instr0 = DR_REG_NULL, reg_src0_instr1 = DR_REG_NULL;
+
+    for(instr = instrlist_first_app(list_bb); instr != NULL; instr = next_instr) {
+        next_instr = instr_get_next_app(instr);
+         
+        if(instr_get_opcode(instr) == OP_divpd) { reg_src0_instr0 = opnd_get_reg(instr_get_src(instr,0)); }
+        if(instr_get_opcode(instr) == OP_vdivpd) { reg_src0_instr1 = opnd_get_reg(instr_get_src(instr,0)); }
+    }
+ 
+    if(reg_src0_instr0 != DR_REG_NULL && reg_src0_instr1 != DR_REG_NULL) {
+        if(reg_src0_instr0 != reg_src0_instr1) {
+            if(get_log_level() > 1) {
+                dr_fprintf(STDERR , "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+                dr_fprintf(STDERR , "!!!!!!!!!!!!! WARNING : SSE sources order is still incorrect in DynamoRIO, so we need to invert them !!!!!!!!!!!!!\n");
+                dr_fprintf(STDERR , "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+            }
+            set_need_sse_inverse(true);
+        }
+       
+    }
+
+    instrlist_clear_and_destroy(drcontext, list_bb);
+}
+
 static void write_vect(std::ofstream& analyse_file, std::vector<reg_id_t> vect,
     const char* vect_type){
     analyse_file << vect_type << '\n';
@@ -256,6 +291,13 @@ bool enum_symbols(const char *name, size_t modoffs, void *data){
         dr_free_module_data(lib_data);
     }
 
+    if(str.find("test_sse_src_order") != std::string::npos) {
+        drcontext = dr_get_current_drcontext();
+        lib_data = dr_lookup_module_by_name("libinterflop.so");
+        analyse_symbol_test_sse_src(drcontext , lib_data , modoffs);
+        dr_free_module_data(lib_data);
+    }
+
     return true;
 }
 
@@ -316,6 +358,17 @@ void analyse_mode_manager(){
             break;
     }
 }
+    
+void test_sse_src_order() {
+    __asm__ volatile(
+            "\t.intel_syntax;\n"
+            "\tdivpd %xmm0, %xmm1;\n"
+            "\tvdivpd %xmm0, %xmm0, %xmm1;\n"
+            "\t.att_syntax;\n"
+            );
+}
+
+
 
 /*bool analyse_config_from_args(int argc, const char* argv[])
 {

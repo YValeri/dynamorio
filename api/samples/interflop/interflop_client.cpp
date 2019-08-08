@@ -1032,8 +1032,7 @@ void insert_set_operands(void* drcontext, instrlist_t *bb, instr_t *where, instr
         }
     }else
     {
-        //FIXME : Dynamorio currently inverses the SSE instructions compared to AVX, needs to be checked by unit testing
-        if(INSTR_IS_ANY_SSE(instr))
+        if(get_need_sse_inverse() && INSTR_IS_ANY_SSE(instr))
         {
             reg_op_addr[0] = DR_REG_OP_B_ADDR;
             reg_op_addr[1] = DR_REG_OP_A_ADDR;

@@ -11,8 +11,6 @@
 
 static std::forward_list<reg_id_t> register_list;
 
-instr_t *instr_glob;
-
 static void event_exit(void);
 
 //Function to treat each block of instructions to instrument
