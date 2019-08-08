@@ -135,54 +135,64 @@ inline int offset_of_simd(reg_id_t simd)
     return ((uint)simd-START)<<OFFSET;
 }
 
-template <typename FTYPE , FTYPE (*Backend_function)(FTYPE, FTYPE) , int SIMD_TYPE = IFP_OP_SCALAR>
+template <typename FTYPE , FTYPE (*Backend_function)(FTYPE, FTYPE) , int INSTR_CATEGORY , int SIMD_TYPE = IFP_OP_SCALAR>
 struct interflop_backend {
 
 	static void apply(FTYPE *vect_a,  FTYPE *vect_b) {
 
-		static const int vect_size = (SIMD_TYPE == IFP_OP_128) ? 
-						16 : (SIMD_TYPE == IFP_OP_256) ? 
-						32 : (SIMD_TYPE == IFP_OP_512) ? 
-						64 : sizeof(FTYPE);
-		static const int nb_elem = vect_size/sizeof(FTYPE);
+		static const int operation_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
+		static const int nb_elem = operation_size/sizeof(FTYPE);
+
+		static const int max_operation_size = (INSTR_CATEGORY == IFP_OP_SSE) ? 16 : (INSTR_CATEGORY == IFP_OP_AVX) ? 32 : sizeof(FTYPE);
+		static const int max_nb_elem = max_operation_size/sizeof(FTYPE);
 	    FTYPE res;
 
-        /*dr_printf("Vect size : %d\n",vect_size);
-        dr_printf("Nb elem : %d\n",nb_elem);
-
-        dr_printf("A : %f\nB : %f\n",vect_a[0], vect_b[0]);*/
         FTYPE* tls = *(FTYPE**)GET_TLS(dr_get_current_drcontext(), tls_result);
         
         for(int i = 0 ; i < nb_elem ; i++) {
-#if defined(X86)
-			res = Backend_function(vect_a[i], vect_b[i]);
-#elif defined(AARCH64)
-			res = Backend_function(vect_b[i], vect_a[i]);
-#endif
-            *(tls+i) = res;
+			#if defined(X86)
+				res = Backend_function(vect_a[i], vect_b[i]);
+			#elif defined(AARCH64)
+				res = Backend_function(vect_b[i], vect_a[i]);
+			#endif
+				*(tls+i) = res;
         }   
+
+		for(int i = nb_elem ; i < max_nb_elem ; i++) {
+			*(tls+i) = 0;
+		}
+
     }
 };
 
 
-template <typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE), int SIMD_TYPE = IFP_OP_SCALAR>
+template <typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE), int INSTR_CATEGORY , int SIMD_TYPE = IFP_OP_SCALAR>
 struct interflop_backend_fused {
         
         static void apply(FTYPE *vect_a,  FTYPE *vect_b, FTYPE *vect_c) {
+
        
         static const int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
         static const int nb_elem = vect_size/sizeof(FTYPE);
 
+		static const int max_operation_size = (INSTR_CATEGORY == IFP_OP_SSE) ? 16 : (INSTR_CATEGORY == IFP_OP_AVX) ? 32 : sizeof(FTYPE);
+		static const int max_nb_elem = max_operation_size/sizeof(FTYPE);
+
         FTYPE res;
         FTYPE* tls = *(FTYPE**)(GET_TLS(dr_get_current_drcontext(), tls_result));
-        for(int i = 0 ; i < nb_elem ; i++) {
-#if defined(X86)
-            res = Backend_function(vect_a[i], vect_b[i], vect_c[i]);
-#elif defined(AARCH64)
-			res = Backend_function(vect_b[i], vect_a[i], vect_c[i]);
-#endif
-            *(tls+i) = res;
+
+		for(int i = 0 ; i < nb_elem ; i++) {
+			#if defined(X86)
+					res = Backend_function(vect_a[i], vect_b[i], vect_c[i]);
+				#elif defined(AARCH64)
+					res = Backend_function(vect_b[i], vect_a[i], vect_c[i]);
+				#endif
+            		*(tls+i) = res;
         }   
+
+		for(int i = nb_elem ; i < max_nb_elem ; i++) {
+			*(tls+i) = 0;
+		}
     }   
 };
 
@@ -569,16 +579,22 @@ void insert_corresponding_vect_call(void* drcontext, instrlist_t *bb, instr_t* i
 	switch(oc & IFP_SIMD_TYPE_MASK)
 	{
 		case IFP_OP_128:
-			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, Backend_function, IFP_OP_128>::apply, 0);
+			if(oc & IFP_OP_SSE)
+				dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, Backend_function, IFP_OP_SSE , IFP_OP_128>::apply, 0);
+			else
+				dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, Backend_function, IFP_OP_AVX , IFP_OP_128>::apply, 0);
 		break;
 		case IFP_OP_256:
-			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, Backend_function, IFP_OP_256>::apply, 0);
+			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, Backend_function, IFP_AVX  ,IFP_OP_256>::apply, 0);
 		break;
 		case IFP_OP_512:
-			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, Backend_function, IFP_OP_512>::apply, 0);
+			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, Backend_function, IFP_AVX , IFP_OP_512>::apply, 0);
 		break;
 		default: /*SCALAR */
-			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, Backend_function>::apply, 0);
+			if(oc & IFP_OP_SSE)
+				dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, Backend_function, IFP_OP_SSE>::apply, 0);
+			else
+				dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, Backend_function, IFP_OP_AVX >::apply, 0);
 	}
 }
 
@@ -588,18 +604,23 @@ void insert_corresponding_vect_call_fused(void* drcontext, instrlist_t *bb, inst
 	switch(oc & IFP_SIMD_TYPE_MASK)
 	{
 		case IFP_OP_128:
-			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function, IFP_OP_128>::apply, 0);
-		break;
-
+			if(oc & IFP_OP_SSE)
+				dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function, IFP_OP_SSE , IFP_OP_128>::apply, 0);
+			else
+				dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function, IFP_OP_AVX , IFP_OP_128>::apply, 0);
+			
 		case IFP_OP_256:
-			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function,  IFP_OP_256>::apply, 0);
+			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function, IFP_OP_AVX , IFP_OP_256>::apply, 0);
 		break;
 		case IFP_OP_512:
-			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function,  IFP_OP_512>::apply, 0);
+			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function, IFP_OP_AVX ,  IFP_OP_512>::apply, 0);
 		break;
 
 		default: /*SCALAR */
-			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function>::apply, 0);
+			if(oc & IFP_OP_SSE)
+				dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function, IFP_OP_SSE>::apply, 0);
+			else
+				dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function, IFP_OP_AVX >::apply, 0);
 	}
 }
 

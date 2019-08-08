@@ -570,6 +570,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
         oc = ifp_get_operation_category(instr);
         bool registers_saved=false;
         bool should_continue=false;
+
         do{
             next_instr = instr_get_next_app(instr);
 
@@ -607,13 +608,13 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
                     insert_restore_simd_registers(drcontext, bb, instr);
                     insert_restore_gpr_and_flags(drcontext, bb, instr);
                 }
-                //dr_insert_clean_call(drcontext, bb, instr, (void*)print, true, 0);
+                // dr_insert_clean_call(drcontext, bb, instr, (void*)print, true, 0);
                 // Remove original instruction
                 instrlist_remove(bb, instr);
                 instr_destroy(drcontext, instr);
                 registers_saved=true;
             }
-            instr = next_instr;
+            instr = next_instr;  
         }while(should_continue);
     }
     return DR_EMIT_DEFAULT;

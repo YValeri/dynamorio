@@ -54,106 +54,106 @@ enum OPERATION_CATEGORY ifp_get_operation_category(instr_t* instr)
 #ifdef X86
 		// ####### SSE SCALAR #######
 		case OP_addss: //SSE scalar float add
-			return IFP_ADDS;
+			return IFP_ADDS_SSE;
 
 		case OP_addsd: //SSE scalar double add
-			return IFP_ADDD;
+			return IFP_ADDD_SSE;
 
 		case OP_subsd: //SSE scalar double sub
-			return IFP_SUBD;
+			return IFP_SUBD_SSE;
 
 		case OP_subss: //SSE scalar float sub
-			return IFP_SUBS;
+			return IFP_SUBS_SSE;
 
 		case OP_mulsd: //SSE scalar double mul
-			return IFP_MULD;
+			return IFP_MULD_SSE;
 
 		case OP_mulss: //SSE scalar float mul
-			return IFP_MULS;
+			return IFP_MULS_SSE;
 
 		case OP_divsd: //SSE scalar double div
-			return IFP_DIVD;
+			return IFP_DIVD_SSE;
 
 		case OP_divss: //SSE scalar float div
-			return IFP_DIVS;
+			return IFP_DIVS_SSE;
 
 		// ####### AVX SCALAR #######
 		case OP_vaddss: //AVX scalar float add
-			return IFP_ADDS;
+			return IFP_ADDS_AVX;
 
 		case OP_vaddsd: //AVX scalar double add
-			return IFP_ADDD;
+			return IFP_ADDD_AVX;
 
 		case OP_vsubsd: //AVX scalar double sub
-			return IFP_SUBD;
+			return IFP_SUBD_AVX;
 
 		case OP_vsubss: //AVX scalar float sub
-			return IFP_SUBS;
+			return IFP_SUBS_AVX;
 
 		case OP_vmulsd: //AVX scalar double mul
-			return IFP_MULD;
+			return IFP_MULD_AVX;
 
 		case OP_vmulss: //AVX scalar float mul
-			return IFP_MULS;
+			return IFP_MULS_AVX;
 
 		case OP_vdivsd: //AVX scalar double div
-			return IFP_DIVD;
+			return IFP_DIVD_AVX;
 
 		case OP_vdivss: //AVX scalar float div
-			return IFP_DIVS;
+			return IFP_DIVS_AVX;
 
 		// ###### SIMD ######
 		// ###### SSE ######
 
 		case OP_addps: //SSE packed float add
-			return IFP_PADDS_128;
+			return IFP_PADDS_SSE_128;
 
 		case OP_addpd: //SSE packed double add
-			return IFP_PADDD_128;
+			return IFP_PADDD_SSE_128;
 
 		case OP_subps: //SSE packed float sub
-			return IFP_PSUBS_128;
+			return IFP_PSUBS_SSE_128;
 
 		case OP_subpd: //SSE packet double sub
-			return IFP_PSUBD_128;
+			return IFP_PSUBD_SSE_128;
 
 		case OP_mulps: //SSE packed float mul
-			return IFP_PMULS_128;
+			return IFP_PMULS_SSE_128;
 
 		case OP_mulpd: //SSE packet double mul
-			return IFP_PMULD_128;
+			return IFP_PMULD_SSE_128;
 
 		case OP_divps: //SSE packed float div
-			return IFP_PDIVS_128;
+			return IFP_PDIVS_SSE_128;
 
 		case OP_divpd: //SSE packet double div
-			return IFP_PDIVD_128;
+			return IFP_PDIVD_SSE_128;
 
 		// ###### AVX ######
 
 		case OP_vaddpd: //AVX packed double add
-			return (OPERATION_CATEGORY)(IFP_PADDD | get_size_flag(instr));
+			return (OPERATION_CATEGORY)(IFP_PADDD_AVX | get_size_flag(instr));
 
 		case OP_vaddps: //AVX packed float add
-			return (OPERATION_CATEGORY)(IFP_PADDS | get_size_flag(instr));
+			return (OPERATION_CATEGORY)(IFP_PADDS_AVX | get_size_flag(instr));
 
 		case OP_vsubps: //AVX packed float sub
-			return (OPERATION_CATEGORY)(IFP_PSUBS | get_size_flag(instr));
+			return (OPERATION_CATEGORY)(IFP_PSUBS_AVX | get_size_flag(instr));
 
 		case OP_vsubpd: //AVX packet double sub
-			return (OPERATION_CATEGORY)(IFP_PSUBD | get_size_flag(instr));
+			return (OPERATION_CATEGORY)(IFP_PSUBD_AVX | get_size_flag(instr));
 
 		case OP_vmulps: //AVX packed float mul
-			return (OPERATION_CATEGORY)(IFP_PMULS | get_size_flag(instr));
+			return (OPERATION_CATEGORY)(IFP_PMULS_AVX | get_size_flag(instr));
 
 		case OP_vmulpd: //AVX packet double mul
-			return (OPERATION_CATEGORY)(IFP_PMULD | get_size_flag(instr));
+			return (OPERATION_CATEGORY)(IFP_PMULD_AVX | get_size_flag(instr));
 
 		case OP_vdivps: //AVX packed float div
-			return (OPERATION_CATEGORY)(IFP_PDIVS | get_size_flag(instr));
+			return (OPERATION_CATEGORY)(IFP_PDIVS_AVX | get_size_flag(instr));
 
 		case OP_vdivpd: //AVX packet double div
-			return (OPERATION_CATEGORY)(IFP_PDIVD | get_size_flag(instr));
+			return (OPERATION_CATEGORY)(IFP_PDIVD_AVX | get_size_flag(instr));
 
 
 		// ###### FMA SCALAR ######
