@@ -145,7 +145,8 @@ struct interflop_backend {
 
 		static const int max_operation_size = (INSTR_CATEGORY == IFP_OP_SSE) ? 16 : (INSTR_CATEGORY == IFP_OP_AVX) ? 32 : sizeof(FTYPE);
 		static const int max_nb_elem = max_operation_size/sizeof(FTYPE);
-	    FTYPE res;
+	    
+		FTYPE res;
 
         FTYPE* tls = *(FTYPE**)GET_TLS(dr_get_current_drcontext(), tls_result);
         

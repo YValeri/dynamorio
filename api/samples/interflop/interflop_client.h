@@ -153,7 +153,6 @@ int get_index_tls_saved_reg();
 int get_index_tls_float();
 int get_index_tls_gpr();
 
-
 void set_index_tls_result(int new_tls_value);
 void set_index_tls_op_A(int new_tls_value);
 void set_index_tls_op_B(int new_tls_value);
@@ -162,6 +161,7 @@ void set_index_tls_stack(int new_tls_value);
 void set_index_tls_saved_reg(int new_tls_value);
 void set_index_tls_gpr(int new_tls_value);
 void set_index_tls_float(int new_tls_value);
+
 
 void translate_insert(instr_t *newinstr, instrlist_t *ilist, instr_t *instr);
 

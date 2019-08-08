@@ -56,7 +56,8 @@ enum SIMD_CATEGORY{
 
 enum INSTR_CATEGORY{
 	IFP_SSE,
-	IFP_AVX
+	IFP_AVX,
+	IFP_AVX512
 };
 
 /*
