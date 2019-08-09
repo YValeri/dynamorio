@@ -1,10 +1,6 @@
 #include "analyse.hpp"
 
-#include "../include/dr_ir_opcodes.h"
-#include "../include/dr_ir_opnd.h"
-#include "drmgr.h"
 #include "drsyms.h"
-#include "symbol_config.hpp"
 #include "utils.hpp"
 #include <string.h>
 
