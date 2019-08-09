@@ -1,15 +1,7 @@
-
-
-
 #ifndef BACKEND_INTERFLOP 
-#define BACKEND_INTERFLOP 
-
-
-#pragma once
+#define BACKEND_INTERFLOP
 
 #include "../backend_verrou/interflop_verrou.h"
-
-
 
 namespace Interflop {
 // Base backend operations are only defined for the IEEE-754 single- and

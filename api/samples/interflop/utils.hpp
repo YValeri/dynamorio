@@ -2,6 +2,7 @@
 #define UTILS_BARRIER_HEADER
 
 #include <fstream>
+#include <vector>
 
 /** Specifies the behavior of the client */
 typedef enum{
@@ -66,5 +67,19 @@ void inc_error();
 bool is_number(const std::string& s);
 
 bool arguments_parser(int argc, const char* argv[]);
+
+/**
+ * \brief Returns the index of \elem, \p vec .size() if it's not found
+ */
+template<typename T>
+inline size_t vec_idx_of(std::vector<T, std::allocator<T>> const & vec, T const & elem)
+{
+	size_t size = vec.size();
+	for(size_t i = 0; i<size; ++i)
+		if(elem == vec[i])
+			return i;
+	
+	return size;
+}
 
 #endif

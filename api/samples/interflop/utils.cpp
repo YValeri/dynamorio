@@ -96,7 +96,7 @@ static bool utils_argument_parser(const std::string arg){
 
 bool arguments_parser(int argc, const char* argv[]){
         set_client_mode(IFP_CLIENT_DEFAULT);
-        set_analyse_mode(IFP_ANALYSE_NEEDED);
+        set_analyse_mode(IFP_ANALYSE_NOT_NEEDED);
 
 	for(int i = 1; i < argc; ++i){
                 error_count = 0;

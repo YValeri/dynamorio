@@ -18,7 +18,7 @@ typedef enum {
 typedef struct _module_entry
 {
 	inline _module_entry (const std::string & mod_name, const bool all) : module_name(mod_name), all_symbols(all){}
-	inline bool operator == (struct _module_entry o){return o.module_name == module_name;};
+	inline bool operator == (_module_entry const & o) const {return o.module_name == module_name;};
 
 	std::string module_name; /** Prefered name of the module */
 	bool all_symbols;       /** True if we are considering the whole module */

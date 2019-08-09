@@ -197,4 +197,7 @@ void insert_restore_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *whe
 void insert_save_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *where);
 void insert_restore_rsp(void *drcontext, instrlist_t *bb, instr_t *where);
 
+int offset_of_gpr(reg_id_t gpr);
+int offset_of_simd(reg_id_t simd);
+
 #endif

@@ -115,7 +115,7 @@ void set_index_tls_saved_reg(int new_tls_value) {tls_saved_reg = new_tls_value;}
  * \param gpr 
  * \return int 
  */
-inline int offset_of_gpr(reg_id_t gpr)
+int offset_of_gpr(reg_id_t gpr)
 {
     //Assuming the gpr parameter is a valid gpr
     return (((int)gpr-DR_REG_START_GPR)+1)<<3;
@@ -127,7 +127,7 @@ inline int offset_of_gpr(reg_id_t gpr)
  * \param simd 
  * \return int 
  */
-inline int offset_of_simd(reg_id_t simd)
+int offset_of_simd(reg_id_t simd)
 {
     //Assuming the simd parameter is a valid simd register
     static const int OFFSET = AVX_512_SUPPORTED ? 6 : AVX_SUPPORTED ? 5 : 4 /*128 bits = 16 bytes = 2^4 */;

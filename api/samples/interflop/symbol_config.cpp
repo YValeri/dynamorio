@@ -49,21 +49,6 @@ void print_lookup()
 
 /* ### UTILITIES ### */
 
-
-/**
- * \brief Returns the index of \elem, \p vec .size() if it's not found
- */
-template<typename T>
-static inline size_t vec_idx_of(vector<T, allocator<T>> vec, T elem)
-{
-	size_t size = vec.size();
-	for(size_t i = 0; i<size; ++i)
-		if(elem == vec[i])
-			return i;
-	
-	return size;
-}
-
 /**
  * \brief Returns true if we need to clear the entry
  * Clears the symbols if it's only what we need to clear
