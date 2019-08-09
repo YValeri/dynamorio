@@ -300,7 +300,7 @@ void insert_corresponding_vect_call_fused(void* drcontext, instrlist_t *bb, inst
 				dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function, IFP_OP_SSE , IFP_OP_128>::apply, 0);
 			else
 				dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function, IFP_OP_AVX , IFP_OP_128>::apply, 0);
-			
+		break;
 		case IFP_OP_256:
 			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function, IFP_OP_AVX , IFP_OP_256>::apply, 0);
 		break;
