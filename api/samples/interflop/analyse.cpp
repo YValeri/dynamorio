@@ -1,35 +1,82 @@
-#include "analyse.hpp"
+/*
+ * Library Manipulation API Sample, part of the Interflop project.
+ * analyse.cpp
+ *
+ * This file analyses the current backend used in order to determine the
+ * different registers used by it. The goal is to know what needs to be saved
+ * by the frontend, so that the backend functions don't modify any register
+ * used by the application in an unpredictable way. The registers checked for
+ * GPRs and Floating points/SIMD registers.
+ */
 
-#include "../include/dr_ir_opcodes.h"
-#include "../include/dr_ir_opnd.h"
-#include "drmgr.h"
-#include "drsyms.h"
-#include "symbol_config.hpp"
-#include "utils.hpp"
 #include <string.h>
-
 #include <algorithm>
 #include <fstream>
 #include <iostream>
 
+#include "drsyms.h"
+
+#include "analyse.hpp"
+#include "utils.hpp"
+
+/**
+ * This bool is used to know if DynamoRIO still puts implicit operands
+ * at the end of the sources, rather than at their normal place.
+ */
 static bool NEED_SSE_INVERSE = false;
 
-bool get_need_sse_inverse() { return NEED_SSE_INVERSE; }
-void set_need_sse_inverse(bool new_value) { NEED_SSE_INVERSE = new_value; }
-
+/**
+ * This vector contains addresses and is used so that we don't follow each 
+ * and every call when we already checked it once.
+ */
 static std::vector<app_pc> app_pc_vect;
 
+/**
+ * These vectors contain the different registers used by the backend.
+ * gpr_reg contains all the GPR used, while float_reg contains all the
+ * XMM/YMM/ZMM used on X86, or the Q/D/S/B/H on AArch64.
+ */
 static std::vector<reg_id_t> gpr_reg;
 static std::vector<reg_id_t> float_reg;
 
+/**
+ * @brief Getter for the NEED_SSE_INVERSE boolean
+ * @return NEED_SSE_INVERSE
+ */
+bool get_need_sse_inverse(){
+    return NEED_SSE_INVERSE;
+}
+
+/**
+ * @brief Setter for the NEED_SSE_INVERSE boolean
+ * 
+ * @param new_value The new value for NEED_SSE_INVERSE
+ */
+void set_need_sse_inverse(bool new_value){
+    NEED_SSE_INVERSE = new_value;
+}
+
+/**
+ * @brief Getter for the gpr_reg vector
+ * @return gpr_reg
+ */
 std::vector<reg_id_t> get_gpr_reg(){
     return gpr_reg;
 }
 
+/**
+ * @brief Getter for the float_reg vector
+ * @return float_reg
+ */
 std::vector<reg_id_t> get_float_reg(){
     return float_reg;
 }
 
+/**
+ * @brief Gather the gpr_reg and float_reg vectors into a single one,
+ * containing all registers used by the backend
+ * @return The combination of both vectors
+ */
 std::vector<reg_id_t> get_all_registers(){
     std::vector<reg_id_t> ret;
 
@@ -50,13 +97,29 @@ std::vector<reg_id_t> get_all_registers(){
     return ret;
 }
 
+/**
+ * @brief Helper function to print a certain number of \t, used as way to
+ * know when we follow a call through
+ * 
+ * @param tabs The number of tabs
+ */
 static void print_tabs(int tabs){
     for(int i = 0; i < tabs; ++i)
         dr_printf("\t");
 }
 
+/**
+ * @brief Prints the content of a vector of reg_id_t
+ * @details Iterate over a vector of reg_id_t and prints the names
+ * of each register, according to their value in the reg_id_t enum.
+ * 
+ * @param vect The vector to print
+ */
 static void print_vect(std::vector<reg_id_t> vect){
     for(auto i = vect.begin(); i != vect.end(); ++i){
+        /* We use get_register_name to get the name of a register
+         * by giving it the function it's number
+         */
         dr_printf("%s", get_register_name(*i));
         if(i+1 != vect.end()){
             dr_printf(", ");
@@ -64,6 +127,10 @@ static void print_vect(std::vector<reg_id_t> vect){
     }
 }
 
+/**
+ * @brief Prints the content of the gpr_reg and float_reg
+ * register, using print_vect for each.
+ */
 void print_register_vectors(){
     dr_printf("List of gpr registers : \n\t");
     print_vect(gpr_reg);
@@ -72,6 +139,13 @@ void print_register_vectors(){
     dr_printf("\n");
 }
 
+/**
+ * @brief Adds a reg_id_t to gpr_reg or float_reg according to it's status
+ * @details Checks whether a given register is a GPR or a FP register.
+ * In both cases, iterate through the 
+ * 
+ * @param reg [description]
+ */
 static void add_to_vect(reg_id_t reg){
     bool overlaps = false;
 
@@ -367,29 +441,3 @@ void test_sse_src_order() {
             "\t.att_syntax;\n"
             );
 }
-
-
-
-/*bool analyse_config_from_args(int argc, const char* argv[])
-{
-    char path[256];
-    path_to_library(path, 256);
-    for(int i=1; i<argc; i++){
-        std::string arg(argv[i]);
-        if(arg == "--analyse_abort" || arg == "-aa"){
-            if(drsym_enumerate_symbols(path, enum_symbols, 
-                NULL, DRSYM_DEFAULT_FLAGS) == DRSYM_SUCCESS){
-                write_reg_to_file(argv[++i]);
-            }
-            return true;
-        }else if(arg == "--analyse_from_file" || arg == "-af"){
-            return read_reg_from_file(argv[++i]);
-        }
-    }
-    if(drsym_enumerate_symbols(path, enum_symbols, NULL, DRSYM_DEFAULT_FLAGS)
-        != DRSYM_SUCCESS){
-        return true;
-    }
-    return false;
-}*/
-
