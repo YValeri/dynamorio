@@ -1,7 +1,7 @@
 CC=g++
 SOURCE=$(wildcard *.cpp) 
 OUT=$(SOURCE:%.cpp=%.out)
-FLAG=-g -O3
+FLAG= -O3
 
 all: $(OUT)
 
