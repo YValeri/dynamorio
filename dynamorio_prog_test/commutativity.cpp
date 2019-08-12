@@ -4,18 +4,20 @@ using namespace std;
 
 int main(int argc, char const *argv[])
 {
-    if(argc < 5)
+
+    double  a = 0.1,
+            b = 0.2,
+            c = 0.7, 
+            expected = 1.0;
+
+    if(argc >= 5)
     {
-        cerr << "Put 3 floating values as arguments, and a 4th as the expected result" << endl;
-        return 1;
+        a = strtod(argv[1],NULL);
+        b = strtod(argv[2],NULL);
+        c = strtod(argv[3],NULL);
+        expected = strtod(argv[4],NULL);
     }
-    double a,b,c, expected;
-
-    a = strtod(argv[1],NULL);
-    b = strtod(argv[2],NULL);
-    c = strtod(argv[3],NULL);
-    expected = strtod(argv[4],NULL);
-
+    
     cout << scientific << "\nA = " << a << "\nB = " << b << "\nC = " << c << "\nExpected : " << expected << endl;
 
     cout << "\nA+B+C = " << (a+b)+c << "\t\t Difference to " << expected << " : " << expected - ((a+b)+c);
