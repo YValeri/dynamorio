@@ -73,34 +73,45 @@ void print_register_vectors(){
 }
 
 static void add_to_vect(reg_id_t reg){
-    bool overlaps = false;
+    bool add_reg = true;
+    reg_id_t to_remove = DR_REG_NULL;
 
     if(reg_is_gpr(reg)){
-        for(auto path: gpr_reg){
-            if(reg == path)
-                overlaps = true;
-            if(reg_overlap(reg, path))
-                overlaps = true;
-            if(overlaps)
+        for(auto temp: gpr_reg){
+            if(reg == temp || reg_overlap(reg, temp)){
+                add_reg = false;
                 break;
+            }else if(reg_overlap(temp, reg)){
+                to_remove = temp;
+                break;
+            }
         }
-
-        if(!overlaps){
+        if(to_remove != DR_REG_NULL){
+            gpr_reg.erase(
+                std::remove(gpr_reg.begin(), gpr_reg.end(), to_remove), 
+                gpr_reg.end());
+        }
+        if(add_reg){
             gpr_reg.push_back(reg);
         }
 
     }else if(reg_is_strictly_xmm(reg) || reg_is_strictly_ymm(reg)
-        || reg_is_strictly_zmm(reg)){
-        for(auto path: float_reg){
-            if(reg == path)
-                overlaps = true;
-            if(reg_overlap(reg, path))
-                overlaps = true;
-            if(overlaps)
+            || reg_is_strictly_zmm(reg)){
+        for(auto temp: float_reg){
+            if(reg == temp || reg_overlap(reg, temp)){
+                add_reg = false;
                 break;
+            }else if(reg_overlap(temp, reg)){
+                to_remove = temp;
+                break;
+            }
         }
-
-        if(!overlaps){
+        if(to_remove != DR_REG_NULL){
+            float_reg.erase(
+                std::remove(float_reg.begin(), float_reg.end(), to_remove), 
+                float_reg.end());
+        }
+        if(add_reg){
             float_reg.push_back(reg);
         }
     }
@@ -279,7 +290,7 @@ static bool read_reg_from_file(const char* path){
     return false;
 }
 
-bool enum_symbols(const char *name, size_t modoffs, void *data){
+bool enum_symbols_registers(const char *name, size_t modoffs, void *data){
     void *drcontext = nullptr;
     module_data_t* lib_data = nullptr;
 
@@ -290,6 +301,15 @@ bool enum_symbols(const char *name, size_t modoffs, void *data){
         show_instr_of_symbols(drcontext, lib_data, modoffs, 0);
         dr_free_module_data(lib_data);
     }
+
+    return true;
+}
+
+bool enum_symbols_sse(const char *name, size_t modoffs, void *data){
+    void *drcontext = nullptr;
+    module_data_t* lib_data = nullptr;
+
+    std::string str(name);
 
     if(str.find("test_sse_src_order") != std::string::npos) {
         drcontext = dr_get_current_drcontext();
@@ -309,7 +329,7 @@ static void path_to_library(char* path, size_t length){
 static bool AA_argument_detected(const char* file){
     char path[256];
     path_to_library(path, 256);
-    if(drsym_enumerate_symbols(path, enum_symbols, 
+    if(drsym_enumerate_symbols(path, enum_symbols_registers, 
         NULL, DRSYM_DEFAULT_FLAGS) == DRSYM_SUCCESS){
         write_reg_to_file(file);
     }else{
@@ -322,8 +342,14 @@ static bool AA_argument_detected(const char* file){
 bool analyse_argument_parser(std::string arg, int* i, int argc, const char* argv[]){
     if(arg == "--analyse_abort" || arg == "-aa"){
         *i += 1;
-        return AA_argument_detected(argv[*i]);
-    }else if(arg == "--analyse_file" || arg == "-af"){
+        if(*i < argc){
+            return AA_argument_detected(argv[*i]);
+        }else{
+            dr_fprintf(STDERR, 
+                "ANALYSE FAILURE : File not given for \"-aa\"\n");
+            return true;
+        }
+    }/*else if(arg == "--analyse_file" || arg == "-af"){
         set_analyse_mode(IFP_ANALYSE_NOT_NEEDED);
         *i += 1;
         return read_reg_from_file(argv[*i]);
@@ -337,14 +363,21 @@ bool analyse_argument_parser(std::string arg, int* i, int argc, const char* argv
                 "ANALYSE FAILURE : Couldn't finish analysing the backend\n");
             return true;
         }
-    }else{
+    }*/else{
         inc_error();
     }
     return false;
 }
 
 void analyse_mode_manager(){
-    switch(get_analyse_mode()){
+    char path[256];
+    path_to_library(path, 256);
+    if(drsym_enumerate_symbols(path, enum_symbols_sse, 
+        NULL, DRSYM_DEFAULT_FLAGS) != DRSYM_SUCCESS){
+        dr_fprintf(STDERR, 
+            "ANALYSE FAILURE : Couldn't finish analysing the symbols of the library\n");
+    }
+    /*switch(get_analyse_mode()){
         case IFP_ANALYSE_NEEDED:
             char path[256];
             path_to_library(path, 256);
@@ -356,7 +389,7 @@ void analyse_mode_manager(){
             break;
         default:
             break;
-    }
+    }*/
 }
     
 void test_sse_src_order() {
