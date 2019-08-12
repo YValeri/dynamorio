@@ -3,7 +3,6 @@
 
 #include "dr_api.h"
 #include "dr_ir_opcodes.h"
-#include "analyse.hpp"
 
 /*
  * The following is a list of flags caracterizing the operations we want to detect.

@@ -12,7 +12,7 @@
 
 #ifndef MAX_OPND_SIZE_BYTES
 // operand size is maximum 512 bits (AVX512 instructions) = 64 bytes 
-	#define MAX_OPND_SIZE_BYTES 512 
+	#define MAX_OPND_SIZE_BYTES 64 
 #endif
 
 #define PRINT_ERROR_MESSAGE(message) dr_fprintf(STDERR, "%s\n", (message));
@@ -21,7 +21,6 @@
     #define DR_REG_OP_A_ADDR DR_REG_XCX
     #define DR_REG_OP_B_ADDR DR_REG_XDX
     #define DR_REG_OP_C_ADDR DR_REG_R8
-    #define DR_REG_RES_ADDR DR_REG_XDI
     #define DR_REG_BASE DR_REG_XAX
 #elif defined(AARCH64)
 	#define DR_REG_OP_A_ADDR DR_REG_X0
@@ -37,16 +36,6 @@
 #endif
 
 #if defined(X86)
-	#define DR_REG_XMM_BUFFER DR_REG_XMM15
-	#define DR_REG_XMM_BUFFER_2 DR_REG_XMM14
-
-	#define DR_REG_YMM_BUFFER DR_REG_YMM15
-	#define DR_REG_YMM_BUFFER_2 DR_REG_YMM14
-
-	#define DR_REG_ZMM_BUFFER DR_REG_ZMM31
-	#define DR_REG_ZMM_BUFFER_2 DR_REG_ZMM30
-
-    #define DR_BUFFER_REG DR_REG_XDX
     #define DR_SCRATCH_REG DR_REG_XCX
 
     #define AVX_SUPPORTED (proc_has_feature(FEATURE_AVX))
@@ -61,9 +50,7 @@
 	#define DR_SCRATCH_REG DR_REG_X5
 #endif
 
-#define SPILL_SLOT_BUFFER_REG SPILL_SLOT_1
-#define SPILL_SLOT_SCRATCH_REG SPILL_SLOT_2
-#define SPILL_SLOT_ARITH_FLAG SPILL_SLOT_3
+#define SPILL_SLOT_SCRATCH_REG SPILL_SLOT_1
 
 /* INSTR */
 #define SRC(instr, n) instr_get_src((instr), (n))
@@ -144,23 +131,13 @@ typedef byte SLOT;
 	#define NB_Q_REG 0
 #endif
 
-int get_index_tls_result();
-int get_index_tls_op_A();
-int get_index_tls_op_B();
-int get_index_tls_op_C();
-int get_index_tls_stack();
-int get_index_tls_saved_reg();
 int get_index_tls_float();
 int get_index_tls_gpr();
+int get_index_tls_result();
 
-void set_index_tls_result(int new_tls_value);
-void set_index_tls_op_A(int new_tls_value);
-void set_index_tls_op_B(int new_tls_value);
-void set_index_tls_op_C(int new_tls_value);
-void set_index_tls_stack(int new_tls_value);
-void set_index_tls_saved_reg(int new_tls_value);
 void set_index_tls_gpr(int new_tls_value);
 void set_index_tls_float(int new_tls_value);
+void set_index_tls_result(int new_tls_value);
 
 
 void translate_insert(instr_t *newinstr, instrlist_t *ilist, instr_t *instr);

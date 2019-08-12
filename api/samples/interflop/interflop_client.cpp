@@ -1,5 +1,6 @@
 #include <cstdint>
 #include "interflop_client.h"
+#include "analyse.hpp"
 
 #define MAX(x,y) ((x) > (y) ? (x) : (y))
 
@@ -80,35 +81,15 @@
 #endif
 #undef R
 
-
-static int  tls_result, /* index of thread local storage to store the result of floating point operations */
-			tls_op_A, tls_op_B, /* index of thread local storage to store the operands of vectorial floating point operations */
-			tls_op_C, /* index of thread local storage to store the third operand in FMA */
-			tls_stack, /* index of thread local storage to store the address of the shallow stack */
-			tls_saved_reg; /* index of the tls where we save the arithmetic flags, rax and the scratch register */
-
-static int tls_gpr, tls_float;
+static int tls_gpr, tls_float, tls_result;
 
 int get_index_tls_gpr(){return tls_gpr;}
 int get_index_tls_float(){return tls_float;}
+int get_index_tls_result(){return tls_result;}
 
 void set_index_tls_gpr(int new_tls_value) {tls_gpr = new_tls_value;}
 void set_index_tls_float(int new_tls_value) {tls_float = new_tls_value;}
-
-
-int get_index_tls_result() {return tls_result;}
-int get_index_tls_op_A() {return tls_op_A;}
-int get_index_tls_op_B() {return tls_op_B;}
-int get_index_tls_op_C() {return tls_op_C;}
-int get_index_tls_stack() {return tls_stack;}
-int get_index_tls_saved_reg(){return tls_saved_reg;}
-
 void set_index_tls_result(int new_tls_value) {tls_result = new_tls_value;}
-void set_index_tls_op_A(int new_tls_value) {tls_op_A = new_tls_value;}
-void set_index_tls_op_B(int new_tls_value) {tls_op_B = new_tls_value;}
-void set_index_tls_op_C(int new_tls_value) {tls_op_C = new_tls_value;}
-void set_index_tls_stack(int new_tls_value) {tls_stack = new_tls_value;}
-void set_index_tls_saved_reg(int new_tls_value) {tls_saved_reg = new_tls_value;}
 
 /**
  * \brief Returns the offset, in bytes, of the gpr stored in the tls
@@ -564,19 +545,6 @@ static void insert_set_operands_base_disp(void* drcontext, instrlist_t* bb, inst
 static void insert_set_operands_addr(void* drcontext, instrlist_t* bb, instr_t *where, void* addr, reg_id_t destination, reg_id_t scratch)
 {
     MINSERT(bb, where, XINST_CREATE_load_int(drcontext, OP_REG(destination), OPND_CREATE_INTPTR(addr)));
-    /*return;
-    //We can't move an immediate of 64 bit directly (for some reason), so we need to use a trick
-    ptr_int_t high = (ptr_uint_t)((uint64_t)addr >> 32);
-    ptr_int_t low = (ptr_uint_t)((uint64_t)addr & 0xFFFFFFFF);
-    //Move 32bits immediates to 2 registers
-    reg_id_t scratch32 = reg_64_to_32(scratch);
-    reg_id_t dest32 = reg_64_to_32(destination);
-    AINSERT(bb, where, XINST_CREATE_load_int(drcontext, OP_REG(scratch32), OPND_CREATE_INT32(high)));
-    AINSERT(bb, where, XINST_CREATE_load_int(drcontext, OP_REG(dest32), OPND_CREATE_INT32(low)));
-    //We shift the low bits by 32 into the upper parts of the register
-    AINSERT(bb, where, INSTR_CREATE_shl(drcontext, OP_REG(destination), opnd_create_immed_int(32, OPSZ_1)));
-    //We shift the destination register back 32 bits to the right while taking the bits of the scratch register
-    AINSERT(bb, where, INSTR_CREATE_shrd(drcontext, OP_REG(destination), OP_REG(scratch), opnd_create_immed_int(32, OPSZ_1)));*/
 }
 
 /**
