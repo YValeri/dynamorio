@@ -8,7 +8,10 @@ dynamorio_prog_test/*.*
 !dynamorio_prog_test/*.cpp
 !dynamorio_prog_test/*.h
 !dynamorio_prog_test/Makefile
+<<<<<<< HEAD
 !run_test.sh
+=======
+>>>>>>> eff7a3e28a2111861680a6bc27bd3788e4ff0f00
 dynamorio_prog_test/windows/*.*
 !dynamorio_prog_test/windows/*.c
 !dynamorio_prog_test/windows/*.cpp
