@@ -26,7 +26,7 @@ int main(int argc , char *argv[]) {
 
     printf("x : %lf\ty : %lf\n",x,y);
     
-    /*
+    
 
     #pragma omp parallel for
     for(int i = 0 ; i < ITER ; i++) {
@@ -41,7 +41,7 @@ int main(int argc , char *argv[]) {
     printf("a[] : ");
     for(int i = 0 ; i < 4 ; i++) printf("%lf ",a[i]);
     printf("\n");
-*/
+
 
 
     return 123456;
