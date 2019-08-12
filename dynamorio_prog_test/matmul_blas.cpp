@@ -37,9 +37,21 @@ int main(int argc , char *argv[]) {
 
     double *A, *B , *AB;
     
-    posix_memalign((void**)&A , 32 , (MATRIX_SIZE*MATRIX_SIZE)*sizeof(double));
-    posix_memalign((void**)&B , 32 , (MATRIX_SIZE*MATRIX_SIZE)*sizeof(double));
-    posix_memalign((void**)&AB, 32 , (MATRIX_SIZE*MATRIX_SIZE)*sizeof(double));
+    if(posix_memalign((void**)&A , 32 , (MATRIX_SIZE*MATRIX_SIZE)*sizeof(double))){
+        fprintf(stderr, "posix_memalign error\n");
+        return 1;
+    }
+    if(posix_memalign((void**)&B , 32 , (MATRIX_SIZE*MATRIX_SIZE)*sizeof(double))){
+        fprintf(stderr, "posix_memalign error\n");
+        free(A);
+        return 1;
+    }
+    if(posix_memalign((void**)&AB, 32 , (MATRIX_SIZE*MATRIX_SIZE)*sizeof(double))){
+        fprintf(stderr, "posix_memalign error\n");
+        free(A);
+        free(B);
+        return 1;
+    }
 
     for(int i = 0 ; i < (MATRIX_SIZE*MATRIX_SIZE) ; i++) {
         A[i] = 1 / ((double) (i+(i%MATRIX_SIZE)+1));
@@ -73,6 +85,6 @@ int main(int argc , char *argv[]) {
 
     free(A);
     free(B);
-
+    free(AB);
     printf("\n");
 }
