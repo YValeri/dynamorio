@@ -225,39 +225,6 @@ void translate_insert(instr_t* newinstr, instrlist_t* ilist, instr_t* instr) {
 	instrlist_preinsert(ilist, instr, newinstr);
 }
 
-
-void insert_save_floating_reg(void *drcontext, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t scratch) {
-#if defined(X86)
-    if(AVX_512_SUPPORTED) {
-        insert_push_pseudo_stack_list(drcontext, ZMM_REG, bb, instr, buffer_reg, scratch, NB_ZMM_REG);
-    }
-    else if(AVX_SUPPORTED) {
-        insert_push_pseudo_stack_list(drcontext, YMM_REG, bb, instr, buffer_reg, scratch, NB_YMM_REG);
-    }
-    else { /* SSE only */
-        insert_push_pseudo_stack_list(drcontext, XMM_REG, bb, instr, buffer_reg, scratch, NB_XMM_REG);
-    }
-#elif defined(AARCH64)
-	insert_push_pseudo_stack_list(drcontext, Q_REG, bb, instr, buffer_reg, scratch, NB_Q_REG);
-#endif
-}
-
-void insert_restore_floating_reg(void *drcontext, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t scratch) {
-#if defined(X86)
-    if(AVX_512_SUPPORTED) {
-        insert_pop_pseudo_stack_list(drcontext, ZMM_REG_REVERSE, bb, instr, buffer_reg, scratch, NB_ZMM_REG);
-    }
-    else if(AVX_SUPPORTED){
-        insert_pop_pseudo_stack_list(drcontext, YMM_REG_REVERSE, bb, instr, buffer_reg, scratch, NB_YMM_REG); 
-    }
-    else { /* SSE only */
-        insert_pop_pseudo_stack_list(drcontext, XMM_REG_REVERSE, bb, instr, buffer_reg, scratch, NB_XMM_REG); 
-    }
-#elif defined(AARCH64)
-	insert_pop_pseudo_stack_list(drcontext, Q_REG_REVERSE, bb, instr, buffer_reg, scratch, NB_Q_REG); 
-#endif
-}
-
 /*
  * \brief Subset of insert_call for two sources instructions
  */
@@ -708,12 +675,12 @@ void insert_set_operands(void* drcontext, instrlist_t *bb, instr_t *where, instr
     
 	int mem_src=-1;
 	//Get the index of the memory operand, if there is one
-	for (size_t i = 0; i < (fused ? 3 : 2); i++)
+	for (uint i = 0; i < (fused ? 3U : 2U); i++)
 	{
 		opnd_t src = SRC(instr, i);
 		if(OP_IS_ADDR(src) || OP_IS_BASE_DISP(src))
 		{
-			mem_src=i;
+			mem_src=(int)i;
             break;
 		}
 	}

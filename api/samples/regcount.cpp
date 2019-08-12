@@ -76,7 +76,7 @@ void register_list_add(int reg)
 
 static dr_emit_flags_t event_basic_block(void *drcontext, void* tag, instrlist_t *bb, bool for_trace, bool translating)
 {
-    instr_t *instr, *next_instr;
+    instr_t *instr;
 
     for(instr = instrlist_first(bb); instr != NULL; instr = instr_get_next(instr))
     {

@@ -16,7 +16,7 @@ namespace Interflop {
 static void *verrou_context;
 
 static void verrou_prepare() {
-	struct interflop_backend_interface_t ifverrou = interflop_verrou_init(&verrou_context);
+	interflop_verrou_init(&verrou_context);
 	interflop_verrou_configure(VR_RANDOM, verrou_context);
 }
 

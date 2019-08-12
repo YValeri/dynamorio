@@ -210,7 +210,6 @@ static void analyse_symbol_test_sse_src(void *drcontext, module_data_t* lib_data
 
     instrlist_t* list_bb = decode_as_bb(drcontext, lib_data->start + offset);
     instr_t *instr = nullptr, *next_instr = nullptr;
-    app_pc apc = 0;
 
     reg_id_t reg_src0_instr0 = DR_REG_NULL, reg_src0_instr1 = DR_REG_NULL;
 
@@ -370,6 +369,13 @@ bool analyse_argument_parser(std::string arg, int* i, int argc, const char* argv
 }
 
 void analyse_mode_manager(){
+    #if defined(WINDOWS)
+    if(get_log_level() >= 2)
+    {
+        dr_printf("WARNING : Assuming SSE instructions have their operands inverted, since we have no way to test this on Windows !\n");
+    }
+    set_need_sse_inverse(true);
+    #else
     char path[256];
     path_to_library(path, 256);
     if(drsym_enumerate_symbols(path, enum_symbols_sse, 
@@ -377,6 +383,7 @@ void analyse_mode_manager(){
         dr_fprintf(STDERR, 
             "ANALYSE FAILURE : Couldn't finish analysing the symbols of the library\n");
     }
+    #endif
     /*switch(get_analyse_mode()){
         case IFP_ANALYSE_NEEDED:
             char path[256];
@@ -393,12 +400,16 @@ void analyse_mode_manager(){
 }
     
 void test_sse_src_order() {
+    #if defined(WINDOWS)
+    // Inline assembly isn't available on MSVC in 64 bits mode, and intrinsics can't help us in this
+    #else
     __asm__ volatile(
             "\t.intel_syntax;\n"
             "\tdivpd %xmm0, %xmm1;\n"
             "\tvdivpd %xmm0, %xmm0, %xmm1;\n"
             "\t.att_syntax;\n"
             );
+    #endif
 }
 
 
