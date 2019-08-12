@@ -1,6 +1,6 @@
 #! /bin/bash 
 
-DYNAMORIO_DIR="/home/micky/Workspace/dynamorio"
+DYNAMORIO_DIR="$(pwd)"
 DYNAMORIO_BUILD_DIR="${DYNAMORIO_DIR}/build"
 
 cd ${DYNAMORIO_DIR}/dynamorio_prog_test 

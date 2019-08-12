@@ -8,3 +8,4 @@ dynamorio_prog_test/*.*
 !dynamorio_prog_test/*.cpp
 !dynamorio_prog_test/*.h
 !dynamorio_prog_test/Makefile
+!run_test.sh
