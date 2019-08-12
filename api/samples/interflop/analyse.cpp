@@ -73,34 +73,45 @@ void print_register_vectors(){
 }
 
 static void add_to_vect(reg_id_t reg){
-    bool overlaps = false;
+    bool add_reg = true;
+    reg_id_t to_remove = DR_REG_NULL;
 
     if(reg_is_gpr(reg)){
-        for(auto path: gpr_reg){
-            if(reg == path)
-                overlaps = true;
-            if(reg_overlap(reg, path))
-                overlaps = true;
-            if(overlaps)
+        for(auto temp: gpr_reg){
+            if(reg == temp || reg_overlap(reg, temp)){
+                add_reg = false;
                 break;
+            }else if(reg_overlap(temp, reg)){
+                to_remove = temp;
+                break;
+            }
         }
-
-        if(!overlaps){
+        if(to_remove != DR_REG_NULL){
+            gpr_reg.erase(
+                std::remove(gpr_reg.begin(), gpr_reg.end(), to_remove), 
+                gpr_reg.end());
+        }
+        if(add_reg){
             gpr_reg.push_back(reg);
         }
 
     }else if(reg_is_strictly_xmm(reg) || reg_is_strictly_ymm(reg)
-        || reg_is_strictly_zmm(reg)){
-        for(auto path: float_reg){
-            if(reg == path)
-                overlaps = true;
-            if(reg_overlap(reg, path))
-                overlaps = true;
-            if(overlaps)
+            || reg_is_strictly_zmm(reg)){
+        for(auto temp: float_reg){
+            if(reg == temp || reg_overlap(reg, temp)){
+                add_reg = false;
                 break;
+            }else if(reg_overlap(temp, reg)){
+                to_remove = temp;
+                break;
+            }
         }
-
-        if(!overlaps){
+        if(to_remove != DR_REG_NULL){
+            float_reg.erase(
+                std::remove(float_reg.begin(), float_reg.end(), to_remove), 
+                float_reg.end());
+        }
+        if(add_reg){
             float_reg.push_back(reg);
         }
     }
