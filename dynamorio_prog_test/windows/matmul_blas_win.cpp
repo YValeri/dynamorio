@@ -1,9 +1,9 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "cblas.h"
+#include <cblas.h>
 
-#define MATRIX_SIZE 60
+#define MATRIX_SIZE 200
 
 void matrix_multiplcation(double *A, int A_width, int A_height,
          double *B, int B_width, int B_height,
