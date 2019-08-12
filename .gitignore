@@ -7,3 +7,4 @@ dynamorio_prog_test/*.*
 !dynamorio_prog_test/*.c
 !dynamorio_prog_test/*.cpp
 !dynamorio_prog_test/*.h
+!dynamorio_prog_test/Makefile
