@@ -17,9 +17,9 @@
 #include <fstream>
 #include <iostream>
 
+#include "analyse.hpp"
 #include "drsyms.h"
 
-#include "analyse.hpp"
 #include "utils.hpp"
 
 /**
@@ -392,7 +392,6 @@ static void analyse_symbol_test_sse_src(void *drcontext, module_data_t* lib_data
     /* Decode the symbol as a list of instructions */
     instrlist_t* list_bb = decode_as_bb(drcontext, lib_data->start + offset);
     instr_t *instr = nullptr, *next_instr = nullptr;
-    app_pc apc = 0;
     reg_id_t reg_src0_instr0 = DR_REG_NULL, reg_src0_instr1 = DR_REG_NULL;
 
     for(instr = instrlist_first_app(list_bb); instr != NULL; instr = next_instr) {
@@ -518,7 +517,6 @@ static bool read_reg_from_file(const char* path){
         }else if(buffer == "float_reg"){
             float_vect = true;
         }else if(is_number(buffer)){
-// verif de la validité des numéros
             (float_vect ? float_reg : gpr_reg).push_back((reg_id_t)std::stoi(buffer));
         }else{
             dr_fprintf(STDERR, "FAILED TO CORRECTLY READ THE FILE : Problem on file line %d = \"%s\"\n", 
@@ -537,29 +535,45 @@ static bool read_reg_from_file(const char* path){
 }
 
 /**
- * @brief [brief description]
- * @details [long description]
+ * @brief Callback function that check if a symbol is one we're interested in
+ * @details Callback function that will compare the given name of the symbol
+ * to one we want to check. If it is, we will start checking all the
+ * instructions in it, in order to populate the vectors.
  * 
- * @param name [description]
- * @param modoffs [description]
- * @param data [description]
- * @return [description]
+ * @param name The name of the symbol
+ * @param modoffs The offset of the sybol from the start of the library
+ * @param data Eventual data passed from the function that does the callback
+ * @return True if we want to continue going through the symbols
  */
 bool enum_symbols_registers(const char *name, size_t modoffs, void *data){
     void *drcontext = nullptr;
     module_data_t* lib_data = nullptr;
 
     std::string str(name);
+    /* We check whether the string contains "<>::apply" because that's the
+     * name of the function we insert with dr_insert_call later. Therefore,
+     * we consider it as our entry point to the backend, because it is the 
+     * first function that shouldn't be called in the application.
+     */
     if(str.find("<>::apply") != std::string::npos) {
         drcontext = dr_get_current_drcontext();
         lib_data = dr_lookup_module_by_name("libinterflop.so");
         show_instr_of_symbols(drcontext, lib_data, modoffs, 0);
+        /* As per DynamoRIO's API, we must free the module data */
         dr_free_module_data(lib_data);
     }
-
     return true;
 }
 
+/**
+ * @brief Callback function that check whether or not the symbol is
+ * test_sse_src_order and instrument it if so.
+ * 
+ * @param name The name of the symbol
+ * @param modoffs The offset of the sybol from the start of the library
+ * @param data Eventual data passed from the function that does the callback
+ * @return True if we want to continue going through the symbols
+ */
 bool enum_symbols_sse(const char *name, size_t modoffs, void *data){
     void *drcontext = nullptr;
     module_data_t* lib_data = nullptr;
@@ -571,16 +585,33 @@ bool enum_symbols_sse(const char *name, size_t modoffs, void *data){
         lib_data = dr_lookup_module_by_name("libinterflop.so");
         analyse_symbol_test_sse_src(drcontext , lib_data , modoffs);
         dr_free_module_data(lib_data);
+        return false;
     }
 
     return true;
 }
 
+/**
+ * @brief Get the current directory, assumed to be "dynamorio/build" and
+ * appends the path to the library to it.
+ * 
+ * @param path A placeholder char*
+ * @param length The length of the char*
+ */
 static void path_to_library(char* path, size_t length){
     dr_get_current_directory(path, length);
     strcat(path, "/api/bin/libinterflop.so");
 }
 
+/**
+ * @brief Analyse the backend and put the content of the vectors in the
+ * given file path/
+ * @details Enumerate through all the symbols of the client, checking for
+ * the entry to the backend function, then checking all the instructions to
+ * add the registers to the vectors.
+ * 
+ * @param file The path of the output file
+ */
 static void AA_argument_detected(const char* file){
     char path[256];
     path_to_library(path, 256);
@@ -593,10 +624,31 @@ static void AA_argument_detected(const char* file){
     }
 }
 
+/**
+ * @brief Parser for the command line
+ * @details The options are : 
+ *      - "analyse and abort", to analyse the backend, write the registers
+ *      to a given file and abort
+ *      - "analyse from file", to read an input file and parse it to populate
+ *      the vectors
+ *      - "analyse and run", to analyse the backend and run the program normaly.
+ *      Default option.
+ * 
+ * @param arg The current argument as string
+ * @param i The index of the current argument, given as pointer to be modified
+ * if necessary when checking for an option with special parameters
+ * @param argc The length of the command line
+ * @param argv The list of arguments in the command line
+ * @return True if the execution of the program must be stopped, else false
+ */
 bool analyse_argument_parser(std::string arg, int* i, int argc, const char* argv[]){
     if(arg == "--analyse_abort" || arg == "-aa"){
         *i += 1;
         if(*i < argc){
+            /* The analyse and abort option was detected along with 
+             * what may be a file, so we call AA_argument_detected 
+             * and stop the execution.
+             */
             AA_argument_detected(argv[*i]);
             return true;
         }else{
@@ -604,54 +656,74 @@ bool analyse_argument_parser(std::string arg, int* i, int argc, const char* argv
                 "ANALYSE FAILURE : File not given for \"-aa\"\n");
             return true;
         }
-    }/*else if(arg == "--analyse_file" || arg == "-af"){
-        set_analyse_mode(IFP_ANALYSE_NOT_NEEDED);
+    }else if(arg == "--analyse_file" || arg == "-af"){
         *i += 1;
-        return read_reg_from_file(argv[*i]);
-    }else if(arg == "--analyse_run" || arg == "-ar"){
-        set_analyse_mode(IFP_ANALYSE_NOT_NEEDED);
-        char path[256];
-        path_to_library(path, 256);
-        if(drsym_enumerate_symbols(path, enum_symbols, NULL, DRSYM_DEFAULT_FLAGS)
-            != DRSYM_SUCCESS){
+        if(*i < argc){
+        /* The analyse from file option was detected, so we call 
+         * read_reg_from_file with what may be a file, and return the
+         * result. Also update the analyse mode so that we don't
+         * analyse the backend on our side, overwriting what we got red
+         * from the file.
+         */
+            set_analyse_mode(IFP_ANALYSE_NOT_NEEDED);
+            return read_reg_from_file(argv[*i]);
+        }else{
             dr_fprintf(STDERR, 
-                "ANALYSE FAILURE : Couldn't finish analysing the backend\n");
+                "ANALYSE FAILURE : File not given for \"-af\"\n");
             return true;
         }
-    }*/else{
+    }else if(arg == "--analyse_run" || arg == "-ar"){
+        /* Do nothing, because the analysis will be done later. */
+        return false;
+    }else{
+        /* If the argument is not one we know, increment the error counter */
         inc_error();
     }
     return false;
 }
 
+/**
+ * @brief Analyse the backend if needed, and update the NEED_SSE_INVERSE
+ * boolean accordingly
+ * @details Call drsym_enumerate_symbols to analyse the backend if needed,
+ * updating the vectors of registers. Also call drsym_enumerate_symbols
+ * with the SSE analyser, in order to update NEED_SSE_INVERSE.
+ */
 void analyse_mode_manager(){
     char path[256];
     path_to_library(path, 256);
-    if(drsym_enumerate_symbols(path, enum_symbols_sse, 
-        NULL, DRSYM_DEFAULT_FLAGS) != DRSYM_SUCCESS){
-        dr_fprintf(STDERR, 
-            "ANALYSE FAILURE : Couldn't finish analysing the symbols of the library\n");
-    }
-    /*switch(get_analyse_mode()){
+
+    switch(get_analyse_mode()){
         case IFP_ANALYSE_NEEDED:
-            char path[256];
-            path_to_library(path, 256);
-            if(drsym_enumerate_symbols(path, enum_symbols, NULL, DRSYM_DEFAULT_FLAGS) 
-                != DRSYM_SUCCESS){
+            /* Analyse the backend and update the vectors */
+            if(drsym_enumerate_symbols(path, enum_symbols_registers, 
+                NULL, DRSYM_DEFAULT_FLAGS) != DRSYM_SUCCESS){
                 DR_ASSERT_MSG(false, 
                     "ANALYSE FAILURE : Couldn't finish analysing the backend\n");
             }
             break;
         default:
             break;
-    }*/
+    }
+    /* Analyse the test_sse_src_order to update NEED_SSE_INVERSE accordingly */
+    if(drsym_enumerate_symbols(path, enum_symbols_sse, 
+        NULL, DRSYM_DEFAULT_FLAGS) != DRSYM_SUCCESS){
+        dr_fprintf(STDERR, 
+            "ANALYSE FAILURE : Couldn't finish analysing the symbols of the library\n");
+    }
 }
-    
+
+/**
+ * @brief Function used to check if the implicit operands problem
+ * was corrected or not.
+ * We assume the syntax used is ATT, since DynamoRIO can't compile if the one
+ * used by the compiler is intel's.
+ */
 void test_sse_src_order() {
     __asm__ volatile(
-            "\t.intel_syntax;\n"
+            "\t.intel_syntax;\n"    /* We assume the syntax to be ATT */
             "\tdivpd %xmm0, %xmm1;\n"
             "\tvdivpd %xmm0, %xmm0, %xmm1;\n"
-            "\t.att_syntax;\n"
+            "\t.att_syntax;\n"  /* Set the syntax back to ATT */
             );
 }
