@@ -4,9 +4,6 @@ OUT=$(SOURCE:%.cpp=%.out)
 
 all: $(OUT)
 
-call.out: call.cpp
-	$(CC) -o call.out call.cpp -march=native -fopenmp -O3
-
 commutativity.out: commutativity.cpp
 	$(CC) -o commutativity.out commutativity.cpp -O3
 
