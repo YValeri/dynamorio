@@ -690,13 +690,13 @@ bool analyse_argument_parser(std::string arg, int* i, int argc, const char* argv
  * with the SSE analyser, in order to update NEED_SSE_INVERSE.
  */
 void analyse_mode_manager(){
-    #if defined(WINDOWS)
+#if defined(WINDOWS)
     if(get_log_level() >= 2)
     {
         dr_printf("WARNING : Assuming SSE instructions have their operands inverted, since we have no way to test this on Windows !\n");
     }
     set_need_sse_inverse(true);
-    #else
+#else
     char path[256];
     path_to_library(path, 256);
 
@@ -718,8 +718,7 @@ void analyse_mode_manager(){
         dr_fprintf(STDERR, 
             "ANALYSE FAILURE : Couldn't finish analysing the symbols of the library\n");
     }
-
-    #endif
+#endif
 }
 
 /**
