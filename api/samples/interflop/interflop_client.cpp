@@ -1,6 +1,7 @@
 #include <cstdint>
 #include "interflop_client.h"
 
+#define MAX(x,y) ((x) > (y) ? (x) : (y))
 
 #if defined(X86)
     #define INSTR_IS_ANY_SSE(instr) (instr_is_sse(instr) || instr_is_sse2(instr) || instr_is_sse3(instr) || instr_is_sse41(instr) || instr_is_sse42(instr) || instr_is_sse4A(instr))
@@ -175,12 +176,10 @@ struct interflop_backend {
 
 		/* If this is an AVX instruction, set the high part with 0 */
 		if(INSTR_CATEGORY == IFP_OP_AVX) {
-			for(int i = nb_elem ; i < max_nb_elem ; i++) {
+			for(int i = MAX(nb_elem , 16/sizeof(FTYPE)) ; i < max_nb_elem ; i++) {
 				*(tls+i) = 0;
 			}
 		}
-		
-
     }
 };
 
@@ -213,7 +212,7 @@ struct interflop_backend_fused {
 		
 		/* If this is an AVX instruction, set the high part with 0 */
 		if(INSTR_CATEGORY == IFP_OP_AVX) {
-			for(int i = nb_elem ; i < max_nb_elem ; i++) {
+			for(int i = MAX(nb_elem , 16/sizeof(FTYPE)) ; i < max_nb_elem ; i++) {
 				*(tls+i) = 0;
 			}
 		}

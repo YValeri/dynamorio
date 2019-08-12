@@ -447,12 +447,14 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
     }
 
     
-    std::vector<sub_block> blocks = preanalysis(drcontext, tag, bb);
-    if(blocks.empty() || blocks.size() == 1 && !blocks[0].instrumentable)
+    //std::vector<sub_block> blocks = preanalysis(drcontext, tag, bb);
+    /*if(blocks.empty() || blocks.size() == 1 && !blocks[0].instrumentable)
     {
         //No instrumentable sub_block
         return DR_EMIT_DEFAULT;
     }
+    */
+    
 
     static int nb=0;
     int block_idx=0, instrCount=0;
@@ -460,7 +462,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
     
     for(instr = instrlist_first_app(bb); instr != NULL; instr = next_instr)
     {
-        sub_block currBlock = blocks[block_idx];
+        //sub_block currBlock = blocks[block_idx];
         oc = ifp_get_operation_category(instr);
         bool registers_saved=false;
         bool should_continue=false;
@@ -489,7 +491,6 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
                 insert_restore_rsp(drcontext, bb, instr);
                 if(!registers_saved)
                 {
-                    //insert_restore_rsp(drcontext, bb, instr);
                     translate_insert(XINST_CREATE_sub(drcontext, OP_REG(DR_REG_XSP), OP_INT(32)), bb, instr);
                 }
                 registers_saved=true;
@@ -502,7 +503,6 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
                     insert_restore_simd_registers(drcontext, bb, instr);
                     insert_restore_gpr_and_flags(drcontext, bb, instr);
                 }
-                // dr_insert_clean_call(drcontext, bb, instr, (void*)print, true, 0);
                 // Remove original instruction
                 instrlist_remove(bb, instr);
                 instr_destroy(drcontext, instr);
