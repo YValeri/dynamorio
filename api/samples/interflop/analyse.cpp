@@ -690,13 +690,13 @@ bool analyse_argument_parser(std::string arg, int* i, int argc, const char* argv
  * with the SSE analyser, in order to update NEED_SSE_INVERSE.
  */
 void analyse_mode_manager(){
-    #if defined(WINDOWS)
+#if defined(WINDOWS)
     if(get_log_level() >= 2)
     {
         dr_printf("WARNING : Assuming SSE instructions have their operands inverted, since we have no way to test this on Windows !\n");
     }
     set_need_sse_inverse(true);
-    #else
+#else
     char path[256];
     path_to_library(path, 256);
 
@@ -718,8 +718,7 @@ void analyse_mode_manager(){
         dr_fprintf(STDERR, 
             "ANALYSE FAILURE : Couldn't finish analysing the symbols of the library\n");
     }
-
-    #endif
+#endif
 }
 
 /**
@@ -729,14 +728,14 @@ void analyse_mode_manager(){
  * used by the compiler is intel's.
  */
 void test_sse_src_order() {
-    #if defined(WINDOWS)
+#if defined(WINDOWS)
     // Inline assembly isn't available on MSVC in 64 bits mode, and intrinsics can't help us in this
-    #else
+#else
     __asm__ volatile(
             "\t.intel_syntax;\n"    /* We assume the syntax to be ATT */
             "\tdivpd %xmm0, %xmm1;\n"
             "\tvdivpd %xmm0, %xmm0, %xmm1;\n"
             "\t.att_syntax;\n"  /* Set the syntax back to ATT */
             );
-    #endif
+#endif
 }
