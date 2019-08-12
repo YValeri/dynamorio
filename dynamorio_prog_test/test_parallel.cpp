@@ -4,6 +4,7 @@
 #include "xmmintrin.h"
 
 #define ITER 10
+#define EPSILLON 0.01
 
 int main(int argc , char *argv[]) {
     
@@ -24,10 +25,9 @@ int main(int argc , char *argv[]) {
         y += (i+1) - (1/(i+1));
     }
 
-    printf("x : %lf\ty : %lf\n",x,y);
+    printf("x : %lf\ty : %lf",x,y);
+    if(x >= 58.051881-EPSILLON && x <= 58.051881+EPSILLON && y >= 60.155617-EPSILLON && y <= 60.155617+EPSILLON) std::cout << "\t\t\t\t[ OK ]\n"; else std::cout  << "\t\t\t\t[ KO ]\n";
     
-    
-
     #pragma omp parallel for
     for(int i = 0 ; i < ITER ; i++) {
         #pragma omp critical
@@ -40,7 +40,13 @@ int main(int argc , char *argv[]) {
 
     printf("a[] : ");
     for(int i = 0 ; i < 4 ; i++) printf("%lf ",a[i]);
-    printf("\n");
+    if( a[0] >= 21.45-EPSILLON && a[0] <= 21.45+EPSILLON && 
+        a[1] >= 90.52-EPSILLON && a[1] <= 90.52+EPSILLON && 
+        a[2] >= 15.23-EPSILLON && a[2] <= 15.23+EPSILLON && 
+        a[3] >= 99.44-EPSILLON && a[3] <= 99.44+EPSILLON) 
+
+        std::cout << "\t\t[ OK ]\n"; else std::cout  << "\t\t[ KO ]\n";
+    
 
 
 

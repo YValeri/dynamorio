@@ -3,7 +3,8 @@
 #include <stdio.h>
 #include "cblas.h"
 
-#define MATRIX_SIZE 1000
+#define MATRIX_SIZE 200
+#define EPSILLON 0.01
 
 void matrix_multiplcation(double *A, int A_width, int A_height,
          double *B, int B_width, int B_height,
@@ -45,40 +46,28 @@ int main(int argc , char *argv[]) {
         B[i] = 2 / ((double) (i+(i%MATRIX_SIZE)+1));
         AB[i] = 0;
     }
-    printf("%lf\n", A[3]);
+
     matrix_multiplcation(A , MATRIX_SIZE , MATRIX_SIZE , B , MATRIX_SIZE , MATRIX_SIZE , AB , false , false , 0);
 
-/*
-    printf("\t***** A *****\n");
-    for(int i = 0 ; i < MATRIX_SIZE*MATRIX_SIZE ; i++) {
-        printf("%.4f ",A[i]);
-        if(i && !((i+1) %MATRIX_SIZE)) printf("\n");
-    }
-    
-    printf("\n\n");
-    printf("\t***** B *****\n");
-    for(int i = 0 ; i < MATRIX_SIZE*MATRIX_SIZE ; i++) {
-        printf("%.4f ",B[i]);
-        if(i && !((i+1)%MATRIX_SIZE)) printf("\n");
-    }
+    printf("%e",AB[0]); 
+    if(AB[0] >= 2.006091-EPSILLON && AB[0] <= 2.006091+EPSILLON) printf("\t[ OK ]\n"); else printf("\t[ KO ]\n");
 
-    printf("\n\n");
-*/
-/*
-    printf("\t***** A*B *****\n");
-    for(int i = 0 ; i < MATRIX_SIZE*MATRIX_SIZE ; i++) {
-        printf("%.4f ",AB[i]);
-        if(i && !((i+1)%MATRIX_SIZE)) printf("\n");
-    }
-*/
+    printf("%e",AB[1]);
+    if(AB[1] >= 0.672717-EPSILLON && AB[1] <= 0.672717+EPSILLON) printf("\t[ OK ]\n"); else printf("\t[ KO ]\n");
 
-    printf("%.100f\n",AB[0]);
-     printf("%.100f\n",AB[1]);
-      printf("%.100f\n",AB[2]);
-       printf("%.100f\n",AB[3]);
+    printf("%e",AB[2]);
+    if(AB[2] >= 0.406010-EPSILLON && AB[2] <= 0.406010+EPSILLON) printf("\t[ OK ]\n"); else printf("\t[ KO ]\n");
 
-        printf("%.100f\n",AB[150]);
-         printf("%.100f\n",AB[45]);
+    printf("%e",AB[3]);
+    if(AB[3] >= 0.291685-EPSILLON && AB[3] <= 0.291685+EPSILLON) printf("\t[ OK ]\n"); else printf("\t[ KO ]\n");
+
+    printf("%e",AB[45]);
+    if(AB[45] >= 0.026723-EPSILLON && AB[45] <= 0.026723+EPSILLON) printf("\t[ OK ]\n"); else printf("\t[ KO ]\n");
+
+    printf("%e",AB[150]);
+    if(AB[150] >= 0.009949-EPSILLON && AB[150] <= 0.009949+EPSILLON) printf("\t[ OK ]\n"); else printf("\t[ KO ]\n");
+
+   
 
 
 
