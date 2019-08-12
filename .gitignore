@@ -8,3 +8,7 @@ dynamorio_prog_test/*.*
 !dynamorio_prog_test/*.cpp
 !dynamorio_prog_test/*.h
 !dynamorio_prog_test/Makefile
+dynamorio_prog_test/windows/*.*
+!dynamorio_prog_test/windows/*.c
+!dynamorio_prog_test/windows/*.cpp
+!dynamorio_prog_test/windows/*.h

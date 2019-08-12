@@ -79,7 +79,7 @@ public:
         }
         int res = traits_type::not_eof(extra_char);
         if (pptr() > pbase()) {
-            int len = gzwrite(file, pbase(), pptr() - pbase());
+            int len = gzwrite(file, pbase(), (unsigned int)(pptr() - pbase()));
             if (len < pptr() - pbase())
                 res = traits_type::eof();
         }

@@ -165,29 +165,7 @@ void set_index_tls_float(int new_tls_value);
 
 void translate_insert(instr_t *newinstr, instrlist_t *ilist, instr_t *instr);
 
-void insert_save_scratch_arith_rax(void *drcontext, instrlist_t *bb, instr_t *instr);
-void insert_restore_scratch_arith_rax(void *drcontext, instrlist_t *bb, instr_t *instr);
-
-void insert_pop_pseudo_stack(void *drcontext, reg_id_t reg, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t temp_buf);
-void insert_pop_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_pop_list, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t temp_buf, unsigned int nb_reg);
-
-void insert_push_pseudo_stack(void *drcontext, reg_id_t reg_to_push, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t temp_buf);
-void insert_push_pseudo_stack_list(void *drcontext, reg_id_t *reg_to_push_list, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t temp_buf, unsigned int nb_reg);
-
-void insert_move_operands_to_tls_memory_scalar(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double);
-void insert_move_operands_to_tls_memory_packed(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc);
-void insert_move_operands_to_tls_memory(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double);
-void insert_move_operands_to_tls_memory_fused(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc);
-
-void insert_save_floating_reg(void *drcontext, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t scratch);
-void insert_restore_floating_reg(void *drcontext, instrlist_t *bb, instr_t *instr, reg_id_t buffer_reg, reg_id_t scratch);
-
 void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double);
-
-void insert_set_result_in_corresponding_register(void *drcontext, instrlist_t *bb, instr_t *instr, bool is_double, bool is_scalar);
-
-void insert_opnd_base_disp_to_tls_memory_packed(void *drcontext, opnd_t opnd_src, reg_id_t base_dst, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc);
-void insert_opnd_addr_to_tls_memory_packed(void *drcontext, opnd_t addr_src, reg_id_t base_dst, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc);
 
 void insert_set_operands(void* drcontext, instrlist_t *bb, instr_t *where, instr_t *instr, OPERATION_CATEGORY oc);
 void insert_restore_simd_registers(void *drcontext, instrlist_t *bb, instr_t *where);

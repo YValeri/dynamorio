@@ -35,7 +35,7 @@
 /* clang-format off */ /* (make vera++ newline-after-type check happy) */
 template <>
 /* clang-format on */
-file_reader_t<gzFile>::~file_reader_t<gzFile>()
+file_reader_t<gzFile>::~file_reader_t()
 {
     for (auto file : input_files)
         gzclose(file);

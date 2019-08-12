@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <cctype>
 #include "dr_api.h"
 #include "symbol_config.hpp"
 #include "analyse.hpp"

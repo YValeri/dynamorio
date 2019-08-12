@@ -457,7 +457,6 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
     
 
     static int nb=0;
-    int block_idx=0, instrCount=0;
 
     
     for(instr = instrlist_first_app(bb); instr != NULL; instr = next_instr)
