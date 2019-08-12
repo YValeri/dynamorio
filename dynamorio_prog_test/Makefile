@@ -13,9 +13,6 @@ divtest.out: divtest.cpp
 matmul_blas.out: matmul_blas.cpp
 	$(CC) -o matmul_blas.out matmul_blas.cpp -lopenblas -O3 -march=native
 
-rump.out: rump.cpp
-	$(CC) -o rump.out rump.cpp -O3
-
 test_instructions_sse.out: test_instructions.h test_instructions_sse.cpp
 	$(CC) -o test_instructions_sse.out test_instructions_sse.cpp -msse -O3
 

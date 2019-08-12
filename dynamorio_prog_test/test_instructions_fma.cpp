@@ -8,10 +8,7 @@ int main(int argc, char const *argv[])
 
     if(argc == 2) seed = atoi(argv[1]);
 
-    init(seed);
-
-    std::cout << "\n\t***** SOURCES *****\n";
-    print_all_src();
+    init(seed);;
 
     v_src0_f_sse = _mm_load_ps(src0_f_sse);
     v_src1_f_sse = _mm_load_ps(src1_f_sse);

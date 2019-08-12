@@ -54,7 +54,6 @@ void print(FTYPE *values , int nb_values, const char *name) {
     for(int i = 0 ; i < nb_values ; i++) {
         std::cout << values[i] << "\t\t";
     }
-    std::cout << std::endl;
 }
 
 
@@ -91,19 +90,19 @@ void init(unsigned int seed) {
 
 
 void print_all_src() {
-    print<float>(src0_f_sse , 4 , "src0_f_sse");
-    print<float>(src1_f_sse , 4 , "src1_f_sse");
-    print<float>(src2_f_sse , 4 , "src2_f_sse");
-    print<float>(src0_f_avx , 8 , "src0_f_avx");
-    print<float>(src1_f_avx , 8 , "src1_f_avx");
-    print<float>(src2_f_avx , 8 , "src2_f_avx");
+    print<float>(src0_f_sse , 4 , "src0_f_sse"); std::cout << std::endl;
+    print<float>(src1_f_sse , 4 , "src1_f_sse"); std::cout << std::endl;
+    print<float>(src2_f_sse , 4 , "src2_f_sse"); std::cout << std::endl;
+    print<float>(src0_f_avx , 8 , "src0_f_avx"); std::cout << std::endl;
+    print<float>(src1_f_avx , 8 , "src1_f_avx"); std::cout << std::endl;
+    print<float>(src2_f_avx , 8 , "src2_f_avx"); std::cout << std::endl;
 
-    print<double>(src0_d_sse , 2 , "src0_d_sse");
-    print<double>(src1_d_sse , 2 , "src1_d_sse");
-    print<double>(src2_d_sse , 2 , "src2_d_sse");
-    print<double>(src0_d_avx , 4 , "src0_d_avx");
-    print<double>(src1_d_avx , 4 , "src1_d_avx");
-    print<double>(src2_d_avx , 4 , "src2_d_avx");
+    print<double>(src0_d_sse , 2 , "src0_d_sse"); std::cout << std::endl;
+    print<double>(src1_d_sse , 2 , "src1_d_sse"); std::cout << std::endl;
+    print<double>(src2_d_sse , 2 , "src2_d_sse"); std::cout << std::endl;
+    print<double>(src0_d_avx , 4 , "src0_d_avx"); std::cout << std::endl;
+    print<double>(src1_d_avx , 4 , "src1_d_avx"); std::cout << std::endl;
+    print<double>(src2_d_avx , 4 , "src2_d_avx"); std::cout << std::endl;   
 }
 
 #endif
