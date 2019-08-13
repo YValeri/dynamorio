@@ -12,12 +12,12 @@ typedef enum{
     PLC_CLIENT_WL_ONLY = 4, /** Instrument only the symbols in the whitelist */
     PLC_CLIENT_BL_WL = 6, /** Instrument the symbols in the whitelist that aren't in the blacklist */
     PLC_CLIENT_HELP = -1 /** Display arguments help */
-} interflop_client_mode_t;
+} padloc_client_mode_t;
 
 typedef enum{
     PLC_ANALYSE_NOT_NEEDED = 0, /* Backend analysis not needed */
     PLC_ANALYSE_NEEDED = 1 /* Backend analysis needed */
-} interflop_analyse_mode_t;
+} padloc_analyse_mode_t;
 
 #define UNKNOWN_ARGUMENT 3
 
@@ -36,30 +36,30 @@ void write_to_file_symbol_file_header(std::ofstream&);
 /**
  * \brief Get the current client mode
  * 
- * \return interflop_client_mode_t Client mode
+ * \return padloc_client_mode_t Client mode
  */
-interflop_client_mode_t get_client_mode();
+padloc_client_mode_t get_client_mode();
 
 /**
  * \brief Sets the client mode
  * 
  * \param mode 
  */
-void set_client_mode(interflop_client_mode_t);
+void set_client_mode(padloc_client_mode_t);
 
 /**
  * \brief Get the current analyse mode
  * 
- * \return interflop_analyse_mode_t Analyse mode
+ * \return padloc_analyse_mode_t Analyse mode
  */
-interflop_analyse_mode_t get_analyse_mode();
+padloc_analyse_mode_t get_analyse_mode();
 
 /**
  * \brief Sets the analyse mode
  * 
  * \param mode 
  */
-void set_analyse_mode(interflop_analyse_mode_t);
+void set_analyse_mode(padloc_analyse_mode_t);
 
 void inc_error();
 
