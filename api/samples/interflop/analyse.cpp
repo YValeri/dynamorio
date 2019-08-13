@@ -43,42 +43,42 @@ static std::vector<reg_id_t> gpr_reg;
 static std::vector<reg_id_t> float_reg;
 
 /**
- * @brief Getter for the NEED_SSE_INVERSE boolean
- * @return NEED_SSE_INVERSE
+ * \brief Getter for the NEED_SSE_INVERSE boolean
+ * \return NEED_SSE_INVERSE
  */
 bool get_need_sse_inverse(){
     return NEED_SSE_INVERSE;
 }
 
 /**
- * @brief Setter for the NEED_SSE_INVERSE boolean
+ * \brief Setter for the NEED_SSE_INVERSE boolean
  * 
- * @param new_value The new value for NEED_SSE_INVERSE
+ * \param new_value The new value for NEED_SSE_INVERSE
  */
 void set_need_sse_inverse(bool new_value){
     NEED_SSE_INVERSE = new_value;
 }
 
 /**
- * @brief Getter for the gpr_reg vector
- * @return gpr_reg
+ * \brief Getter for the gpr_reg vector
+ * \return gpr_reg
  */
 std::vector<reg_id_t> get_gpr_reg(){
     return gpr_reg;
 }
 
 /**
- * @brief Getter for the float_reg vector
- * @return float_reg
+ * \brief Getter for the float_reg vector
+ * \return float_reg
  */
 std::vector<reg_id_t> get_float_reg(){
     return float_reg;
 }
 
 /**
- * @brief Gather the gpr_reg and float_reg vectors into a single one,
+ * \brief Gather the gpr_reg and float_reg vectors into a single one,
  * containing all registers used by the backend
- * @return The combination of both vectors
+ * \return The combination of both vectors
  */
 std::vector<reg_id_t> get_all_registers(){
     std::vector<reg_id_t> ret;
@@ -101,10 +101,10 @@ std::vector<reg_id_t> get_all_registers(){
 }
 
 /**
- * @brief Helper function to print a certain number of \t, used as way to
+ * \brief Helper function to print a certain number of \t, used as way to
  * know when we follow a call through
  * 
- * @param tabs The number of tabs
+ * \param tabs The number of tabs
  */
 static void print_tabs(int tabs){
     for(int i = 0; i < tabs; ++i)
@@ -112,11 +112,11 @@ static void print_tabs(int tabs){
 }
 
 /**
- * @brief Prints the content of a vector of reg_id_t
- * @details Iterate over a vector of reg_id_t and prints the names
+ * \brief Prints the content of a vector of reg_id_t
+ * \details Iterate over a vector of reg_id_t and prints the names
  * of each register, according to their value in the reg_id_t enum.
  * 
- * @param vect The vector to print
+ * \param vect The vector to print
  */
 static void print_vect(std::vector<reg_id_t> vect){
     for(auto i = vect.begin(); i != vect.end(); ++i){
@@ -131,7 +131,7 @@ static void print_vect(std::vector<reg_id_t> vect){
 }
 
 /**
- * @brief Prints the content of the gpr_reg and float_reg
+ * \brief Prints the content of the gpr_reg and float_reg
  * register, using print_vect for each.
  */
 void print_register_vectors(){
@@ -143,8 +143,8 @@ void print_register_vectors(){
 }
 
 /**
- * @brief Adds a reg_id_t to gpr_reg or float_reg according to it's status
- * @details Checks whether a given register is a GPR or a FP register.
+ * \brief Adds a reg_id_t to gpr_reg or float_reg according to it's status
+ * \details Checks whether a given register is a GPR or a FP register.
  * In both cases, iterate through the corresponding vector and add reg to it
  * if necessary. At any point in time, the vectors are assured to be in one of
  * three states compared to reg :
@@ -152,7 +152,7 @@ void print_register_vectors(){
  *      - a vector element overlaps with reg -> remove the element and add reg
  *      - reg overlaps with a vector element -> don't add reg to the vector
  * 
- * @param reg The register to add
+ * \param reg The register to add
  */
 static void add_to_vect(reg_id_t reg){
     bool add_reg = true;
@@ -214,12 +214,12 @@ static void add_to_vect(reg_id_t reg){
 }
 
 /**
- * @brief Fill the two vectors according to the registers used by
+ * \brief Fill the two vectors according to the registers used by
  * an instruction
- * @details Checks all the sources and destinations of an instruction,
+ * \details Checks all the sources and destinations of an instruction,
  * verify whether or not each is a register and call add_to_vect if so.
  * 
- * @param instr The instruction which operands are to check
+ * \param instr The instruction which operands are to check
  */
 static void fill_reg_vect(instr_t *instr){
     opnd_t operand;
@@ -266,19 +266,19 @@ static void fill_reg_vect(instr_t *instr){
 }
 
 /**
- * @brief Iterate through the instructions of a backend symbol to add the
+ * \brief Iterate through the instructions of a backend symbol to add the
  * registers used by each instruction to one of the two register vectors.
- * @details Recursive function which decodes the symbol at 
+ * \details Recursive function which decodes the symbol at 
  * lib_data->start + offset as a list of instructions, iterate through it 
  * and call fill_reg_vect with each instruction. 
  * Also, follows each call in the symbol if the target app_pc
  * is not already in the app_pc vector, effectively instrumenting all the
  * functions used by the backend.
  * 
- * @param drcontext The current context
- * @param lib_data The module data corresponding to the backend library
- * @param offset The offset of a symbol from the start of the library
- * @param tabs The tabulations for the current function, used for display
+ * \param drcontext The current context
+ * \param lib_data The module data corresponding to the backend library
+ * \param offset The offset of a symbol from the start of the library
+ * \param tabs The tabulations for the current function, used for display
  * purposes
  */
 static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data, 
@@ -369,10 +369,10 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
 }
 
 /**
- * @brief Iterate through the function test_sse_src_order at the end of this 
+ * \brief Iterate through the function test_sse_src_order at the end of this 
  * file to check whether or not the implicit operands order problem of
  * DynamoRIO still exists or not.
- * @details Go through all the instructions of the test_sse_src_order
+ * \details Go through all the instructions of the test_sse_src_order
  * function until we find the divpd and vdivpd instructions. When found,
  * get the first operand and see if the implicit operands problem still exists.
  * The problem is the following : when an instruction has it's destination also
@@ -384,9 +384,9 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
  * the destination part also work as source, while AVX instructions explicitely
  * indicates all the sources and destination separately.
  * 
- * @param drcontext The current context
- * @param lib_data The module data corresponding to the backend library
- * @param offset The offset of a symbol from the start of the library
+ * \param drcontext The current context
+ * \param lib_data The module data corresponding to the backend library
+ * \param offset The offset of a symbol from the start of the library
  */
 static void analyse_symbol_test_sse_src(void *drcontext, module_data_t* lib_data, size_t offset) {
     /* Decode the symbol as a list of instructions */
@@ -426,13 +426,13 @@ static void analyse_symbol_test_sse_src(void *drcontext, module_data_t* lib_data
 }
 
 /**
- * @brief Writes a vector to an output file.
- * @details Writes a vector of registers to the given output file,
+ * \brief Writes a vector to an output file.
+ * \details Writes a vector of registers to the given output file,
  * in order to know which registers are used by the backend.
  * 
- * @param analyse_file The file in which to write the registers
- * @param vect The vectors of registers to write
- * @param vect_type The type of vector we're trying to write (either 
+ * \param analyse_file The file in which to write the registers
+ * \param vect The vectors of registers to write
+ * \param vect_type The type of vector we're trying to write (either 
  * "float_reg" or "gpr_reg")
  */
 static void write_vect(std::ofstream& analyse_file, std::vector<reg_id_t> vect,
@@ -449,11 +449,11 @@ static void write_vect(std::ofstream& analyse_file, std::vector<reg_id_t> vect,
 }
 
 /**
- * @brief Write the two vectors of registers to the given file path.
- * @details Open the path given as an output file, and writes the vectors
+ * \brief Write the two vectors of registers to the given file path.
+ * \details Open the path given as an output file, and writes the vectors
  * of registers to it.
  * 
- * @param path The path of the file we want to write to, can be absolute or
+ * \param path The path of the file we want to write to, can be absolute or
  * relative.
  */
 static void write_reg_to_file(const char* path){
@@ -472,13 +472,13 @@ static void write_reg_to_file(const char* path){
 }
 
 /**
- * @brief Read the content of an input file given by the path, and
+ * \brief Read the content of an input file given by the path, and
  * populate the two vectors of registers.
- * @details Open the given path as an input file, reads each line and
+ * \details Open the given path as an input file, reads each line and
  * populate the two vectors with each values.
  * 
- * @param path The path to the input file we read from.
- * @return True if we have to stop the execution of the program because of
+ * \param path The path to the input file we read from.
+ * \return True if we have to stop the execution of the program because of
  * a failure, or false if everything went smoothly.
  */
 static bool read_reg_from_file(const char* path){
@@ -535,15 +535,15 @@ static bool read_reg_from_file(const char* path){
 }
 
 /**
- * @brief Callback function that check if a symbol is one we're interested in
- * @details Callback function that will compare the given name of the symbol
+ * \brief Callback function that check if a symbol is one we're interested in
+ * \details Callback function that will compare the given name of the symbol
  * to one we want to check. If it is, we will start checking all the
  * instructions in it, in order to populate the vectors.
  * 
- * @param name The name of the symbol
- * @param modoffs The offset of the sybol from the start of the library
- * @param data Eventual data passed from the function that does the callback
- * @return True if we want to continue going through the symbols
+ * \param name The name of the symbol
+ * \param modoffs The offset of the sybol from the start of the library
+ * \param data Eventual data passed from the function that does the callback
+ * \return True if we want to continue going through the symbols
  */
 bool enum_symbols_registers(const char *name, size_t modoffs, void *data){
     void *drcontext = nullptr;
@@ -566,13 +566,13 @@ bool enum_symbols_registers(const char *name, size_t modoffs, void *data){
 }
 
 /**
- * @brief Callback function that check whether or not the symbol is
+ * \brief Callback function that check whether or not the symbol is
  * test_sse_src_order and instrument it if so.
  * 
- * @param name The name of the symbol
- * @param modoffs The offset of the sybol from the start of the library
- * @param data Eventual data passed from the function that does the callback
- * @return True if we want to continue going through the symbols
+ * \param name The name of the symbol
+ * \param modoffs The offset of the sybol from the start of the library
+ * \param data Eventual data passed from the function that does the callback
+ * \return True if we want to continue going through the symbols
  */
 bool enum_symbols_sse(const char *name, size_t modoffs, void *data){
     void *drcontext = nullptr;
@@ -592,11 +592,11 @@ bool enum_symbols_sse(const char *name, size_t modoffs, void *data){
 }
 
 /**
- * @brief Get the current directory, assumed to be "dynamorio/build" and
+ * \brief Get the current directory, assumed to be "dynamorio/build" and
  * appends the path to the library to it.
  * 
- * @param path A placeholder char*
- * @param length The length of the char*
+ * \param path A placeholder char*
+ * \param length The length of the char*
  */
 static void path_to_library(char* path, size_t length){
     dr_get_current_directory(path, length);
@@ -604,13 +604,13 @@ static void path_to_library(char* path, size_t length){
 }
 
 /**
- * @brief Analyse the backend and put the content of the vectors in the
+ * \brief Analyse the backend and put the content of the vectors in the
  * given file path/
- * @details Enumerate through all the symbols of the client, checking for
+ * \details Enumerate through all the symbols of the client, checking for
  * the entry to the backend function, then checking all the instructions to
  * add the registers to the vectors.
  * 
- * @param file The path of the output file
+ * \param file The path of the output file
  */
 static void AA_argument_detected(const char* file){
     char path[256];
@@ -625,8 +625,8 @@ static void AA_argument_detected(const char* file){
 }
 
 /**
- * @brief Parser for the command line
- * @details The options are : 
+ * \brief Parser for the command line
+ * \details The options are : 
  *      - "analyse and abort", to analyse the backend, write the registers
  *      to a given file and abort
  *      - "analyse from file", to read an input file and parse it to populate
@@ -634,12 +634,12 @@ static void AA_argument_detected(const char* file){
  *      - "analyse and run", to analyse the backend and run the program normaly.
  *      Default option.
  * 
- * @param arg The current argument as string
- * @param i The index of the current argument, given as pointer to be modified
+ * \param arg The current argument as string
+ * \param i The index of the current argument, given as pointer to be modified
  * if necessary when checking for an option with special parameters
- * @param argc The length of the command line
- * @param argv The list of arguments in the command line
- * @return True if the execution of the program must be stopped, else false
+ * \param argc The length of the command line
+ * \param argv The list of arguments in the command line
+ * \return True if the execution of the program must be stopped, else false
  */
 bool analyse_argument_parser(std::string arg, int* i, int argc, const char* argv[]){
     if(arg == "--analyse_abort" || arg == "-aa"){
@@ -683,9 +683,9 @@ bool analyse_argument_parser(std::string arg, int* i, int argc, const char* argv
 }
 
 /**
- * @brief Analyse the backend if needed, and update the NEED_SSE_INVERSE
+ * \brief Analyse the backend if needed, and update the NEED_SSE_INVERSE
  * boolean accordingly
- * @details Call drsym_enumerate_symbols to analyse the backend if needed,
+ * \details Call drsym_enumerate_symbols to analyse the backend if needed,
  * updating the vectors of registers. Also call drsym_enumerate_symbols
  * with the SSE analyser, in order to update NEED_SSE_INVERSE.
  */
@@ -722,14 +722,16 @@ void analyse_mode_manager(){
 }
 
 /**
- * @brief Function used to check if the implicit operands problem
+ * \brief Function used to check if the implicit operands problem
  * was corrected or not.
  * We assume the syntax used is ATT, since DynamoRIO can't compile if the one
  * used by the compiler is intel's.
  */
 void test_sse_src_order() {
 #if defined(WINDOWS)
-    // Inline assembly isn't available on MSVC in 64 bits mode, and intrinsics can't help us in this
+    /* Inline assembly isn't available on MSVC in 64 bits mode, and 
+     * intrinsics can't help us in this.
+     */
 #else
     __asm__ volatile(
             "\t.intel_syntax;\n"    /* We assume the syntax to be ATT */
