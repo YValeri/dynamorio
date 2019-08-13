@@ -35,11 +35,17 @@ static const char* IFP_SYMBOL_FILE_HEADER =
 "# Note that the whole modules listed here don't mean the program used the whole module, but rather that that module was used\n"
 "#\n";
 
+/**
+ * @brief Helper string, contains all the options available, along with how
+ * to actually use the client.
+ */
 static const char* IFP_HELP_STRING =
 "InterFLOP sample for DynamoRIO : replaces the floating point operations with their equivalent in Monte Carlo arithmetics [Parker et al. 2000]\n" 
 "Usage : drrun [drrun options] -c libinterflop.so [interflop options] -- programToInstrument [program arguments]\n"
 "Interflop options :\n"
-"\t -h\n\t --help\n\t Displays the current help, stops the program\n\n"
+"\t -d\n\t --debug\n\t\tSets the client to debug mode\n\n"
+"\t -h\n\t --help\n\t\tDisplays the current help, stops the program\n\n"
+"\t -l\n\t --loglevel [int]\n\t\tSets the loglevel to the given level, between 1 and 3\n\n"
 "\t -n\n\t --no-lookup \n\t\t(Default) Disables the lookup for the symbols, instruments every floating operation\n\n"
 "\t -w [filename]\n\t --whitelist [filename] \n\t\tInstruments only the symbols present in the given file\n\n"
 "\t -b [filename]\n\t --blacklist [filename] \n\t\tDisable the instrumentation for the symbols present in the given file\n\n"
@@ -232,11 +238,10 @@ static bool utils_argument_parser(const std::string arg, int *i, int argc, const
                 set_log_level(level);
             }
         }else{
-                dr_fprintf(STDERR, 
-                        "NOT ENOUGH ARGUMENTS : Lacking the loglevel associated with \"%s\"\n", 
-                        argv[*i - 1]);
-                set_client_mode(IFP_CLIENT_HELP);
-                return true;
+            dr_fprintf(STDERR, 
+                "NOT ENOUGH ARGUMENTS : Lacking the loglevel associated with -l\n");
+            set_client_mode(IFP_CLIENT_HELP);
+            return true;
         }
     }else{
         /* If the argument is not one we know, increment the error counter */
@@ -248,31 +253,54 @@ static bool utils_argument_parser(const std::string arg, int *i, int argc, const
 /**
  * @brief Main parsing function
  * @details Get each argument of the command line, and calls all the parsers
- * for the other parts of the program (currently utilitary, )
+ * for the other parts of the program (currently utilitary, backend analysis
+ * and symbol analysis). The called functions are functions of the form :
+ * bool name(std::string arg, int *i, int argc, char* argv[]).
+ * The second parameter is given as pointer so that the parsing functions
+ * can modify it if they see fit, for instance when they detect an option
+ * that needs another argument.
  * 
- * @param argc [description]
- * @param argv [description]
+ * The arguments that we detect are the ones given by DynamoRIO, meaning it
+ * is not the actual command line, but the options listed after the 
+ * "-c library" up until the "-- application".
+ * Generally, the command line for DynamoRIO with drrun will look like this :
+ * "drrun DynamoRIO_option -c client client_options -- app app_options"
+ * So what we check in this function is the client_options part.
  * 
- * @return [description]
+ * @param argc The number of arguments
+ * @param argv The arguments of the command line
+ * 
+ * @return True if the execution of the program must stop, else false
  */
 bool arguments_parser(int argc, const char* argv[]){
     for(int i = 1; i < argc; ++i){
-                reset_error_count();
-                std::string arg(argv[i]);
-                if(utils_argument_parser(arg, &i, argc, argv)){
-                        return true;
-                }else if(symbol_argument_parser(arg, &i, argc, argv)){
-                        return true;
-                }else if(analyse_argument_parser(arg, &i, argc, argv)){
-                        return true;
-                }else if(error_count == UNKNOWN_ARGUMENT){
-                        dr_fprintf(STDERR, 
-                                "Unknown command line option\n");
-                        return true;
+            /* Reset the error count */
+            reset_error_count();
+            std::string arg(argv[i]);
+            /**
+             * We first call the utilitary parser, then the symbol parser
+             * and finally, the backend analysis parser.
+             * If all the parser return false, and error_count is
+             * equal to UNKNOWN_ARGUMENT, the command line option is
+             * unknown, so print an error and return true.
+             */
+            if(utils_argument_parser(arg, &i, argc, argv)){
+                return true;
+            }else if(symbol_argument_parser(arg, &i, argc, argv)){
+                return true;
+            }else if(analyse_argument_parser(arg, &i, argc, argv)){
+                return true;
+            }else if(error_count == UNKNOWN_ARGUMENT){
+                dr_fprintf(STDERR, "Unknown command line option\n");
+                return true;
         }
     }
-
-        symbol_client_mode_manager();
-        analyse_mode_manager();
-        return false;
+    /**
+     * When all the command line options have been checked, we call the manager
+     * of each other part of the code, and they will do what's necessary
+     * according to the state of the program.
+     */
+    symbol_client_mode_manager();
+    analyse_mode_manager();
+    return false;
 }

@@ -729,7 +729,9 @@ void analyse_mode_manager(){
  */
 void test_sse_src_order() {
     #if defined(WINDOWS)
-    // Inline assembly isn't available on MSVC in 64 bits mode, and intrinsics can't help us in this
+    /* Inline assembly isn't available on MSVC in 64 bits mode, and 
+     * intrinsics can't help us in this.
+     */
     #else
     __asm__ volatile(
             "\t.intel_syntax;\n"    /* We assume the syntax to be ATT */
