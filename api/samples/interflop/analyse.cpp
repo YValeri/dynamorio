@@ -659,12 +659,12 @@ bool analyse_argument_parser(std::string arg, int* i, int argc, const char* argv
     }else if(arg == "--analyse_file" || arg == "-af"){
         *i += 1;
         if(*i < argc){
-        /* The analyse from file option was detected, so we call 
-         * read_reg_from_file with what may be a file, and return the
-         * result. Also update the analyse mode so that we don't
-         * analyse the backend on our side, overwriting what we got red
-         * from the file.
-         */
+            /* The analyse from file option was detected, so we call 
+             * read_reg_from_file with what may be a file, and return the
+             * result. Also update the analyse mode so that we don't
+             * analyse the backend on our side, overwriting what we red
+             * from the file.
+             */
             set_analyse_mode(IFP_ANALYSE_NOT_NEEDED);
             return read_reg_from_file(argv[*i]);
         }else{
@@ -715,7 +715,7 @@ void analyse_mode_manager(){
     /* Analyse the test_sse_src_order to update NEED_SSE_INVERSE accordingly */
     if(drsym_enumerate_symbols(path, enum_symbols_sse, 
         NULL, DRSYM_DEFAULT_FLAGS) != DRSYM_SUCCESS){
-        dr_fprintf(STDERR, 
+        dr_fprintf(STDERR,
             "ANALYSE FAILURE : Couldn't finish analysing the symbols of the library\n");
     }
 #endif

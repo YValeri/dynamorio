@@ -1,9 +1,23 @@
-#include "utils.hpp"
+/*
+ * Library Manipulation API Sample, part of the Interflop project.
+ * utils.cpp
+ *
+ * This file gathers utilitary functions used throughout the program, the
+ * main parsing function and the log level parts.
+ * 
+ * This file contains the main command line parsing function, and
+ * calls the parser of other parts of the program (currently 3 : symbol
+ * analysis, backend analysis and utilitiaries).
+ */
 
 #include <iostream>
 #include <algorithm>
 #include <cctype>
+
 #include "dr_api.h"
+
+#include "utils.hpp"
+
 #include "symbol_config.hpp"
 #include "analyse.hpp"
 
@@ -32,78 +46,190 @@ static const char* IFP_HELP_STRING =
 "\t -g [filename]\n\t --generate [filename]\n\t Generates the list of symbols in the given program and writes it to the given file, doesn't instrument anything\n\n"
 "\n";
 
+/**
+ * Integer representing the log_levels, which work as follow :
+ *  - level 0, no display from the client;
+ *  - level 1, debug mode, display minimal information about
+ *  the instrumented instructions and registers used by the backend;
+ *  - level 2, warning mode, display important information regarding
+ *  the behaviour of the code;
+ *  - level 3, error mode, display critical errors and problems encountered
+ *  in the program.
+ */
 static int log_level = 0;
 
+/**
+ * Integer representing the amount of parsers that didn't recognize a command
+ * line option. When all the parsers didn't recognize a command line option,
+ * that means this is an unknown command option, and an error is generated.
+ */
 static int error_count = 0;
 
-//Current functionning mode of the client, defines the behavior
+/**
+ * Client mode as defined by the enum in "utils.hpp". This characterizes the
+ * mode in which the symbol analysis part behaves, according to rules
+ * regarding blacklist, whitelist and such. 
+ * The default mode is IFP_CLIENT_DEFAULT, meaning that no particular symbol
+ * analysis is needed.
+ */
 static interflop_client_mode_t interflop_client_mode = IFP_CLIENT_DEFAULT;
 
-//Current functionning mode of the analysis, defines the behavior
+/**
+ * Analysis mode as defined by the enum in "utils.hpp". This characterizes the
+ * mode in which the backend analysis part behaves. Only two modes are
+ * currently implement, regarding the need of backend analysis or not.
+ * The default mode is IFP_ANALYSE_NEEDED, meaning that the backend has to be
+ * analysed. 
+ */
 static interflop_analyse_mode_t interflop_analyse_mode = IFP_ANALYSE_NEEDED;
 
+/**
+ * @brief Setter for the log level
+ * 
+ * @param level The new log level
+ */
 void set_log_level(int level){
     log_level = level;
 }
 
+/**
+ * @brief Getter for the log level
+ * @return The current log level
+ */
 int get_log_level(){
     return log_level;
 }
 
-void print_help(){
-    dr_printf(IFP_HELP_STRING);
-}
-
-void write_to_file_symbol_file_header(std::ofstream& output){
-    output << IFP_SYMBOL_FILE_HEADER;
-}
-
-interflop_client_mode_t get_client_mode(){
-    return interflop_client_mode;
-}
-
+/**
+ * @brief Setter for the client mode
+ * 
+ * @param mode The new client mode
+ */
 void set_client_mode(interflop_client_mode_t mode){
     interflop_client_mode = mode;
 }
 
-interflop_analyse_mode_t get_analyse_mode(){
-        return interflop_analyse_mode;
+/**
+ * @brief Getter for the client mode
+ * @return The current client mode
+ */
+interflop_client_mode_t get_client_mode(){
+    return interflop_client_mode;
 }
 
+/**
+ * @brief Setter for the backend analysis mode
+ * 
+ * @param mode The new backend analysis mode
+ */
 void set_analyse_mode(interflop_analyse_mode_t mode){
         interflop_analyse_mode = mode;
 }
 
-void inc_error(){
-        error_count += 1;
+/**
+ * @brief Getter for the backend analysis mode
+ * @return THe current backend analysis mode
+ */
+interflop_analyse_mode_t get_analyse_mode(){
+        return interflop_analyse_mode;
 }
 
+/**
+ * @brief Helper function for printing the help string, when a command line
+ * related bug occurs, or the user uses "-h" or "--help".
+ */
+void print_help(){
+    dr_printf(IFP_HELP_STRING);
+}
+
+/**
+ * @brief Writes to an output file the symbol file header, needed for
+ * the symbol analysis part of the program.
+ * 
+ * @param output The output file in which to write
+ */
+void write_to_file_symbol_file_header(std::ofstream& output){
+    output << IFP_SYMBOL_FILE_HEADER;
+}
+
+/**
+ * @brief Incrementer for the error count.
+ * @details When a parser function doesn't recognize an option, it calls
+ * this function to increment the error count. That way, if when all the
+ * parser have been called and none recognizes the option, the error count
+ * is equal to the number of parsers, and an error is triggered.
+ */
+void inc_error(){
+    error_count += 1;
+}
+
+static void reset_error_count(){
+    error_count = 0;
+}
+
+/**
+ * @brief Helper function to that check if a string is a number
+ * 
+ * @param s The string to check
+ * @return True if the string represents a number
+ */
 bool is_number(const std::string& s){
     return !s.empty() && std::find_if(s.begin(), 
         s.end(), [](char c) { return !std::isdigit(c); }) == s.end();
 }
 
+/**
+ * @brief Utilitaries argument parser
+ * @details Parser for the utilitaries functionnalities. The possible options
+ * are currently :
+ *      - debug, with "--debug" or "-d", which sets the log level at 1 if not
+ *      already greater than 1;
+ *      - help, with "--help" or "-h", which display the help string and stop
+ *      the execution of the program;
+ *      - loglevel, with "--loglevel" or "-l", which sets the log level with
+ *      the following integer, which is between 0 and 3.
+ * 
+ * @param arg The current argument as string
+ * @param i The index of the current argument, given as pointer to be modified
+ * if necessary when checking for an option with special parameters
+ * @param argc The length of the command line
+ * @param argv The list of arguments in the command line
+ * @return True if the execution of the program must be stopped, else false
+ */
 static bool utils_argument_parser(const std::string arg, int *i, int argc, const char* argv[]){
     if(arg == "--debug" || arg == "-d"){
+        /**
+         * The debug option was detected, so if the loglevel is 0, set it to 1.
+         */
         if(get_log_level() < 1){
             set_log_level(1);
         }
     }else if(arg == "--help" || arg == "-h"){
+        /**
+         * The help option was detected, so print the help string and
+         * return true.
+         */
         print_help();
         return true;
     }else if(arg == "--loglevel" || arg == "-l"){
         *i += 1;
         if(*i < argc){
-            std::string level(argv[*i]);
-            if(!is_number(level)){
+            /**
+             * The loglevel option was detected, so we get the next command
+             * line string, verify it is a number, and if so, set the log level
+             * to that number, if possible and relevant.
+             */
+            std::string string_level(argv[*i]);
+            if(!is_number(string_level)){
                 dr_fprintf(STDERR, 
                         "LOGLEVEL FAILURE : Couldn't change the loglevel to \"%s\"\n", 
                         argv[*i]);
                 set_client_mode(IFP_CLIENT_HELP);
                 return true;
             }
-            if(get_log_level() < std::stoi(level)){
-                set_log_level(std::stoi(level));
+            int level = std::stoi(string_level);
+            if(0 <= level && level <= 3 && get_log_level() < level){
+                set_log_level(level);
             }
         }else{
                 dr_fprintf(STDERR, 
@@ -113,14 +239,25 @@ static bool utils_argument_parser(const std::string arg, int *i, int argc, const
                 return true;
         }
     }else{
+        /* If the argument is not one we know, increment the error counter */
         inc_error();
     }
     return false;
 }
 
+/**
+ * @brief Main parsing function
+ * @details Get each argument of the command line, and calls all the parsers
+ * for the other parts of the program (currently utilitary, )
+ * 
+ * @param argc [description]
+ * @param argv [description]
+ * 
+ * @return [description]
+ */
 bool arguments_parser(int argc, const char* argv[]){
     for(int i = 1; i < argc; ++i){
-                error_count = 0;
+                reset_error_count();
                 std::string arg(argv[i]);
                 if(utils_argument_parser(arg, &i, argc, argv)){
                         return true;
