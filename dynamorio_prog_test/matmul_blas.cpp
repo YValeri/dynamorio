@@ -50,22 +50,22 @@ int main(int argc , char *argv[]) {
     matrix_multiplcation(A , MATRIX_SIZE , MATRIX_SIZE , B , MATRIX_SIZE , MATRIX_SIZE , AB , false , false , 0);
 
     printf("%e",AB[0]); 
-    if(AB[0] >= 2.006091-EPSILLON && AB[0] <= 2.006091+EPSILLON) printf("\t[ OK ]\n"); else printf("\t[ KO ]\n");
+    if(AB[0] >= 2.006091-EPSILLON && AB[0] <= 2.006091+EPSILLON) printf("\t\033[1;32m[ OK ]\033[0m\n"); else printf("\t\033[1;31m[ KO ]\033[0m\n");
 
     printf("%e",AB[1]);
-    if(AB[1] >= 0.672717-EPSILLON && AB[1] <= 0.672717+EPSILLON) printf("\t[ OK ]\n"); else printf("\t[ KO ]\n");
+    if(AB[1] >= 0.672717-EPSILLON && AB[1] <= 0.672717+EPSILLON) printf("\t\033[1;32m[ OK ]\033[0m\n"); else printf("\t\033[1;31m[ KO ]\033[0m\n");
 
     printf("%e",AB[2]);
-    if(AB[2] >= 0.406010-EPSILLON && AB[2] <= 0.406010+EPSILLON) printf("\t[ OK ]\n"); else printf("\t[ KO ]\n");
+    if(AB[2] >= 0.406010-EPSILLON && AB[2] <= 0.406010+EPSILLON) printf("\t\033[1;32m[ OK ]\033[0m\n"); else printf("\t\033[1;31m[ KO ]\033[0m\n");
 
     printf("%e",AB[3]);
-    if(AB[3] >= 0.291685-EPSILLON && AB[3] <= 0.291685+EPSILLON) printf("\t[ OK ]\n"); else printf("\t[ KO ]\n");
+    if(AB[3] >= 0.291685-EPSILLON && AB[3] <= 0.291685+EPSILLON) printf("\t\033[1;32m[ OK ]\033[0m\n"); else printf("\t\033[1;31m[ KO ]\033[0m\n");
 
     printf("%e",AB[45]);
-    if(AB[45] >= 0.026723-EPSILLON && AB[45] <= 0.026723+EPSILLON) printf("\t[ OK ]\n"); else printf("\t[ KO ]\n");
+    if(AB[45] >= 0.026723-EPSILLON && AB[45] <= 0.026723+EPSILLON) printf("\t\033[1;32m[ OK ]\033[0m\n"); else printf("\t\033[1;31m[ KO ]\033[0m\n");
 
     printf("%e",AB[150]);
-    if(AB[150] >= 0.009949-EPSILLON && AB[150] <= 0.009949+EPSILLON) printf("\t[ OK ]\n"); else printf("\t[ KO ]\n");
+    if(AB[150] >= 0.009949-EPSILLON && AB[150] <= 0.009949+EPSILLON) printf("\t\033[1;32m[ OK ]\033[0m\n"); else printf("\t\033[1;31m[ KO ]\033[0m\n");
 
    
 

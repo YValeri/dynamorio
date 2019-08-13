@@ -26,7 +26,7 @@ int main(int argc , char *argv[]) {
     }
 
     printf("x : %lf\ty : %lf",x,y);
-    if(x >= 58.051881-EPSILLON && x <= 58.051881+EPSILLON && y >= 60.155617-EPSILLON && y <= 60.155617+EPSILLON) std::cout << "\t\t\t\t[ OK ]\n"; else std::cout  << "\t\t\t\t[ KO ]\n";
+    if(x >= 58.051881-EPSILLON && x <= 58.051881+EPSILLON && y >= 60.155617-EPSILLON && y <= 60.155617+EPSILLON) std::cout << "\t\t\t\t\033[1;32m[ OK ]\033[0m\n"; else std::cout  << "\t\t\t\t\033[1;31m[ KO ]\033[0m\n";
     
     #pragma omp parallel for
     for(int i = 0 ; i < ITER ; i++) {
@@ -45,7 +45,7 @@ int main(int argc , char *argv[]) {
         a[2] >= 15.23-EPSILLON && a[2] <= 15.23+EPSILLON && 
         a[3] >= 99.44-EPSILLON && a[3] <= 99.44+EPSILLON) 
 
-        std::cout << "\t\t[ OK ]\n"; else std::cout  << "\t\t[ KO ]\n";
+        std::cout << "\t\t\033[1;32m[ OK ]\033[0m\n"; else std::cout  << "\t\t\033[1;31m[ KO ]\033[0m\n";
     
 
 

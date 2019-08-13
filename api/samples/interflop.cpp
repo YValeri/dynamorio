@@ -38,10 +38,6 @@ static dr_emit_flags_t symbol_lookup_event( void *drcontext,        //Context
 											bool translating,       //TODO
 											OUT void** user_data);
 
-void printMessage(int msg)
-{
-    dr_printf("%d\n", msg);
-}
 
 #define INSERT_MSG(dc, bb, where, x) dr_insert_clean_call(dc,bb, where, (void*)printMessage,true, 1, opnd_create_immed_int(x, OPSZ_4))
 
@@ -138,15 +134,15 @@ static void event_exit()
 }
 
 static void thread_init(void *dr_context) {
-    SET_TLS(dr_context , get_index_tls_result() ,dr_thread_alloc(dr_context , MAX_OPND_SIZE_BYTES));
-    SET_TLS(dr_context, get_index_tls_float(), dr_thread_alloc(dr_context, 4096));
-    SET_TLS(dr_context,get_index_tls_gpr(),dr_thread_alloc(dr_context, 4096));
+    SET_TLS(dr_context, get_index_tls_result(), dr_thread_alloc(dr_context , 8));
+    SET_TLS(dr_context, get_index_tls_float(), dr_thread_alloc(dr_context, AVX_512_SUPPORTED ? 64*32 : AVX_SUPPORTED ? 32*16 : 16*16));
+    SET_TLS(dr_context, get_index_tls_gpr(), dr_thread_alloc(dr_context, 17*8));
 }
 
 static void thread_exit(void *dr_context) {
-    dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_result()) , MAX_OPND_SIZE_BYTES);
-    dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_float()) , 4096);
-    dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_gpr()) , 4096);
+    dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_result()) , 8);
+    dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_float()) , AVX_512_SUPPORTED ? 64*32 : AVX_SUPPORTED ? 32*16 : 16*16);
+    dr_thread_free(dr_context , GET_TLS(dr_context , get_index_tls_gpr()) , 17*8);
 }
 
 #if defined(X86)
@@ -221,9 +217,9 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
                 insert_set_destination_tls(drcontext, bb, instr, GET_REG(DST(instr, 0)));
 
                 insert_set_operands(drcontext, bb, instr, instr, oc);
-                insert_restore_rsp(drcontext, bb, instr);
                 if(!registers_saved)
                 {
+                    insert_restore_rsp(drcontext, bb, instr);
                     translate_insert(XINST_CREATE_sub(drcontext, OP_REG(DR_REG_XSP), OP_INT(32)), bb, instr);
                 }
                 registers_saved=true;

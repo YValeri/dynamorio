@@ -33,12 +33,12 @@ int main(int argc, char const *argv[])
             res_f_sse[1] >= 0.0-EPSILLON && res_f_sse[1] <= 0.0+EPSILLON &&
             res_f_sse[2] >= 0.0-EPSILLON && res_f_sse[2] <= 0.0+EPSILLON &&
             res_f_sse[3] >= 0.0-EPSILLON && res_f_sse[3] <= 0.0+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     print<double>(res_d_sse , 2 , "ADDSD");
     if(     res_d_sse[0] >= -0.671491-EPSILLON && res_d_sse[0] <= -0.671491+EPSILLON &&
             res_d_sse[1] >= 0.0-EPSILLON && res_d_sse[1] <= 0.0+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     std::cout << std::endl;
     
@@ -51,12 +51,12 @@ int main(int argc, char const *argv[])
             res_f_sse[1] >= 0.0-EPSILLON && res_f_sse[1] <= 0.0+EPSILLON &&
             res_f_sse[2] >= 0.0-EPSILLON && res_f_sse[2] <= 0.0+EPSILLON &&
             res_f_sse[3] >= 0.0-EPSILLON && res_f_sse[3] <= 0.0+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     print<double>(res_d_sse , 2 , "SUBSD");
     if(     res_d_sse[0] >= -0.293141-EPSILLON && res_d_sse[0] <= -0.293141+EPSILLON &&
             res_d_sse[1] >= 0.0-EPSILLON && res_d_sse[1] <= 0.0+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     std::cout << std::endl;
     
@@ -70,12 +70,12 @@ int main(int argc, char const *argv[])
             res_f_sse[1] >= 0.0-EPSILLON && res_f_sse[1] <= 0.0+EPSILLON &&
             res_f_sse[2] >= 0.0-EPSILLON && res_f_sse[2] <= 0.0+EPSILLON &&
             res_f_sse[3] >= 0.0-EPSILLON && res_f_sse[3] <= 0.0+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     print<double>(res_d_sse , 2 , "MULSD");
     if(     res_d_sse[0] >= 0.0912422-EPSILLON && res_d_sse[0] <= 0.0912422+EPSILLON &&
             res_d_sse[1] >= 0.0-EPSILLON && res_d_sse[1] <= 0.0+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     std::cout << std::endl;
     
@@ -88,12 +88,12 @@ int main(int argc, char const *argv[])
             res_f_sse[1] >= 0.0-EPSILLON && res_f_sse[1] <= 0.0+EPSILLON &&
             res_f_sse[2] >= 0.0-EPSILLON && res_f_sse[2] <= 0.0+EPSILLON &&
             res_f_sse[3] >= 0.0-EPSILLON && res_f_sse[3] <= 0.0+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     print<double>(res_d_sse , 2 , "DIVSD");
     if(     res_d_sse[0] >= 2.54957-EPSILLON && res_d_sse[0] <= 2.54957+EPSILLON &&
             res_d_sse[1] >= 0.0-EPSILLON && res_d_sse[1] <= 0.0+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     std::cout << std::endl;
     
@@ -110,12 +110,12 @@ int main(int argc, char const *argv[])
             res_f_sse[1] >= -1.46682-EPSILLON && res_f_sse[1] <= -1.46682+EPSILLON &&
             res_f_sse[2] >= -1.57362-EPSILLON && res_f_sse[2] <= -1.57362+EPSILLON &&
             res_f_sse[3] >= -0.971406-EPSILLON && res_f_sse[3] <= -0.971406+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     print<double>(res_d_sse , 2 , "ADDPD");
     if(     res_d_sse[0] >= -0.671491-EPSILLON && res_d_sse[0] <= -0.671491+EPSILLON &&
             res_d_sse[1] >= -1.64813-EPSILLON && res_d_sse[1] <= -1.64813+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     std::cout << std::endl;
     
@@ -131,12 +131,12 @@ int main(int argc, char const *argv[])
             res_f_sse[1] >= -1.88727-EPSILLON && res_f_sse[1] <= -1.88727+EPSILLON &&
             res_f_sse[2] >= 0.435128-EPSILLON && res_f_sse[2] <= 0.435128+EPSILLON &&
             res_f_sse[3] >= -1.20108-EPSILLON && res_f_sse[3] <= -1.20108+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     print<double>(res_d_sse , 2 , "SUBPD");
     if(     res_d_sse[0] >= -0.293141-EPSILLON && res_d_sse[0] <= -0.293141+EPSILLON &&
             res_d_sse[1] >= 0.840497-EPSILLON && res_d_sse[1] <= 0.840497+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
     
     std::cout << std::endl;
     
@@ -150,12 +150,12 @@ int main(int argc, char const *argv[])
             res_f_sse[1] >= -0.352564-EPSILLON && res_f_sse[1] <= -0.352564+EPSILLON &&
             res_f_sse[2] >= 0.57174-EPSILLON && res_f_sse[2] <= 0.57174+EPSILLON &&
             res_f_sse[3] >= -0.12474-EPSILLON && res_f_sse[3] <= -0.12474+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
     
     print<double>(res_d_sse , 2 , "MULPD");
     if(     res_d_sse[0] >= 0.0912422-EPSILLON && res_d_sse[0] <= 0.0912422+EPSILLON &&
             res_d_sse[1] >= 0.502472-EPSILLON && res_d_sse[1] <= 0.502472+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
     std::cout << std::endl;
     
     /* DIV */
@@ -167,12 +167,12 @@ int main(int argc, char const *argv[])
             res_f_sse[1] >= -7.97721-EPSILLON && res_f_sse[1] <= -7.97721+EPSILLON &&
             res_f_sse[2] >= 0.566768-EPSILLON && res_f_sse[2] <= 0.566768+EPSILLON &&
             res_f_sse[3] >= -9.45904-EPSILLON && res_f_sse[3] <= -9.45904+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     print<double>(res_d_sse , 2 , "DIVPD");
     if(     res_d_sse[0] >= 2.54957-EPSILLON && res_d_sse[0] <= 2.54957+EPSILLON &&
             res_d_sse[1] >= 0.324529-EPSILLON && res_d_sse[1] <= 0.324529+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     std::cout << std::endl;
 

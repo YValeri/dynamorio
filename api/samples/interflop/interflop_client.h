@@ -114,7 +114,6 @@
 		drmgr_insert_write_tls_field((drcontext), (tls_stack), (bb), (instr), (buffer_reg), (temp_reg));
 
 /* SIZES */
-#define SIZE_STACK 4096
 #define PTR_SIZE sizeof(void*)
 #define FLOAT_SIZE sizeof(float)
 #define DOUBLE_SIZE sizeof(double)

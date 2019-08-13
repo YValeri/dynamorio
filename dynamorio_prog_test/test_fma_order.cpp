@@ -28,7 +28,7 @@ int main(int argc , char *argv[]) {
             c[1] >= 7.320000-EPSILLON && c[1] <= 7.320000+EPSILLON &&
             c[2] >= 0.0-EPSILLON && c[2] <= 0.0+EPSILLON &&
             c[3] >= 0.0-EPSILLON && c[3] <= 0.0+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     asm volatile(   "\tvmovaps %%ymm0, %1\n"
                     "\tvmovaps %%ymm1, %2\n"
@@ -43,7 +43,7 @@ int main(int argc , char *argv[]) {
             c[1] >= 7.320000-EPSILLON && c[1] <= 7.320000+EPSILLON &&
             c[2] >= 0.0-EPSILLON && c[2] <= 0.0+EPSILLON &&
             c[3] >= 0.0-EPSILLON && c[3] <= 0.0+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     asm volatile(   "\tvmovaps %%ymm0, %1\n"
                     "\tvmovaps %%ymm1, %2\n"
@@ -58,7 +58,7 @@ int main(int argc , char *argv[]) {
             c[1] >= 7.320000-EPSILLON && c[1] <= 7.320000+EPSILLON &&
             c[2] >= 0.0-EPSILLON && c[2] <= 0.0+EPSILLON &&
             c[3] >= 0.0-EPSILLON && c[3] <= 0.0+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
 
     printf("\t\t*********** SCALAR FLOAT ***********\n");
@@ -80,7 +80,7 @@ int main(int argc , char *argv[]) {
             cc[5] >= 0.0-EPSILLON && cc[5] <= 0.0+EPSILLON &&
             cc[6] >= 0.0-EPSILLON && cc[6] <= 0.0+EPSILLON &&
             cc[7] >= 0.0-EPSILLON && cc[7] <= 0.0+EPSILLON) 
-        std::cout << "\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
 
     asm volatile(   "\tvmovaps %%ymm0, %1\n"
@@ -100,7 +100,7 @@ int main(int argc , char *argv[]) {
             cc[5] >= 0.0-EPSILLON && cc[5] <= 0.0+EPSILLON &&
             cc[6] >= 0.0-EPSILLON && cc[6] <= 0.0+EPSILLON &&
             cc[7] >= 0.0-EPSILLON && cc[7] <= 0.0+EPSILLON) 
-        std::cout << "\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     asm volatile(   "\tvmovaps %%ymm0, %1\n"
                     "\tvmovaps %%ymm1, %2\n"
@@ -119,7 +119,7 @@ int main(int argc , char *argv[]) {
             cc[5] >= 0.0-EPSILLON && cc[5] <= 0.0+EPSILLON &&
             cc[6] >= 0.0-EPSILLON && cc[6] <= 0.0+EPSILLON &&
             cc[7] >= 0.0-EPSILLON && cc[7] <= 0.0+EPSILLON) 
-        std::cout << "\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
 
     printf("\t\t*********** PACKED DOUBLE ***********\n");
@@ -137,7 +137,7 @@ int main(int argc , char *argv[]) {
             c[1] >= 68.222400-EPSILLON && c[1] <= 68.222400+EPSILLON &&
             c[2] >= 4.630000-EPSILLON && c[2] <= 4.630000+EPSILLON &&
             c[3] >= 6.240000-EPSILLON && c[3] <= 6.240000+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     asm volatile(   "\tvmovaps %%ymm0, %1\n"
                     "\tvmovaps %%ymm1, %2\n"
@@ -152,7 +152,7 @@ int main(int argc , char *argv[]) {
             c[1] >= 129.124800-EPSILLON && c[1] <= 129.124800+EPSILLON &&
             c[2] >= 9.537800-EPSILLON && c[2] <= 9.537800+EPSILLON &&
             c[3] >= 64.396800-EPSILLON && c[3] <= 64.396800+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     asm volatile(   "\tvmovaps %%ymm0, %1\n"
                     "\tvmovaps %%ymm1, %2\n"
@@ -167,7 +167,7 @@ int main(int argc , char *argv[]) {
             c[1] >= 953.513536-EPSILLON && c[1] <= 953.513536+EPSILLON &&
             c[2] >= 45.220014-EPSILLON && c[2] <= 45.220014+EPSILLON &&
             c[3] >= 411.156032-EPSILLON && c[3] <= 411.156032+EPSILLON) 
-        std::cout << "\t\t\t\t\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     printf("\t\t*********** PACKED FLOAT ***********\n");
 
@@ -188,7 +188,7 @@ int main(int argc , char *argv[]) {
             cc[5] >= 8.320000-EPSILLON && cc[5] <= 8.320000+EPSILLON &&
             cc[6] >= 1.060000-EPSILLON && cc[6] <= 1.060000+EPSILLON &&
             cc[7] >= 9.320000-EPSILLON && cc[7] <= 9.320000+EPSILLON) 
-        std::cout << "\t\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     asm volatile(   "\tvmovaps %%ymm0, %1\n"
                     "\tvmovaps %%ymm1, %2\n"
@@ -207,7 +207,7 @@ int main(int argc , char *argv[]) {
             cc[5] >= 69.222397-EPSILLON && cc[5] <= 69.222397+EPSILLON &&
             cc[6] >= 5.967800-EPSILLON && cc[6] <= 5.967800 +EPSILLON &&
             cc[7] >= 67.476799-EPSILLON && cc[7] <= 67.476799+EPSILLON) 
-        std::cout << "\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
     asm volatile(   "\tvmovaps %%ymm0, %1\n"
                     "\tvmovaps %%ymm1, %2\n"
@@ -226,7 +226,7 @@ int main(int argc , char *argv[]) {
             cc[5] >= 583.250305-EPSILLON && cc[5] <= 583.250305+EPSILLON &&
             cc[6] >= 10.955868-EPSILLON && cc[6] <= 10.955868 +EPSILLON &&
             cc[7] >= 635.123718-EPSILLON && cc[7] <= 635.123718+EPSILLON) 
-        std::cout << "\t\t\t[ OK ]" << std::endl; else std::cout  << "\t\t\t[ KO ]" << std::endl;
+        std::cout << "\t\t\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\t\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
 
     

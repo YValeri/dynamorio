@@ -5,51 +5,7 @@
 #define MAX(x,y) ((x) > (y) ? (x) : (y))
 
 #if defined(X86)
-    #define INSTR_IS_ANY_SSE(instr) (instr_is_sse(instr) || instr_is_sse2(instr) || instr_is_sse3(instr) || instr_is_sse41(instr) || instr_is_sse42(instr) || instr_is_sse4A(instr))
-	static reg_id_t XMM_REG[] = {
-		DR_REG_XMM0, DR_REG_XMM1, DR_REG_XMM2, DR_REG_XMM3, DR_REG_XMM4, 
-		DR_REG_XMM5, DR_REG_XMM6, DR_REG_XMM7, DR_REG_XMM8, DR_REG_XMM9, 
-		DR_REG_XMM10, DR_REG_XMM11, DR_REG_XMM12, DR_REG_XMM13, DR_REG_XMM14, 
-		DR_REG_XMM15
-	};
-	static reg_id_t XMM_REG_REVERSE[] = {
-		DR_REG_XMM15, DR_REG_XMM14, DR_REG_XMM13, DR_REG_XMM12, DR_REG_XMM11, 
-		DR_REG_XMM10, DR_REG_XMM9, DR_REG_XMM8, DR_REG_XMM7, DR_REG_XMM6, 
-		DR_REG_XMM5, DR_REG_XMM4, DR_REG_XMM3, DR_REG_XMM2, DR_REG_XMM1, 
-		DR_REG_XMM0
-	};
-
-	static reg_id_t YMM_REG[] = {
-		DR_REG_YMM0, DR_REG_YMM1, DR_REG_YMM2, DR_REG_YMM3, DR_REG_YMM4, 
-		DR_REG_YMM5, DR_REG_YMM6, DR_REG_YMM7, DR_REG_YMM8, DR_REG_YMM9, 
-		DR_REG_YMM10, DR_REG_YMM11, DR_REG_YMM12, DR_REG_YMM13, DR_REG_YMM14, 
-		DR_REG_YMM15
-	};
-	static reg_id_t YMM_REG_REVERSE[] = {
-		DR_REG_YMM15, DR_REG_YMM14, DR_REG_YMM13, DR_REG_YMM12, DR_REG_YMM11, 
-		DR_REG_YMM10, DR_REG_YMM9, DR_REG_YMM8, DR_REG_YMM7, DR_REG_YMM6, 
-		DR_REG_YMM5, DR_REG_YMM4, DR_REG_YMM3, DR_REG_YMM2, DR_REG_YMM1, 
-		DR_REG_YMM0
-	};
-
-	static reg_id_t ZMM_REG[] = {
-		DR_REG_ZMM0, DR_REG_ZMM1, DR_REG_ZMM2, DR_REG_ZMM3, DR_REG_ZMM4, 
-		DR_REG_ZMM5, DR_REG_ZMM6, DR_REG_ZMM7, DR_REG_ZMM8, DR_REG_ZMM9, 
-		DR_REG_ZMM10, DR_REG_ZMM11, DR_REG_ZMM12, DR_REG_ZMM13, DR_REG_ZMM14, 
-		DR_REG_ZMM15, DR_REG_ZMM16, DR_REG_ZMM17, DR_REG_ZMM18, DR_REG_ZMM19, 
-		DR_REG_ZMM20, DR_REG_ZMM21, DR_REG_ZMM22, DR_REG_ZMM23, DR_REG_ZMM24, 
-		DR_REG_ZMM25, DR_REG_ZMM26, DR_REG_ZMM27, DR_REG_ZMM28, DR_REG_ZMM29, 
-		DR_REG_ZMM30, DR_REG_ZMM31
-	};
-	static reg_id_t ZMM_REG_REVERSE[] = {
-		DR_REG_ZMM31, DR_REG_ZMM30, DR_REG_ZMM29, DR_REG_ZMM28, DR_REG_ZMM27, 
-		DR_REG_ZMM26, DR_REG_ZMM25, DR_REG_ZMM24, DR_REG_ZMM23, DR_REG_ZMM22, 
-		DR_REG_ZMM21, DR_REG_ZMM20, DR_REG_ZMM19, DR_REG_ZMM18, DR_REG_ZMM17, 
-		DR_REG_ZMM16, DR_REG_ZMM15, DR_REG_ZMM14, DR_REG_ZMM13, DR_REG_ZMM12, 
-		DR_REG_ZMM11, DR_REG_ZMM10, DR_REG_ZMM9, DR_REG_ZMM8, DR_REG_ZMM7, 
-		DR_REG_ZMM6, DR_REG_ZMM5, DR_REG_ZMM4, DR_REG_ZMM3, DR_REG_ZMM2, 
-		DR_REG_ZMM1, DR_REG_ZMM0
-	};
+    #define INSTR_IS_ANY_SSE(instr) (instr_is_sse(instr) || instr_is_sse2(instr) || instr_is_sse3(instr) || instr_is_sse41(instr) || instr_is_sse42(instr) || instr_is_sse4A(instr))	
 #elif defined(AARCH64)
 	static reg_id_t Q_REG[] = {
 		DR_REG_Q0, DR_REG_Q1, DR_REG_Q2, DR_REG_Q3, DR_REG_Q4, 
@@ -73,7 +29,6 @@
 
 #define R(name) DR_REG_##name
 #if defined(X86) && defined(X64)
-
     static const reg_id_t GPR_ORDER[] = {R(NULL), R(XAX), R(XCX), R(XDX), R(XBX), R(XSP), R(XBP), R(XSI), R(XDI), R(R8), R(R9), R(R10), R(R11), R(R12), R(R13), R(R14), R(R15)};
     #define NUM_GPR_SLOTS 17
 #elif defined(AArch64)
@@ -92,15 +47,11 @@ void set_index_tls_float(int new_tls_value) {tls_float = new_tls_value;}
 void set_index_tls_result(int new_tls_value) {tls_result = new_tls_value;}
 
 /**
- * \brief Returns the offset, in bytes, of the gpr stored in the tls
- * 
- * \param gpr 
- * \return int 
+ * \brief Returns the offset, in bytes, of the \param gpr stored in the tls
  */
-inline int offset_of_gpr(reg_id_t gpr)
-{
+inline int offset_of_gpr(reg_id_t gpr){
     //Assuming the gpr parameter is a valid gpr
-    return (((int)gpr-DR_REG_START_GPR)+1)<<3;
+    return (((int)gpr-DR_REG_START_GPR)+1) << 3;
 }
 
 /**
@@ -122,13 +73,21 @@ inline int offset_of_simd(reg_id_t simd)
  * \brief It is suited for two sources instructions 
  * 
  * FTYPE : float or double depending on the precision of the instruction 
- * Backend_function : the function corresponding to the overlaoded operation (add, sub, fmadd ...) : implementation in Backend.hxx
- * INSTR_CATEGORY : Make the difference SSE and AVX instructions. For AVX instructions targeting low parts of XMM/YMM/ZMM registers, the high part has to be set to 0
- * 		- possible values are IFP_OP_SSE and IFP_OP_AVX
+ * Backend_function : the function corresponding to the overloaded operation (add, sub, fmadd ...) : implementation in Backend.hxx
+ * INSTR_CATEGORY : Make the difference SSE and AVX instructions. Possible values are IFP_OP_SSE and IFP_OP_AVX
  * SIMD_TYPE : Define the length of the elements of the operation. 
  * 		- default is IFP_OP_SCALAR 
  * 		- possible values are IFP_OP_128, IFP_OP_256 and IFP_OP_512
  * Note that INSTR_CATEGORY and SIMD_TYPE are both mandatory since AVX instructions can be applied on 128 sized registers (XMM)
+ */
+
+/**
+ * \brief Definition of intermediary functions between front-end and back-end
+ * \brief It is suited for two sources instructions
+ * \tparam  float or double depending on the precision of the instruction 
+ * \tparam  Function corresponding to the overloaded operation (add, sub, fmadd ...) : implementation in Backend.hxx
+ * \tparam  Marks the difference SSE and AVX instructions. Possible values are IFP_OP_SSE and IFP_OP_AVX
+ * \tparam IFP_OP_SCALAR Define the length of the elements of the operation. Possible values are IFP_OP_SCALAR, IFP_OP_128, IFP_OP_256 and IFP_OP_512
  */
 template <typename FTYPE , FTYPE (*Backend_function)(FTYPE, FTYPE) , int INSTR_CATEGORY , int SIMD_TYPE = IFP_OP_SCALAR>
 struct interflop_backend {
@@ -164,7 +123,7 @@ struct interflop_backend {
     }
 };
 
-/*
+/**
  * \bried Identical to interflop_backend for three sources instructions 
  */
 template <typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE), int INSTR_CATEGORY , int SIMD_TYPE = IFP_OP_SCALAR>
@@ -200,13 +159,16 @@ struct interflop_backend_fused {
     }   
 };
 
+/**
+ * \brief Inserts \param newinstr in \param ilist prior to \param instr and set it as an application instruction
+ */
 void translate_insert(instr_t* newinstr, instrlist_t* ilist, instr_t* instr) {
 	instr_set_translation(newinstr, instr_get_app_pc(instr));
 	instr_set_app(newinstr);
 	instrlist_preinsert(ilist, instr, newinstr);
 }
 
-/*
+/**
  * \brief Subset of insert_call for two sources instructions
  */
 template <typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE)>
@@ -331,12 +293,12 @@ void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CAT
 	}	
 }
 
-
+//Macros to reduce code size
 #define MINSERT(bb, where, instr) instrlist_meta_preinsert(bb, where, instr)
 #define AINSERT(bb, where, instr) translate_insert(instr, bb, where)
 
 /**
- * \brief Inserts prior to \p where meta-instructions to save the arithmetic flags and the gpr registers
+ * \brief Inserts prior to \param where meta-instructions to save the arithmetic flags and the gpr registers
  * \param drcontext DynamoRIO context
  * \param bb Current basic bloc
  * \param where instruction prior to whom we insert the meta-instructions 
@@ -369,6 +331,12 @@ DR_ASSERT_MSG(false, "insert_save_gpr_and_flags not implemented for this archite
 #endif
 }
 
+/**
+ * \brief Inserts prior to \param where meta-instructions to restore the arithmetic flags and the gpr registers
+ * \param drcontext DynamoRIO context
+ * \param bb Current basic bloc
+ * \param where instruction prior to whom we insert the meta-instructions 
+ */
 void insert_restore_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *where)
 {
 #if defined(X86) && defined(X64)
@@ -394,10 +362,10 @@ DR_ASSERT_MSG(false, "insert_restore_gpr_and_flags not implemented for this arch
 /**
  * \brief Prepares the address in the buffer of the tls register to point to the destination register in memory
  * Assumes the gpr have been saved beforehand !
- * \param drcontext 
- * \param bb 
- * \param where 
- * \param destination 
+ * \param drcontext DynamoRIO's context
+ * \param bb Current basic block
+ * \param where instruction prior to whom we insert the meta-instructions 
+ * \param destination SIMD registers that should have received the result
  */
 void insert_set_destination_tls(void *drcontext, instrlist_t *bb, instr_t *where, reg_id_t destination)
 {
@@ -494,14 +462,14 @@ DR_ASSERT_MSG(false, "insert_save_simd_registers not implemented for this archit
 }
 
 /**
- * \brief 
- * 
- * \param drcontext 
- * \param bb 
- * \param where 
- * \param src0 
- * \param src1 
- * \param src2 
+ * \brief Inserts prior to \p where meta-instructions to set the calling convention registers to the right adress when all the operands are registers
+ * Assumes the GPR have been saved !
+ * \param drcontext DynamoRIO's context
+ * \param bb Current Basic block
+ * \param where instruction prior to whom we insert the meta-instructions 
+ * \param src0 source 0 of the instruction
+ * \param src1 source 1 of the instruction
+ * \param src2 source 2 of the instruction
  */
 static void insert_set_operands_all_registers(void* drcontext, instrlist_t* bb, instr_t *where, reg_id_t src0, reg_id_t src1, reg_id_t src2, reg_id_t out_reg[])
 {
@@ -525,6 +493,16 @@ DR_ASSERT_MSG(false, "insert_set_operands_all_registers not implemented for this
 #endif
 }
 
+/**
+ * \brief Inserts prior to \p where meta-instructions to set the calling convention register to the right adress when it's an adress defined as a base-disp
+ * Assumes the GPR have been saved !
+ * \param drcontext DynamoRIO's context
+ * \param bb Current Basic Block
+ * \param where instruction prior to whom we insert the meta-instructions 
+ * \param addr Operand of the instruction which is a base disp
+ * \param destination Register that will receive the address
+ * \param tempindex Register to use as a temporary holder for the index, if there is one
+ */
 static void insert_set_operands_base_disp(void* drcontext, instrlist_t* bb, instr_t *where, opnd_t addr, reg_id_t destination, reg_id_t tempindex)
 {
 	INSERT_READ_TLS(drcontext, get_index_tls_gpr(), bb, where, destination);
@@ -542,19 +520,30 @@ static void insert_set_operands_base_disp(void* drcontext, instrlist_t* bb, inst
 	MINSERT(bb, where, INSTR_CREATE_lea(drcontext, OP_REG(destination), opnd_create_base_disp(base, index, opnd_get_scale(addr), opnd_get_disp(addr), OPSZ_lea)));
 }
 
-static void insert_set_operands_addr(void* drcontext, instrlist_t* bb, instr_t *where, void* addr, reg_id_t destination, reg_id_t scratch)
+/**
+ * \brief Inserts prior to \p where meta-instructions to set the calling convention register to the right adress when it's an relative of absolute adresse
+ * Assumes the GPR have been saved !
+ * \param drcontext DynamoRIO's context
+ * \param bb Current Basic Block
+ * \param where instruction prior to whom we insert the meta-instructions 
+ * \param addr Adress pointed at by the operand
+ * \param destination Register that will receive the address
+ */
+static void insert_set_operands_addr(void* drcontext, instrlist_t* bb, instr_t *where, void* addr, reg_id_t destination)
 {
     MINSERT(bb, where, XINST_CREATE_load_int(drcontext, OP_REG(destination), OPND_CREATE_INTPTR(addr)));
 }
 
 /**
- * \brief 
- * 
- * \param drcontext 
- * \param bb 
- * \param where 
- * \param instr 
- * \param fused 
+ * \brief Inserts prior to \p where meta-instructions to set the calling convention registers to the right adresses when one of the operands is a memory reference
+ * Assumes the GPR have been saved !
+ * \param drcontext DynamoRIO's context
+ * \param bb Current Basic Block
+ * \param where instruction prior to whom we insert the meta-instructions 
+ * \param instr Instrumented instruction
+ * \param fused true if the instruction is a fused operator (fma, fms...)
+ * \param mem_src_idx index of the operand that is a memory reference
+ * \param out_regs array containing the registers (in order) that shoud be set for the calling convention
  */
 static void insert_set_operands_mem_reference(void* drcontext, instrlist_t *bb, instr_t *where, instr_t *instr, bool fused, int mem_src_idx, reg_id_t out_regs[])
 {
@@ -566,7 +555,7 @@ static void insert_set_operands_mem_reference(void* drcontext, instrlist_t *bb, 
     }else if(OP_IS_ADDR(mem_src))
     {
         void* addr = opnd_get_addr(mem_src);
-        insert_set_operands_addr(drcontext, bb, where, addr, out_regs[mem_src_idx], out_regs[mem_src_idx == 0 ? 1 : 0]);
+        insert_set_operands_addr(drcontext, bb, where, addr, out_regs[mem_src_idx]);
     }else
     {
         DR_ASSERT_MSG(false, "OPERAND IS NOT A MEMORY REFERENCE");
@@ -592,14 +581,13 @@ static void insert_set_operands_mem_reference(void* drcontext, instrlist_t *bb, 
 }
 
 /**
- * \brief 
- * 
- * \param drcontext 
- * \param bb 
- * \param where 
- * \param instr 
- * \param oc 
- * \param fused 
+ * \brief Inserts prior to \p where meta-instructions to set the calling convention registers to the right adresses
+ * Assumes the GPR have been saved !
+ * \param drcontext DynamoRIO's context
+ * \param bb Current Basic Block
+ * \param where instruction prior to whom we insert the meta-instructions 
+ * \param instr Instrumented instruction
+ * \param oc Operation category of the instrumented instruction
  */
 void insert_set_operands(void* drcontext, instrlist_t *bb, instr_t *where, instr_t *instr, OPERATION_CATEGORY oc)
 {
@@ -627,6 +615,8 @@ void insert_set_operands(void* drcontext, instrlist_t *bb, instr_t *where, instr
         }
     }else
     {
+		//Due to the fact that implicit sources are put at the end of the list of sources, SSE instructions have their operands reversed
+		//This may change in the future, so we have a check on Linux (get_need_sse_inverse)
         if(get_need_sse_inverse() && INSTR_IS_ANY_SSE(instr))
         {
             reg_op_addr[0] = DR_REG_OP_B_ADDR;
@@ -663,6 +653,13 @@ void insert_set_operands(void* drcontext, instrlist_t *bb, instr_t *where, instr
 	}
 }
 
+/**
+ * \brief Inserts prior to \p where meta-instructions to restore RSP from its saved value
+ * 
+ * \param drcontext DynamoRIO's context
+ * \param bb Current Basic Block
+ * \param where instruction prior to whom we insert the meta-instructions 
+ */
 void insert_restore_rsp(void *drcontext, instrlist_t *bb, instr_t *where)
 {
     INSERT_READ_TLS(drcontext, get_index_tls_gpr(), bb, where, DR_REG_RSP);
