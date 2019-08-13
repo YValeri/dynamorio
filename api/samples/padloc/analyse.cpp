@@ -557,7 +557,7 @@ bool enum_symbols_registers(const char *name, size_t modoffs, void *data){
      */
     if(str.find("<>::apply") != std::string::npos) {
         drcontext = dr_get_current_drcontext();
-        lib_data = dr_lookup_module_by_name("libinterflop.so");
+        lib_data = dr_lookup_module_by_name("libpadloc.so");
         show_instr_of_symbols(drcontext, lib_data, modoffs, 0);
         /* As per DynamoRIO's API, we must free the module data */
         dr_free_module_data(lib_data);
@@ -582,7 +582,7 @@ bool enum_symbols_sse(const char *name, size_t modoffs, void *data){
 
     if(str.find("test_sse_src_order") != std::string::npos) {
         drcontext = dr_get_current_drcontext();
-        lib_data = dr_lookup_module_by_name("libinterflop.so");
+        lib_data = dr_lookup_module_by_name("libpadloc.so");
         analyse_symbol_test_sse_src(drcontext , lib_data , modoffs);
         dr_free_module_data(lib_data);
         return false;
@@ -600,7 +600,7 @@ bool enum_symbols_sse(const char *name, size_t modoffs, void *data){
  */
 static void path_to_library(char* path, size_t length){
     dr_get_current_directory(path, length);
-    strcat(path, "/api/bin/libinterflop.so");
+    strcat(path, "/api/bin/libpadloc.so");
 }
 
 /**
