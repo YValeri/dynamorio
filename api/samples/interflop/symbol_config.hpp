@@ -135,7 +135,14 @@ bool should_instrument_module(const module_data_t* module);
  */
 void print_lookup();
 
+/**
+ * \brief Parses \param arg as a argument for symbol handling
+ */
 bool symbol_argument_parser(std::string arg, int* i, int argc, const char* argv[]);
+
+/**
+ * \brief Handles the symbols loading from files if they were set
+ */
 void symbol_client_mode_manager();
 
 #endif //SYMBOL_CONFIG_HEADER

@@ -1,6 +1,12 @@
 #include "interflop_operations.hpp"
+
 #define PREFIX_EVEX 0x000100000
 
+/**
+ * \brief Get the flag corresponding to the size of the operands
+ * 
+ * \param instr Instrumented instruction
+ */
 static unsigned int get_size_flag(instr_t* instr)
 {
 	int n = instr_num_srcs(instr);
@@ -37,6 +43,9 @@ static unsigned int get_size_flag(instr_t* instr)
 	}
 }
 
+/**
+ * \brief Returns the operation category of \param instr
+ */
 enum OPERATION_CATEGORY ifp_get_operation_category(instr_t* instr)
 {
 #ifdef X86

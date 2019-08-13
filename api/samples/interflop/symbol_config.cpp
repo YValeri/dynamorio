@@ -324,31 +324,25 @@ bool should_instrument_module(module_data_t const* module)
 
 bool needs_to_instrument(instrlist_t* ilist)
 {
-	//TODO mettre le cas false ici
-	if(ilist != nullptr)
-	{
-		if(get_client_mode() == IFP_CLIENT_NOLOOKUP)
-			//We always instrument in NOLOOKUP
-			return true;
-
-		if(get_client_mode() == IFP_CLIENT_GENERATE || get_client_mode() == IFP_CLIENT_HELP)
-			//We never instrument in GENERATE or HELP (nor that this check is strictly necessary)
-			return false;
-
-		instr_t * instr = instrlist_first_app(ilist);
-		if(instr != nullptr)
-		{
-			app_pc pc = instr_get_app_pc(instr);
-			if(pc)
-			{
-				return (lookup_find(pc, IFP_LOOKUP_SYMBOL) != nullptr) ^ (get_client_mode() == IFP_CLIENT_BL_ONLY);
-			}
-		}
-		//TODO : fallback here
-	}else
-	{
-		//ilist == nullptr
+	if(ilist == nullptr){
 		return false;
+	}
+	if(get_client_mode() == IFP_CLIENT_NOLOOKUP)
+		//We always instrument in NOLOOKUP
+		return true;
+
+	if(get_client_mode() == IFP_CLIENT_GENERATE || get_client_mode() == IFP_CLIENT_HELP)
+		//We never instrument in GENERATE or HELP (nor that this check is strictly necessary)
+		return false;
+
+	instr_t * instr = instrlist_first_app(ilist);
+	if(instr != nullptr)
+	{
+		app_pc pc = instr_get_app_pc(instr);
+		if(pc)
+		{
+			return (lookup_find(pc, IFP_LOOKUP_SYMBOL) != nullptr) ^ (get_client_mode() == IFP_CLIENT_BL_ONLY);
+		}
 	}
 	
 	//Something went wrong, so we assume we didn't find the symbol
@@ -628,118 +622,3 @@ void symbol_client_mode_manager(){
 	if(whitelist.is_open()) 
 		whitelist.close();
 }
-
-/* ### ARGUMENTS PARSING ### */
-
-/*void symbol_lookup_config_from_args(int argc, const char* argv[])
-{
-	interflop_client_mode = IFP_CLIENT_DEFAULT;
-	string blacklist_filename, whitelist_filename;
-	bool no_lookup_argument = false; //Defines if the no-lookup argument has been found, allows to distinguish from default
-	for(int i = 1; i<argc; i++)
-	{
-		string arg(argv[i]);
-		if(arg == "--debug" || arg == "-d")
-			set_debug_enabled(true);
-		else if(interflop_client_mode != IFP_CLIENT_GENERATE && 
-			interflop_client_mode != IFP_CLIENT_HELP && !no_lookup_argument)
-		{
-			if(arg == "--no-lookup" || arg == "-n") //No lookup takes precedence over all other arguments
-			{
-				interflop_client_mode = IFP_CLIENT_NOLOOKUP;
-				no_lookup_argument = true;
-			}else if(arg == "--whitelist" || arg == "-w") //Whitelist
-			{
-				if(interflop_client_mode == IFP_CLIENT_BL_ONLY || interflop_client_mode == IFP_CLIENT_BL_WL) //If we have a blacklist
-					interflop_client_mode = IFP_CLIENT_BL_WL;
-				else
-					interflop_client_mode = IFP_CLIENT_WL_ONLY;
-				
-				if(++i < argc) //If the filename is precised
-					whitelist_filename = argv[i];
-				else
-				{
-					dr_fprintf(STDERR, "Not enough arguments\n");
-					interflop_client_mode = IFP_CLIENT_HELP;
-					break;
-				}
-				
-			}else if(arg == "--blacklist" || arg == "-b") //Whitelist
-			{
-				if(interflop_client_mode == IFP_CLIENT_WL_ONLY || interflop_client_mode == IFP_CLIENT_BL_WL) //If we have a whitelist
-					interflop_client_mode = IFP_CLIENT_BL_WL;
-				else
-					interflop_client_mode = IFP_CLIENT_BL_ONLY;
-				
-				if(++i < argc) //If the filename is precised
-					blacklist_filename = argv[i];
-				else
-				{
-					dr_fprintf(STDERR, "Not enough arguments\n");
-					interflop_client_mode = IFP_CLIENT_HELP;
-					break;
-				}
-				
-			}else if(arg == "--generate" || arg == "-g")
-			{
-				interflop_client_mode = IFP_CLIENT_GENERATE;
-				if(++i < argc) //If the filename is precised
-				{
-					symbol_file.open(argv[i]);
-					if(symbol_file.fail())
-					{
-						dr_fprintf(STDERR, "Can't open the generated file\n");
-						interflop_client_mode = IFP_CLIENT_HELP;
-						break;
-					}
-				}else
-				{
-					dr_fprintf(STDERR, "Not enough arguments\n");
-					interflop_client_mode = IFP_CLIENT_HELP;
-					break;
-				}
-			}else if(arg == "--help" || arg == "-h")
-			{
-				interflop_client_mode = IFP_CLIENT_HELP;
-				break;
-			}
-		}
-	}
-
-	ifstream blacklist, whitelist;
-
-	switch(interflop_client_mode)
-	{
-		case IFP_CLIENT_HELP:
-			print_help();
-			break;
-		case IFP_CLIENT_BL_ONLY:
-			blacklist.open(blacklist_filename);
-			DR_ASSERT_MSG(!blacklist.fail(), "Can't open blacklist file");
-
-			generate_blacklist_from_file(blacklist);
-			load_lookup_from_modules_vector();
-			break;
-		case IFP_CLIENT_WL_ONLY:
-			whitelist.open(whitelist_filename);
-			DR_ASSERT_MSG(!whitelist.fail(), "Can't open whitelist file");
-
-			generate_whitelist_from_file(whitelist);
-			load_lookup_from_modules_vector();
-			break;
-		case IFP_CLIENT_BL_WL:
-			whitelist.open(whitelist_filename);
-			DR_ASSERT_MSG(!whitelist.fail(), "Can't open whitelist file");
-			blacklist.open(blacklist_filename);
-			DR_ASSERT_MSG(!blacklist.fail(), "Can't open blacklist file");
-			generate_whitelist_from_files(whitelist, blacklist);
-			load_lookup_from_modules_vector();
-			break;
-		default:
-			break;
-	}
-	if(blacklist.is_open()) 
-		blacklist.close();
-	if(whitelist.is_open()) 
-		whitelist.close();
-}*/

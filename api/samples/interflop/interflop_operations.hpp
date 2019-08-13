@@ -254,95 +254,140 @@ enum OPERATION_CATEGORY{
 	IFP_NS231PD = IFP_S231PD | IFP_OP_NEG
 };
 
+/**
+ * Returns the operation category of \param instr
+ */
 enum OPERATION_CATEGORY ifp_get_operation_category(instr_t* instr);
 
-/*
- * The following functions detect, given an OPERATION_CATEGORY, if a certain flag is set.
-*/
+/**
+ * Returns true if the operation category has the double flag set
+ */
 inline bool ifp_is_double(enum OPERATION_CATEGORY oc)
 {
 	return (oc & IFP_OP_DOUBLE) != 0;
 }
+/**
+ * Returns true if the operation category has the float flag set
+ */
 inline bool ifp_is_float(enum OPERATION_CATEGORY oc)
 {
 	return (oc & IFP_OP_FLOAT) != 0;
 }
+/**
+ * Returns true if the operation category has the packed flag set
+ */
 inline bool ifp_is_packed(enum OPERATION_CATEGORY oc)
 {
 	return (oc & IFP_OP_PACKED) != 0;
 }
+/**
+ * Returns true if the operation category has the scalar flag set
+ */
 inline bool ifp_is_scalar(enum OPERATION_CATEGORY oc)
 {
 	return (oc & IFP_OP_SCALAR) != 0;
 }
+/**
+ * Returns true if the operation category has the add flag set
+ */
 inline bool ifp_is_add(enum OPERATION_CATEGORY oc)
 {
 	return (oc & IFP_OP_ADD) != 0;
 }
+/**
+ * Returns true if the operation category has the sub flag set
+ */
 inline bool ifp_is_sub(enum OPERATION_CATEGORY oc)
 {
 	return (oc & IFP_OP_SUB) != 0;
 }
+/**
+ * Returns true if the operation category has the mul flag set
+ */
 inline bool ifp_is_mul(enum OPERATION_CATEGORY oc)
 {
 	return (oc & IFP_OP_MUL) != 0;
 }
+/**
+ * Returns true if the operation category has the div flag set
+ */
 inline bool ifp_is_div(enum OPERATION_CATEGORY oc)
 {
 	return (oc & IFP_OP_DIV) != 0;
 }
+/**
+ * Returns true if the operation category has the fma flag set
+ */
 inline bool ifp_is_fma(enum OPERATION_CATEGORY oc)
 {
 	return (oc & IFP_OP_FMA) != 0;
 }
+/**
+ * Returns true if the operation category has the fms flag set
+ */
 inline bool ifp_is_fms(enum OPERATION_CATEGORY oc)
 {
 	return (oc & IFP_OP_FMS) != 0;
 }
+/**
+ * Returns true if the operation category has the order 132 flag set
+ */
 inline bool ifp_is_fma132(enum OPERATION_CATEGORY oc)
 {
 	return (oc & IFP_OP_132) != 0;
 }
+/**
+ * Returns true if the operation category has the order 213 flag set
+ */
 inline bool ifp_is_fma213(enum OPERATION_CATEGORY oc)
 {
 	return (oc & IFP_OP_213) != 0;
 }
+/**
+ * Returns true if the operation category has the order 231 flag set
+ */
 inline bool ifp_is_fma231(enum OPERATION_CATEGORY oc)
 {
 	return (oc & IFP_OP_231) != 0;
 }
-inline bool ifp_is_fms132(enum OPERATION_CATEGORY oc)
-{
-	return (oc & IFP_OP_132) != 0;
-}
-inline bool ifp_is_fms213(enum OPERATION_CATEGORY oc)
-{
-	return (oc & IFP_OP_213) != 0;
-}
-inline bool ifp_is_fms231(enum OPERATION_CATEGORY oc)
-{
-	return (oc & IFP_OP_231) != 0;
-}
+/**
+ * Returns true if the operation category has the negated flag set
+ */
 inline bool ifp_is_negated(enum OPERATION_CATEGORY oc)
 {
 	return (oc & IFP_OP_NEG) != 0;
 }
+/**
+ * Returns true if the operation category has the 128bits flag set
+ */
 inline bool ifp_is_128(enum OPERATION_CATEGORY oc)
 {
 	return (oc & IFP_OP_128) != 0;
 }
+/**
+ * Returns true if the operation category has the 256bits flag set
+ */
 inline bool ifp_is_256(enum OPERATION_CATEGORY oc)
 {
 	return (oc & IFP_OP_256) != 0;
 }
+/**
+ * Returns true if the operation category has the 512bits flag set
+ */
 inline bool ifp_is_512(enum OPERATION_CATEGORY oc)
 {
 	return (oc & IFP_OP_512) != 0;
 }
+/**
+ * Returns true if the operation category has the fused flag set
+ */
 inline bool ifp_is_fused(enum OPERATION_CATEGORY oc)
 {
     return (oc & IFP_OP_FUSED) != 0;
 }
+/**
+ * Returns true if the operation category is instrumentable
+ */
 inline bool ifp_is_instrumented(enum OPERATION_CATEGORY oc)
 {
     return (oc != IFP_OP_OTHER && oc != IFP_OP_UNSUPPORTED);
