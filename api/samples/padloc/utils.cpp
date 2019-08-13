@@ -78,7 +78,7 @@ static int error_count = 0;
  * The default mode is PLC_CLIENT_DEFAULT, meaning that no particular symbol
  * analysis is needed.
  */
-static padloc_client_mode_t padloc_client_mode = PLC_CLIENT_DEFAULT;
+static padloc_symbols_mode_t padloc_symbols_mode = PLC_CLIENT_DEFAULT;
 
 /**
  * Analysis mode as defined by the enum in "utils.hpp". This characterizes the
@@ -111,16 +111,16 @@ int get_log_level(){
  * 
  * \param mode The new client mode
  */
-void set_client_mode(padloc_client_mode_t mode){
-    padloc_client_mode = mode;
+void set_client_mode(padloc_symbols_mode_t mode){
+    padloc_symbols_mode = mode;
 }
 
 /**
  * \brief Getter for the client mode
  * \return The current client mode
  */
-padloc_client_mode_t get_client_mode(){
-    return padloc_client_mode;
+padloc_symbols_mode_t get_client_mode(){
+    return padloc_symbols_mode;
 }
 
 /**
