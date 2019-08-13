@@ -665,7 +665,7 @@ bool analyse_argument_parser(std::string arg, int* i, int argc, const char* argv
          * analyse the backend on our side, overwriting what we got red
          * from the file.
          */
-            set_analyse_mode(IFP_ANALYSE_NOT_NEEDED);
+            set_analyse_mode(PLC_ANALYSE_NOT_NEEDED);
             return read_reg_from_file(argv[*i]);
         }else{
             dr_fprintf(STDERR, 
@@ -701,7 +701,7 @@ void analyse_mode_manager(){
     path_to_library(path, 256);
 
     switch(get_analyse_mode()){
-        case IFP_ANALYSE_NEEDED:
+        case PLC_ANALYSE_NEEDED:
             /* Analyse the backend and update the vectors */
             if(drsym_enumerate_symbols(path, enum_symbols_registers, 
                 NULL, DRSYM_DEFAULT_FLAGS) != DRSYM_SUCCESS){

@@ -8,14 +8,14 @@
 #include "drreg.h"
 #include "drmgr.h"
 #include "drsyms.h"
-#include "interflop/interflop_operations.hpp"
+#include "padloc/padloc_operations.hpp"
 #include <vector>
 #include <string>
 
-#include "interflop/symbol_config.hpp"
-#include "interflop/interflop_client.h"
-#include "interflop/analyse.hpp"
-#include "interflop/utils.hpp"
+#include "padloc/symbol_config.hpp"
+#include "padloc/padloc_client.h"
+#include "padloc/analyse.hpp"
+#include "padloc/utils.hpp"
 										
 static void event_exit(void);
 
@@ -71,7 +71,7 @@ static void api_register(){
     drmgr_register_thread_init_event(thread_init);
     drmgr_register_thread_exit_event(thread_exit);
 
-    if(get_client_mode() == IFP_CLIENT_GENERATE){
+    if(get_client_mode() == PLC_CLIENT_GENERATE){
         drmgr_register_bb_instrumentation_event(symbol_lookup_event, NULL, NULL);
     }else{
         drmgr_register_module_load_event(module_load_handler);
@@ -124,7 +124,7 @@ static void event_exit()
 	drmgr_unregister_tls_field(get_index_tls_gpr());
     drmgr_unregister_tls_field(get_index_tls_float());
 
-	if(get_client_mode() == IFP_CLIENT_GENERATE){
+	if(get_client_mode() == PLC_CLIENT_GENERATE){
 		write_symbols_to_file();
 	}
 	drreg_exit();
@@ -191,14 +191,14 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
     static int nb = 0;
     for(instr = instrlist_first_app(bb); instr != NULL; instr = next_instr)
     {
-        oc = ifp_get_operation_category(instr);
+        oc = plc_get_operation_category(instr);
         bool registers_saved=false;
         bool should_continue=false;
 
         do{
             next_instr = instr_get_next_app(instr);
 
-            if(ifp_is_instrumented(oc)) {
+            if(plc_is_instrumented(oc)) {
 
                 if(get_log_level() >= 1) {
                     dr_printf("%d ", nb);
@@ -206,7 +206,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
                 }
                 ++nb;
 
-                bool is_double = ifp_is_double(oc);
+                bool is_double = plc_is_double(oc);
                 
                 if(!registers_saved)
                 {
@@ -224,8 +224,8 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void* tag, instrlist_t 
                 }
                 registers_saved=true;
                 insert_call(drcontext, bb, instr, oc, is_double);
-                oc = ifp_get_operation_category(next_instr);
-                should_continue = next_instr != nullptr && ifp_is_instrumented(oc);
+                oc = plc_get_operation_category(next_instr);
+                should_continue = next_instr != nullptr && plc_is_instrumented(oc);
                 if(!should_continue)
                 {
                     //It's not a floating point operation
@@ -249,8 +249,8 @@ static dr_emit_flags_t symbol_lookup_event(void *drcontext, void *tag, instrlist
 
 	for(instr_t * instr = instrlist_first_app(bb); instr != NULL; instr = instr_get_next_app(instr))
 	{
-		OPERATION_CATEGORY oc = ifp_get_operation_category(instr);
-		if(oc != IFP_UNSUPPORTED && oc != IFP_OTHER)
+		OPERATION_CATEGORY oc = plc_get_operation_category(instr);
+		if(oc != PLC_UNSUPPORTED && oc != PLC_OTHER)
 		{
 			if(!already_found_fp_op)
 			{

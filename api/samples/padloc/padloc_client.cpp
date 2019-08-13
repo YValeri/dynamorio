@@ -1,5 +1,5 @@
 #include <cstdint>
-#include "interflop_client.h"
+#include "padloc_client.h"
 #include "analyse.hpp"
 
 #define MAX(x,y) ((x) > (y) ? (x) : (y))
@@ -91,18 +91,18 @@ inline int offset_of_simd(reg_id_t simd)
  * \brief It is suited for two sources instructions
  * \tparam  float or double depending on the precision of the instruction 
  * \tparam  Function corresponding to the overloaded operation (add, sub, fmadd ...) : implementation in Backend.hxx
- * \tparam  Marks the difference SSE and AVX instructions. Possible values are IFP_OP_SSE and IFP_OP_AVX
- * \tparam IFP_OP_SCALAR Define the length of the elements of the operation. Possible values are IFP_OP_SCALAR, IFP_OP_128, IFP_OP_256 and IFP_OP_512
+ * \tparam  Marks the difference SSE and AVX instructions. Possible values are PLC_OP_SSE and PLC_OP_AVX
+ * \tparam PLC_OP_SCALAR Define the length of the elements of the operation. Possible values are PLC_OP_SCALAR, PLC_OP_128, PLC_OP_256 and PLC_OP_512
  */
-template <typename FTYPE , FTYPE (*Backend_function)(FTYPE, FTYPE) , int INSTR_CATEGORY , int SIMD_TYPE = IFP_OP_SCALAR>
-struct interflop_backend {
+template <typename FTYPE , FTYPE (*Backend_function)(FTYPE, FTYPE) , int INSTR_CATEGORY , int SIMD_TYPE = PLC_OP_SCALAR>
+struct padloc_backend {
 
 	static void apply(FTYPE *vect_a,  FTYPE *vect_b) {
 
-		static const int operation_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
+		static const int operation_size = (SIMD_TYPE == PLC_OP_128) ? 16 : (SIMD_TYPE == PLC_OP_256) ? 32 : (SIMD_TYPE == PLC_OP_512) ? 64 : sizeof(FTYPE);
 		static const int nb_elem = operation_size/sizeof(FTYPE);
 
-		static const int max_operation_size = (INSTR_CATEGORY == IFP_OP_SSE) ? 16 : (INSTR_CATEGORY == IFP_OP_AVX) ? 32 : sizeof(FTYPE);
+		static const int max_operation_size = (INSTR_CATEGORY == PLC_OP_SSE) ? 16 : (INSTR_CATEGORY == PLC_OP_AVX) ? 32 : sizeof(FTYPE);
 		static const int max_nb_elem = max_operation_size/sizeof(FTYPE);
 	    
 		FTYPE res;
@@ -120,7 +120,7 @@ struct interflop_backend {
 
 
 		/* If this is an AVX instruction, set the high part with 0 */
-		if(INSTR_CATEGORY == IFP_OP_AVX) {
+		if(INSTR_CATEGORY == PLC_OP_AVX) {
 			for(int i = MAX(nb_elem , 16/sizeof(FTYPE)) ; i < max_nb_elem ; i++) {
 				*(tls+i) = 0;
 			}
@@ -129,18 +129,18 @@ struct interflop_backend {
 };
 
 /**
- * \bried Identical to interflop_backend for three sources instructions 
+ * \bried Identical to padloc_backend for three sources instructions 
  */
-template <typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE), int INSTR_CATEGORY , int SIMD_TYPE = IFP_OP_SCALAR>
-struct interflop_backend_fused {
+template <typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE), int INSTR_CATEGORY , int SIMD_TYPE = PLC_OP_SCALAR>
+struct padloc_backend_fused {
         
         static void apply(FTYPE *vect_a,  FTYPE *vect_b, FTYPE *vect_c) {
 
        
-        static const int vect_size = (SIMD_TYPE == IFP_OP_128) ? 16 : (SIMD_TYPE == IFP_OP_256) ? 32 : (SIMD_TYPE == IFP_OP_512) ? 64 : sizeof(FTYPE);
+        static const int vect_size = (SIMD_TYPE == PLC_OP_128) ? 16 : (SIMD_TYPE == PLC_OP_256) ? 32 : (SIMD_TYPE == PLC_OP_512) ? 64 : sizeof(FTYPE);
         static const int nb_elem = vect_size/sizeof(FTYPE);
 
-		static const int max_operation_size = (INSTR_CATEGORY == IFP_OP_SSE) ? 16 : (INSTR_CATEGORY == IFP_OP_AVX) ? 32 : sizeof(FTYPE);
+		static const int max_operation_size = (INSTR_CATEGORY == PLC_OP_SSE) ? 16 : (INSTR_CATEGORY == PLC_OP_AVX) ? 32 : sizeof(FTYPE);
 		static const int max_nb_elem = max_operation_size/sizeof(FTYPE);
 
         FTYPE res;
@@ -156,7 +156,7 @@ struct interflop_backend_fused {
         }   
 		
 		/* If this is an AVX instruction, set the high part with 0 */
-		if(INSTR_CATEGORY == IFP_OP_AVX) {
+		if(INSTR_CATEGORY == PLC_OP_AVX) {
 			for(int i = MAX(nb_elem , 16/sizeof(FTYPE)) ; i < max_nb_elem ; i++) {
 				*(tls+i) = 0;
 			}
@@ -179,25 +179,25 @@ void translate_insert(instr_t* newinstr, instrlist_t* ilist, instr_t* instr) {
 template <typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE)>
 void insert_corresponding_vect_call(void* drcontext, instrlist_t *bb, instr_t* instr, OPERATION_CATEGORY oc)
 {
-	switch(oc & IFP_SIMD_TYPE_MASK)
+	switch(oc & PLC_SIMD_TYPE_MASK)
 	{
-		case IFP_OP_128:
-			if(oc & IFP_OP_SSE)
-				dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, Backend_function, IFP_OP_SSE , IFP_OP_128>::apply, 0);
+		case PLC_OP_128:
+			if(oc & PLC_OP_SSE)
+				dr_insert_call(drcontext, bb, instr, (void*)padloc_backend<FTYPE, Backend_function, PLC_OP_SSE , PLC_OP_128>::apply, 0);
 			else
-				dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, Backend_function, IFP_OP_AVX , IFP_OP_128>::apply, 0);
+				dr_insert_call(drcontext, bb, instr, (void*)padloc_backend<FTYPE, Backend_function, PLC_OP_AVX , PLC_OP_128>::apply, 0);
 		break;
-		case IFP_OP_256:
-			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, Backend_function, IFP_AVX  ,IFP_OP_256>::apply, 0);
+		case PLC_OP_256:
+			dr_insert_call(drcontext, bb, instr, (void*)padloc_backend<FTYPE, Backend_function, PLC_AVX  ,PLC_OP_256>::apply, 0);
 		break;
-		case IFP_OP_512:
-			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, Backend_function, IFP_AVX , IFP_OP_512>::apply, 0);
+		case PLC_OP_512:
+			dr_insert_call(drcontext, bb, instr, (void*)padloc_backend<FTYPE, Backend_function, PLC_AVX , PLC_OP_512>::apply, 0);
 		break;
 		default: /*SCALAR */
-			if(oc & IFP_OP_SSE)
-				dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, Backend_function, IFP_OP_SSE>::apply, 0);
+			if(oc & PLC_OP_SSE)
+				dr_insert_call(drcontext, bb, instr, (void*)padloc_backend<FTYPE, Backend_function, PLC_OP_SSE>::apply, 0);
 			else
-				dr_insert_call(drcontext, bb, instr, (void*)interflop_backend<FTYPE, Backend_function, IFP_OP_AVX >::apply, 0);
+				dr_insert_call(drcontext, bb, instr, (void*)padloc_backend<FTYPE, Backend_function, PLC_OP_AVX >::apply, 0);
 	}
 }
 
@@ -207,26 +207,26 @@ void insert_corresponding_vect_call(void* drcontext, instrlist_t *bb, instr_t* i
 template <typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE)>
 void insert_corresponding_vect_call_fused(void* drcontext, instrlist_t *bb, instr_t* instr, OPERATION_CATEGORY oc)
 {
-	switch(oc & IFP_SIMD_TYPE_MASK)
+	switch(oc & PLC_SIMD_TYPE_MASK)
 	{
-		case IFP_OP_128:
-			if(oc & IFP_OP_SSE)
-				dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function, IFP_OP_SSE , IFP_OP_128>::apply, 0);
+		case PLC_OP_128:
+			if(oc & PLC_OP_SSE)
+				dr_insert_call(drcontext, bb, instr, (void*)padloc_backend_fused<FTYPE, Backend_function, PLC_OP_SSE , PLC_OP_128>::apply, 0);
 			else
-				dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function, IFP_OP_AVX , IFP_OP_128>::apply, 0);
+				dr_insert_call(drcontext, bb, instr, (void*)padloc_backend_fused<FTYPE, Backend_function, PLC_OP_AVX , PLC_OP_128>::apply, 0);
 		break;
-		case IFP_OP_256:
-			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function, IFP_OP_AVX , IFP_OP_256>::apply, 0);
+		case PLC_OP_256:
+			dr_insert_call(drcontext, bb, instr, (void*)padloc_backend_fused<FTYPE, Backend_function, PLC_OP_AVX , PLC_OP_256>::apply, 0);
 		break;
-		case IFP_OP_512:
-			dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function, IFP_OP_AVX ,  IFP_OP_512>::apply, 0);
+		case PLC_OP_512:
+			dr_insert_call(drcontext, bb, instr, (void*)padloc_backend_fused<FTYPE, Backend_function, PLC_OP_AVX ,  PLC_OP_512>::apply, 0);
 		break;
 
 		default: /*SCALAR */
-			if(oc & IFP_OP_SSE)
-				dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function, IFP_OP_SSE>::apply, 0);
+			if(oc & PLC_OP_SSE)
+				dr_insert_call(drcontext, bb, instr, (void*)padloc_backend_fused<FTYPE, Backend_function, PLC_OP_SSE>::apply, 0);
 			else
-				dr_insert_call(drcontext, bb, instr, (void*)interflop_backend_fused<FTYPE, Backend_function, IFP_OP_AVX >::apply, 0);
+				dr_insert_call(drcontext, bb, instr, (void*)padloc_backend_fused<FTYPE, Backend_function, PLC_OP_AVX >::apply, 0);
 	}
 }
 
@@ -241,9 +241,9 @@ void insert_corresponding_vect_call_fused(void* drcontext, instrlist_t *bb, inst
  * \param is_double True if the baseline precision is double
  */
 void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double) {
-	if(oc & IFP_OP_FUSED) {
-		if(oc & IFP_OP_FMA) {
-			if(!(oc & IFP_OP_NEG)) {
+	if(oc & PLC_OP_FUSED) {
+		if(oc & PLC_OP_FMA) {
+			if(!(oc & PLC_OP_NEG)) {
 				if(is_double)
 					insert_corresponding_vect_call_fused<double, Interflop::Op<double>::fmadd>(drcontext, bb, instr, oc);
 				else
@@ -256,8 +256,8 @@ void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CAT
 					insert_corresponding_vect_call_fused<float, Interflop::Op<float>::nfmadd>(drcontext, bb, instr, oc);
 			}
 		}
-		else if(oc & IFP_OP_FMS) {
-			if(!(oc & IFP_OP_NEG)) {
+		else if(oc & PLC_OP_FMS) {
+			if(!(oc & PLC_OP_NEG)) {
 				if(is_double)
 					insert_corresponding_vect_call_fused<double, Interflop::Op<double>::fmsub>(drcontext, bb, instr, oc);
 				else
@@ -272,27 +272,27 @@ void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CAT
 		}
 	}
 	else {
-		switch (oc & IFP_OP_TYPE_MASK)
+		switch (oc & PLC_OP_TYPE_MASK)
 		{
-			case IFP_OP_ADD:
+			case PLC_OP_ADD:
 				if(is_double)
 					insert_corresponding_vect_call<double, Interflop::Op<double>::add>(drcontext, bb, instr, oc);
 				else
 					insert_corresponding_vect_call<float, Interflop::Op<float>::add>(drcontext, bb, instr, oc);
 			break;
-			case IFP_OP_SUB:
+			case PLC_OP_SUB:
 				if(is_double)
 					insert_corresponding_vect_call<double, Interflop::Op<double>::sub>(drcontext, bb, instr, oc);
 				else
 					insert_corresponding_vect_call<float, Interflop::Op<float>::sub>(drcontext, bb, instr, oc);
 			break;
-			case IFP_OP_MUL:
+			case PLC_OP_MUL:
 				if(is_double)
 					insert_corresponding_vect_call<double, Interflop::Op<double>::mul>(drcontext, bb, instr, oc);
 				else
 					insert_corresponding_vect_call<float, Interflop::Op<float>::mul>(drcontext, bb, instr, oc);
 			break;
-			case IFP_OP_DIV:
+			case PLC_OP_DIV:
 				if(is_double)
 					insert_corresponding_vect_call<double, Interflop::Op<double>::div>(drcontext, bb, instr, oc);
 				else
@@ -603,20 +603,20 @@ static void insert_set_operands_mem_reference(void* drcontext, instrlist_t *bb, 
 void insert_set_operands(void* drcontext, instrlist_t *bb, instr_t *where, instr_t *instr, OPERATION_CATEGORY oc)
 {
     reg_id_t reg_op_addr[3];
-    const bool fused = ifp_is_fused(oc);
+    const bool fused = plc_is_fused(oc);
     if(fused)
     {
-        if(oc & IFP_OP_213) {
+        if(oc & PLC_OP_213) {
             reg_op_addr[0] = DR_REG_OP_B_ADDR;
             reg_op_addr[1] = DR_REG_OP_C_ADDR;
             reg_op_addr[2] = DR_REG_OP_A_ADDR;
         }
-        else if(oc & IFP_OP_231) {
+        else if(oc & PLC_OP_231) {
             reg_op_addr[0] = DR_REG_OP_B_ADDR;
             reg_op_addr[1] = DR_REG_OP_A_ADDR;
             reg_op_addr[2] = DR_REG_OP_C_ADDR;
         }
-        else if(oc & IFP_OP_132) {
+        else if(oc & PLC_OP_132) {
             reg_op_addr[0] = DR_REG_OP_C_ADDR;
             reg_op_addr[1] = DR_REG_OP_A_ADDR;
             reg_op_addr[2] = DR_REG_OP_B_ADDR;

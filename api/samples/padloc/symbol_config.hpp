@@ -10,9 +10,9 @@
 
 /** Specifies the type of lookup we are requesting */
 typedef enum {
-	IFP_LOOKUP_MODULE = true, /** Lookup the module */
-	IFP_LOOKUP_SYMBOL = false /** Lookup the symbol */
-} ifp_lookup_type_t;
+	PLC_LOOKUP_MODULE = true, /** Lookup the module */
+	PLC_LOOKUP_SYMBOL = false /** Lookup the symbol */
+} plc_lookup_type_t;
 
 /** Structure holding informations on a module, used for the whitelist and blacklist before further processing*/
 typedef struct _module_entry
@@ -53,9 +53,9 @@ typedef struct _lookup_entry_t
 	 * \param lookup Lookup type, if we are looking for the adress in the whole module, or in a symbol
 	 * \return true If the adress is contained within the module
 	 */
-	inline bool contains(app_pc pc, ifp_lookup_type_t lookup)const
+	inline bool contains(app_pc pc, plc_lookup_type_t lookup)const
 	{
-		if(lookup == IFP_LOOKUP_MODULE || (total && symbols.empty()))
+		if(lookup == PLC_LOOKUP_MODULE || (total && symbols.empty()))
 		{
 #ifdef WINDOWS
 			return range.contains(pc);

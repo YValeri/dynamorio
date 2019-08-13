@@ -2,13 +2,13 @@
 * Created on 2019-07-23
 */
 
-#ifndef INTERFLOP_CLIENT_H
-#define INTERFLOP_CLIENT_H
+#ifndef PADLOC_CLIENT_H
+#define PADLOC_CLIENT_H
 
 #include "dr_api.h"
 #include "drmgr.h"
 #include "backend/backend.hxx"
-#include "interflop_operations.hpp"
+#include "padloc_operations.hpp"
 
 #ifndef MAX_OPND_SIZE_BYTES
 // operand size is maximum 512 bits (AVX512 instructions) = 64 bytes 
