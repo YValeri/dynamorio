@@ -114,9 +114,6 @@
 		drmgr_insert_write_tls_field((drcontext), (tls_stack), (bb), (instr), (buffer_reg), (temp_reg));
 
 /* SIZES */
-#define PTR_SIZE sizeof(void*)
-#define FLOAT_SIZE sizeof(float)
-#define DOUBLE_SIZE sizeof(double)
 #define REG_SIZE(reg) opnd_size_in_bytes(reg_get_size((reg)))
 #define OPSZ(bytes) opnd_size_from_bytes((bytes))
 
@@ -130,25 +127,111 @@ typedef byte SLOT;
 	#define NB_Q_REG 0
 #endif
 
+/**
+ * \brief Returns the index of the floating point registers tls
+ */
 int get_index_tls_float();
+/**
+ * \brief Returns the index of the gpr tls
+ */
 int get_index_tls_gpr();
+/**
+ * \brief Returns the index of the result tls
+ */
 int get_index_tls_result();
 
+/**
+ * \brief Sets the index of the gpr tls
+ */
 void set_index_tls_gpr(int new_tls_value);
+/**
+ * \brief Sets the index of the floating point registers tls
+ */
 void set_index_tls_float(int new_tls_value);
+/**
+ * \brief Sets the index of the result tls
+ */
 void set_index_tls_result(int new_tls_value);
 
-
+/**
+ * \brief Inserts \param newinstr in \param ilist prior to \param instr and set it as an application instruction
+ */
 void translate_insert(instr_t *newinstr, instrlist_t *ilist, instr_t *instr);
 
+
+/**
+ * \brief Insert the corresponding call into the application depending on the properties of the instruction overloaded.  
+ * 
+ * \param drcontext DynamoRIO's context
+ * \param bb Current basic block
+ * \param instr Instrumented instruction
+ * \param oc Operation category of the instruction
+ * \param is_double True if the baseline precision is double
+ */
 void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double);
 
+/**
+ * \brief Inserts prior to \p where meta-instructions to set the calling convention registers to the right adresses
+ * Assumes the GPR have been saved !
+ * \param drcontext DynamoRIO's context
+ * \param bb Current Basic Block
+ * \param where instruction prior to whom we insert the meta-instructions 
+ * \param instr Instrumented instruction
+ * \param oc Operation category of the instrumented instruction
+ */
 void insert_set_operands(void* drcontext, instrlist_t *bb, instr_t *where, instr_t *instr, OPERATION_CATEGORY oc);
+
+/**
+ * \brief Inserts prior to \p where meta-instructions to restore the floating point registers (xmm-ymm-zmm)
+ * Assumes the gpr have been saved beforehand !
+ * \param drcontext DynamoRIO context
+ * \param bb Current basic bloc
+ * \param where instruction prior to whom we insert the meta-instructions 
+ */
 void insert_restore_simd_registers(void *drcontext, instrlist_t *bb, instr_t *where);
+
+/**
+ * \brief Inserts prior to \p where meta-instructions to save the floating point registers (xmm-ymm-zmm)
+ * Assumes the gpr have been saved beforehand !
+ * \param drcontext DynamoRIO context
+ * \param bb Current basic bloc
+ * \param where instruction prior to whom we insert the meta-instructions 
+ */
 void insert_save_simd_registers(void *drcontext, instrlist_t *bb, instr_t *where);
+
+/**
+ * \brief Prepares the address in the buffer of the tls register to point to the destination register in memory
+ * Assumes the gpr have been saved beforehand !
+ * \param drcontext DynamoRIO's context
+ * \param bb Current basic block
+ * \param where instruction prior to whom we insert the meta-instructions 
+ * \param destination SIMD registers that should have received the result
+ */
 void insert_set_destination_tls(void *drcontext, instrlist_t *bb, instr_t *where, reg_id_t destination);
+
+/**
+ * \brief Inserts prior to \param where meta-instructions to restore the arithmetic flags and the gpr registers
+ * \param drcontext DynamoRIO context
+ * \param bb Current basic bloc
+ * \param where instruction prior to whom we insert the meta-instructions 
+ */
 void insert_restore_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *where);
+
+/**
+ * \brief Inserts prior to \param where meta-instructions to save the arithmetic flags and the gpr registers
+ * \param drcontext DynamoRIO context
+ * \param bb Current basic bloc
+ * \param where instruction prior to whom we insert the meta-instructions 
+ */
 void insert_save_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *where);
+
+/**
+ * \brief Inserts prior to \p where meta-instructions to restore RSP from its saved value
+ * 
+ * \param drcontext DynamoRIO's context
+ * \param bb Current Basic Block
+ * \param where instruction prior to whom we insert the meta-instructions 
+ */
 void insert_restore_rsp(void *drcontext, instrlist_t *bb, instr_t *where);
 
 #endif

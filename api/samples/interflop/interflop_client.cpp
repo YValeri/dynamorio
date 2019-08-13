@@ -38,12 +38,30 @@
 
 static int tls_gpr, tls_float, tls_result;
 
+/**
+ * \brief Returns the index of the gpr tls
+ */
 int get_index_tls_gpr(){return tls_gpr;}
+/**
+ * \brief Returns the index of the floating point registers tls
+ */
 int get_index_tls_float(){return tls_float;}
+/**
+ * \brief Returns the index of the result tls
+ */
 int get_index_tls_result(){return tls_result;}
 
+/**
+ * \brief Sets the index of the gpr tls
+ */
 void set_index_tls_gpr(int new_tls_value) {tls_gpr = new_tls_value;}
+/**
+ * \brief Sets the index of the floating point registers tls
+ */
 void set_index_tls_float(int new_tls_value) {tls_float = new_tls_value;}
+/**
+ * \brief Sets the index of the result tls
+ */
 void set_index_tls_result(int new_tls_value) {tls_result = new_tls_value;}
 
 /**
@@ -67,19 +85,6 @@ inline int offset_of_simd(reg_id_t simd)
     const reg_id_t START = reg_is_strictly_zmm(simd) ? DR_REG_START_ZMM : reg_is_strictly_ymm(simd) ? DR_REG_START_YMM : DR_REG_START_XMM;
     return ((uint)simd-START)<<OFFSET;
 }
-
-/*
- * \brief Definition of intermediary functions between front-end and back-end
- * \brief It is suited for two sources instructions 
- * 
- * FTYPE : float or double depending on the precision of the instruction 
- * Backend_function : the function corresponding to the overloaded operation (add, sub, fmadd ...) : implementation in Backend.hxx
- * INSTR_CATEGORY : Make the difference SSE and AVX instructions. Possible values are IFP_OP_SSE and IFP_OP_AVX
- * SIMD_TYPE : Define the length of the elements of the operation. 
- * 		- default is IFP_OP_SCALAR 
- * 		- possible values are IFP_OP_128, IFP_OP_256 and IFP_OP_512
- * Note that INSTR_CATEGORY and SIMD_TYPE are both mandatory since AVX instructions can be applied on 128 sized registers (XMM)
- */
 
 /**
  * \brief Definition of intermediary functions between front-end and back-end
@@ -196,7 +201,7 @@ void insert_corresponding_vect_call(void* drcontext, instrlist_t *bb, instr_t* i
 	}
 }
 
-/*
+/**
  * \brief Subset of insert_call for three sources instructions
  */
 template <typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE)>
@@ -226,8 +231,14 @@ void insert_corresponding_vect_call_fused(void* drcontext, instrlist_t *bb, inst
 }
 
 
-/*
+/**
  * \brief Insert the corresponding call into the application depending on the properties of the instruction overloaded.  
+ * 
+ * \param drcontext DynamoRIO's context
+ * \param bb Current basic block
+ * \param instr Instrumented instruction
+ * \param oc Operation category of the instruction
+ * \param is_double True if the baseline precision is double
  */
 void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double) {
 	if(oc & IFP_OP_FUSED) {
