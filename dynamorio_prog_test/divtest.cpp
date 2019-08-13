@@ -20,7 +20,7 @@ int main(int argc, char const *argv[])
                 c[1] >= 1.127049-EPSILLON && c[1] <= 1.127049+EPSILLON &&
                 c[2] >= 5.0-EPSILLON && c[2] <= 5.0+EPSILLON &&
                 c[3] >= 6.0-EPSILLON && c[3] <= 6.0+EPSILLON) 
-        std::cout << "\t[ OK ]" << std::endl; else std::cout  << "\t[ KO ]" << std::endl;
+        std::cout << "\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\033[1;31m[ KO ]\033[0m" << std::endl;
                 
     asm volatile("\tvmovapd %%ymm0, %1\n"
             "\tvmovapd %%ymm1, %2\n"
@@ -34,7 +34,7 @@ int main(int argc, char const *argv[])
                 c[1] >= 1.127049-EPSILLON && c[1] <= 1.127049+EPSILLON &&
                 c[2] >= 0.0-EPSILLON && c[2] <= 0.0+EPSILLON &&
                 c[3] >= 0.0-EPSILLON && c[3] <= 0.0+EPSILLON) 
-        std::cout << "\t[ OK ]" << std::endl; else std::cout  << "\t[ KO ]" << std::endl;
+        std::cout << "\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
 
     asm volatile("\tvmovaps %%xmm0, %1\n"
@@ -49,7 +49,7 @@ int main(int argc, char const *argv[])
                 c[1] >= 0.775000-EPSILLON && c[1] <= 0.775000+EPSILLON &&
                 c[2] >= 0.0-EPSILLON && c[2] <= 0.0+EPSILLON &&
                 c[3] >= 0.0-EPSILLON && c[3] <= 0.0+EPSILLON) 
-        std::cout << "\t[ OK ]" << std::endl; else std::cout  << "\t[ KO ]" << std::endl;
+        std::cout << "\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
 
     asm volatile("\tvmovapd %%ymm0, %1\n"
@@ -64,7 +64,7 @@ int main(int argc, char const *argv[])
                 c[1] >= 0.775000-EPSILLON && c[1] <= 0.775000+EPSILLON &&
                 c[2] >= 0.0-EPSILLON && c[2] <= 0.0+EPSILLON &&
                 c[3] >= 0.0-EPSILLON && c[3] <= 0.0+EPSILLON) 
-        std::cout << "\t[ OK ]" << std::endl; else std::cout  << "\t[ KO ]" << std::endl;
+        std::cout << "\t\033[1;32m[ OK ]\033[0m" << std::endl; else std::cout  << "\t\033[1;31m[ KO ]\033[0m" << std::endl;
 
 
     return 0;
