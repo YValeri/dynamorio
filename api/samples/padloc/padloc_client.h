@@ -12,42 +12,42 @@
 
 #ifndef MAX_OPND_SIZE_BYTES
 // operand size is maximum 512 bits (AVX512 instructions) = 64 bytes 
-	#define MAX_OPND_SIZE_BYTES 64 
+#define MAX_OPND_SIZE_BYTES 64
 #endif
 
 #define PRINT_ERROR_MESSAGE(message) dr_fprintf(STDERR, "%s\n", (message));
 
 #ifdef WINDOWS
-    #define DR_REG_OP_A_ADDR DR_REG_XCX
-    #define DR_REG_OP_B_ADDR DR_REG_XDX
-    #define DR_REG_OP_C_ADDR DR_REG_R8
-    #define DR_REG_BASE DR_REG_XAX
+#define DR_REG_OP_A_ADDR DR_REG_XCX
+#define DR_REG_OP_B_ADDR DR_REG_XDX
+#define DR_REG_OP_C_ADDR DR_REG_R8
+#define DR_REG_BASE DR_REG_XAX
 #elif defined(AARCH64)
-	#define DR_REG_OP_A_ADDR DR_REG_X0
-	#define DR_REG_OP_B_ADDR DR_REG_X1
-	#define DR_REG_OP_C_ADDR DR_REG_X2
-	#define DR_REG_RES_ADDR DR_REG_X3
+#define DR_REG_OP_A_ADDR DR_REG_X0
+#define DR_REG_OP_B_ADDR DR_REG_X1
+#define DR_REG_OP_C_ADDR DR_REG_X2
+#define DR_REG_RES_ADDR DR_REG_X3
 #else
-    #define DR_REG_OP_A_ADDR DR_REG_XDI
-    #define DR_REG_OP_B_ADDR DR_REG_XSI
-    #define DR_REG_OP_C_ADDR DR_REG_XDX
-    #define DR_REG_RES_ADDR DR_REG_XDI
-    #define DR_REG_BASE DR_REG_XAX
+#define DR_REG_OP_A_ADDR DR_REG_XDI
+#define DR_REG_OP_B_ADDR DR_REG_XSI
+#define DR_REG_OP_C_ADDR DR_REG_XDX
+#define DR_REG_RES_ADDR DR_REG_XDI
+#define DR_REG_BASE DR_REG_XAX
 #endif
 
 #if defined(X86)
-    #define DR_SCRATCH_REG DR_REG_XCX
+#define DR_SCRATCH_REG DR_REG_XCX
 
-    #define AVX_SUPPORTED (proc_has_feature(FEATURE_AVX))
-    #define AVX_512_SUPPORTED (proc_has_feature(FEATURE_AVX512F))
+#define AVX_SUPPORTED (proc_has_feature(FEATURE_AVX))
+#define AVX_512_SUPPORTED (proc_has_feature(FEATURE_AVX512F))
 
 #elif defined(AARCH64)
-	#define DR_REG_MULTIPLE DR_REG_Q31
-	#define DR_REG_FLOAT DR_REG_S31
-	#define DR_REG_DOUBLE DR_REG_D31
+#define DR_REG_MULTIPLE DR_REG_Q31
+#define DR_REG_FLOAT DR_REG_S31
+#define DR_REG_DOUBLE DR_REG_D31
 
-	#define DR_BUFFER_REG DR_REG_X6
-	#define DR_SCRATCH_REG DR_REG_X5
+#define DR_BUFFER_REG DR_REG_X6
+#define DR_SCRATCH_REG DR_REG_X5
 #endif
 
 #define SPILL_SLOT_SCRATCH_REG SPILL_SLOT_1
@@ -57,30 +57,30 @@
 #define DST(instr, n) instr_get_dst((instr), (n))
 
 #if defined(X86)
-	#define MOVE_FLOATING_SCALAR(is_double, drcontext, dest, srcd, srcs) (is_double) ? 	\
-		INSTR_CREATE_movsd((drcontext), (dest), (srcd)) : 			  					\
-		INSTR_CREATE_movss((drcontext), (dest), (srcs))
-	
-	#define MOVE_FLOATING_PACKED(is_avx, drcontext, dest, src) (is_avx) ? 				\
-		INSTR_CREATE_vmovupd((drcontext), (dest), (src)) : 								\
-		INSTR_CREATE_movupd((drcontext), (dest), (src))
+#define MOVE_FLOATING_SCALAR(is_double, drcontext, dest, srcd, srcs) (is_double) ? 	\
+        INSTR_CREATE_movsd((drcontext), (dest), (srcd)) : 			  					\
+        INSTR_CREATE_movss((drcontext), (dest), (srcs))
+
+#define MOVE_FLOATING_PACKED(is_avx, drcontext, dest, src) (is_avx) ? 				\
+        INSTR_CREATE_vmovupd((drcontext), (dest), (src)) : 								\
+        INSTR_CREATE_movupd((drcontext), (dest), (src))
 #endif
 
 /* CREATE OPND */
 #define OP_REG(reg_id) opnd_create_reg((reg_id))
 #define OP_INT(val) opnd_create_immed_int((val), OPSZ_4)
 #define OP_INT64(val) opnd_create_immed_int64((val), OPSZ_8)
-	
+
 #if defined(X86)
-	#define OP_REL_ADDR(addr) \
-		opnd_create_rel_addr((addr), OPSZ_8)
-	#define OP_BASE_DISP(base, disp, size) \
-		opnd_create_base_disp((base), DR_REG_NULL, 0, (disp), (size))
+#define OP_REL_ADDR(addr) \
+        opnd_create_rel_addr((addr), OPSZ_8)
+#define OP_BASE_DISP(base, disp, size) \
+        opnd_create_base_disp((base), DR_REG_NULL, 0, (disp), (size))
 #elif defined(AARCH64)
-	#define OP_REL_ADDR(addr) \
-		opnd_create_rel_addr((addr), OPSZ_2)
-	#define OP_BASE_DISP(base, disp, size) \
-		opnd_create_base_disp((base), DR_REG_NULL, 0, (disp), (size))
+#define OP_REL_ADDR(addr) \
+        opnd_create_rel_addr((addr), OPSZ_2)
+#define OP_BASE_DISP(base, disp, size) \
+        opnd_create_base_disp((base), DR_REG_NULL, 0, (disp), (size))
 #endif
 
 /* TESTS OPND */
@@ -94,11 +94,11 @@
 #define IS_GPR(reg) reg_is_gpr((reg))
 
 #if defined(X86)
-	#define IS_XMM(reg) reg_is_strictly_xmm((reg))
-	#define IS_YMM(reg) reg_is_strictly_ymm((reg))
-	#define IS_ZMM(reg) reg_is_strictly_zmm((reg))
+#define IS_XMM(reg) reg_is_strictly_xmm((reg))
+#define IS_YMM(reg) reg_is_strictly_ymm((reg))
+#define IS_ZMM(reg) reg_is_strictly_zmm((reg))
 #elif defined(AARCH64)
-	#define IS_SIMD(reg) reg_is_simd((reg))
+#define IS_SIMD(reg) reg_is_simd((reg))
 #endif
 
 /* OPND GET VALUE */
@@ -109,9 +109,9 @@
 #define GET_TLS(drcontext, tls) drmgr_get_tls_field((drcontext), (tls))
 #define SET_TLS(drcontext, tls, value) drmgr_set_tls_field((drcontext), (tls), (void*)(value))
 #define INSERT_READ_TLS(drcontext, tls, bb, instr, reg) \
-		drmgr_insert_read_tls_field((drcontext), (tls), (bb), (instr), (reg))
+        drmgr_insert_read_tls_field((drcontext), (tls), (bb), (instr), (reg))
 #define INSERT_WRITE_TLS(drcontext, tls, bb, instr, reg, temp_reg) \
-		drmgr_insert_write_tls_field((drcontext), (tls_stack), (bb), (instr), (buffer_reg), (temp_reg));
+        drmgr_insert_write_tls_field((drcontext), (tls_stack), (bb), (instr), (buffer_reg), (temp_reg));
 
 /* SIZES */
 #define REG_SIZE(reg) opnd_size_in_bytes(reg_get_size((reg)))
@@ -120,21 +120,23 @@
 typedef byte SLOT;
 
 #if defined(X86)
-	#define NB_XMM_REG 16
-	#define NB_YMM_REG 16
-	#define NB_ZMM_REG 32
+#define NB_XMM_REG 16
+#define NB_YMM_REG 16
+#define NB_ZMM_REG 32
 #elif defined(AARCH64)
-	#define NB_Q_REG 0
+#define NB_Q_REG 0
 #endif
 
 /**
  * \brief Returns the index of the floating point registers tls
  */
 int get_index_tls_float();
+
 /**
  * \brief Returns the index of the gpr tls
  */
 int get_index_tls_gpr();
+
 /**
  * \brief Returns the index of the result tls
  */
@@ -144,10 +146,12 @@ int get_index_tls_result();
  * \brief Sets the index of the gpr tls
  */
 void set_index_tls_gpr(int new_tls_value);
+
 /**
  * \brief Sets the index of the floating point registers tls
  */
 void set_index_tls_float(int new_tls_value);
+
 /**
  * \brief Sets the index of the result tls
  */
@@ -179,7 +183,7 @@ void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CAT
  * \param instr Instrumented instruction
  * \param oc Operation category of the instrumented instruction
  */
-void insert_set_operands(void* drcontext, instrlist_t *bb, instr_t *where, instr_t *instr, OPERATION_CATEGORY oc);
+void insert_set_operands(void *drcontext, instrlist_t *bb, instr_t *where, instr_t *instr, OPERATION_CATEGORY oc);
 
 /**
  * \brief Inserts prior to \p where meta-instructions to restore the floating point registers (xmm-ymm-zmm)

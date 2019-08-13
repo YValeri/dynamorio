@@ -72,8 +72,8 @@ void print_register_vectors();
  * \param argv The list of arguments in the command line
  * \return True if the execution of the program must be stopped, else false
  */
-bool analyse_argument_parser(std::string arg, int* i, int argc,
-	const char* argv[]);
+bool analyse_argument_parser(std::string arg, int *i, int argc,
+                             const char *argv[]);
 
 /**
  * \brief Analyse the backend if needed, and update the NEED_SSE_INVERSE
@@ -83,6 +83,5 @@ bool analyse_argument_parser(std::string arg, int* i, int argc,
  * with the SSE analyser, in order to update NEED_SSE_INVERSE.
  */
 void analyse_mode_manager();
-
 
 #endif

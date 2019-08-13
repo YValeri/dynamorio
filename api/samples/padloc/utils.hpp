@@ -12,12 +12,12 @@ typedef enum{
     PLC_CLIENT_WL_ONLY = 4, /** Instrument only the symbols in the whitelist */
     PLC_CLIENT_BL_WL = 6, /** Instrument the symbols in the whitelist that aren't in the blacklist */
     PLC_CLIENT_HELP = -1 /** Display arguments help */
-} padloc_symbols_mode_t;
+}padloc_symbols_mode_t;
 
 typedef enum{
     PLC_ANALYSE_NOT_NEEDED = 0, /* Backend analysis not needed */
     PLC_ANALYSE_NEEDED = 1 /* Backend analysis needed */
-} padloc_analyse_mode_t;
+}padloc_analyse_mode_t;
 
 #define UNKNOWN_ARGUMENT 3
 
@@ -31,7 +31,7 @@ int get_log_level();
  */
 void print_help();
 
-void write_to_file_symbol_file_header(std::ofstream&);
+void write_to_file_symbol_file_header(std::ofstream &);
 
 /**
  * \brief Get the current client mode
@@ -63,8 +63,8 @@ void set_analyse_mode(padloc_analyse_mode_t);
 
 void inc_error();
 
-bool is_number(const std::string&);
+bool is_number(const std::string &);
 
-bool arguments_parser(int, const char**);
+bool arguments_parser(int, const char **);
 
 #endif
