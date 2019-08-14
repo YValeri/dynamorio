@@ -13,3 +13,4 @@ dynamorio_prog_test/windows/*.*
 !dynamorio_prog_test/windows/*.c
 !dynamorio_prog_test/windows/*.cpp
 !dynamorio_prog_test/windows/*.h
+Doxygen/

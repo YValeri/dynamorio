@@ -218,7 +218,6 @@ static void thread_init(void *dr_context){
 
 /**
  * \brief Callback called when a thread exits
- * 
  * \param drcontext Context of the exiting thread
  */
 static void thread_exit(void *dr_context){
