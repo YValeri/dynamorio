@@ -1,7 +1,7 @@
 #ifndef ANALYSE_BARRIER_HEADER
 #define ANALYSE_BARRIER_HEADER
 
-/* TODO :
+/** TODO :
  * - Actually use the vectors when we save the registers, instead
  * of saving everything.
  * - In the "read_reg_from_file" function, when we detect an number,

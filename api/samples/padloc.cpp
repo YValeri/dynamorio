@@ -1,5 +1,10 @@
 /**
-	 * DynamoRIO client developped in the scope of INTERFLOP project 
+ * \file
+ * \brief DynamoRIO client developped in the scope of INTERFLOP project 
+ * 
+ * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
+ * \date 2019
+ * \copyright Interflop 
  */
 
 #include "dr_api.h"
@@ -117,9 +122,8 @@ static void api_register(){
     drmgr_register_thread_init_event(thread_init);
     drmgr_register_thread_exit_event(thread_exit);
 
-    if(get_client_mode() == PLC_CLIENT_GENERATE){
-        drmgr_register_bb_instrumentation_event(symbol_lookup_event, NULL,
-                                                NULL);
+    if(get_symbol_mode() == PLC_SYMBOL_GENERATE){
+        drmgr_register_bb_instrumentation_event(symbol_lookup_event, NULL, NULL);
     }else{
         drmgr_register_module_load_event(module_load_handler);
         drmgr_register_bb_app2app_event(app2app_bb_event, NULL);
@@ -184,7 +188,7 @@ static void event_exit(){
     drmgr_unregister_tls_field(get_index_tls_float());
 
     //If we were generating the symbols, write the results to file
-    if(get_client_mode() == PLC_CLIENT_GENERATE){
+    if(get_symbol_mode() == PLC_SYMBOL_GENERATE){
         write_symbols_to_file();
     }
 
@@ -204,9 +208,9 @@ static void thread_init(void *dr_context){
     SET_TLS(dr_context, get_index_tls_result(), dr_thread_alloc(dr_context, 8));
     SET_TLS(dr_context, get_index_tls_float(),
             dr_thread_alloc(dr_context,
-                            AVX_512_SUPPORTED ? 64 * 32 : AVX_SUPPORTED ? 32 *
-                                                                          16 :
-                                                          16 * 16));
+                            AVX_512_SUPPORTED ? 64 * 32 
+                                              : AVX_SUPPORTED ? 32 * 16 
+                                                              : 16 * 16));
     SET_TLS(dr_context, get_index_tls_gpr(),
             dr_thread_alloc(dr_context, 17 * 8));
 }

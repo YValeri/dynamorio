@@ -1,3 +1,12 @@
+/**
+ * \file
+ * \brief
+ * 
+ * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
+ * \date 2019
+ * \copyright Interflop 
+ */
+
 #include "dr_api.h"
 #include "dr_defines.h"
 #include "drsyms.h"
@@ -25,14 +34,14 @@ static std::string blacklist_filename, whitelist_filename;
 /*Note:
 TODO : the modules_vector can contain symbols with a wildcard
 whitelist only : modules_vector contains the modules and symbols instrumented, 
-	all_symbols = true means whole module, 
-	all_symbols = false means only the symbols in this module in the symbols vector
+    all_symbols = true means whole module, 
+    all_symbols = false means only the symbols in this module in the symbols vector
 blacklist only : modules_vector contains the modules and symbols we shouldn't instrument, 
-	all_symbols = true means whole module
-	all_symbols = false means only the symbols in this module in the symbols vector
+    all_symbols = true means whole module
+    all_symbols = false means only the symbols in this module in the symbols vector
 blacklist + whitelist : modules_vector contains the modules and symbols we should instrument
-	all_symbols = true means instrument the whole module EXCEPT the symbols in the symbols vector
-	all_symbols = false means instrument ONLY the symbols in the symbols vector
+    all_symbols = true means instrument the whole module EXCEPT the symbols in the symbols vector
+    all_symbols = false means instrument ONLY the symbols in the symbols vector
 */
 static vector<module_entry> modules_vector;
 static vector<lookup_entry_t> lookup_vector;
@@ -73,7 +82,7 @@ static inline size_t vec_idx_of(vector<T, allocator<T>> vec, T elem){
  * Clears the symbols if it's only what we need to clear
  */
 static bool need_cleanup_module(module_entry &entry){
-    if(entry.all_symbols && get_client_mode() != PLC_CLIENT_BL_WL){
+    if(entry.all_symbols && get_symbol_mode() != PLC_SYMBOL_BL_WL){
         entry.symbols.clear();
         return false;
     }
@@ -87,7 +96,7 @@ static bool need_cleanup_module(module_entry &entry){
 /* ### SYMBOLS FILE GENERATION ### */
 
 void write_symbols_to_file(){
-    if(get_client_mode() == PLC_CLIENT_GENERATE){
+    if(get_symbol_mode() == PLC_SYMBOL_GENERATE){
         if(symbol_file.is_open() && symbol_file.good()){
             write_to_file_symbol_file_header(symbol_file);
             size_t num_modules = modules_vector.size();
@@ -243,7 +252,7 @@ static void lookup_or_load_module(const module_data_t *module){
 
 #endif //WINDOWS
         //When the module isn't total, or there can be exceptions to the total module, we need to register each symbol
-        if(!lentry.total || get_client_mode() == PLC_CLIENT_BL_WL){
+        if(!lentry.total || get_symbol_mode() == PLC_SYMBOL_BL_WL){
             size_t modoff;
             drsym_info_t info;
             info.struct_size = sizeof(info);
@@ -296,11 +305,11 @@ bool should_instrument_module(module_data_t const *module){
     lookup_entry_t *found_module = lookup_find(module->start, PLC_LOOKUP_MODULE);
     if(found_module != nullptr){
         //We found the module in the list, we need to instrument it if it's not blacklisted totally
-        return (get_client_mode() == PLC_CLIENT_BL_ONLY && !found_module->total) ||
-               get_client_mode() == PLC_CLIENT_WL_ONLY || get_client_mode() == PLC_CLIENT_BL_WL;
+        return (get_symbol_mode() == PLC_SYMBOL_BL_ONLY && !found_module->total) ||
+               get_symbol_mode() == PLC_SYMBOL_WL_ONLY || get_symbol_mode() == PLC_SYMBOL_BL_WL;
     }else{
         //We didn't find the module in the lookup, we instrument it if we're not white listing
-        return get_client_mode() == PLC_CLIENT_BL_ONLY || get_client_mode() == PLC_CLIENT_NOLOOKUP;
+        return get_symbol_mode() == PLC_SYMBOL_BL_ONLY || get_symbol_mode() == PLC_SYMBOL_NOLOOKUP;
     }
 }
 
@@ -308,12 +317,12 @@ bool needs_to_instrument(instrlist_t *ilist){
     if(ilist == nullptr){
         return false;
     }
-    if(get_client_mode() == PLC_CLIENT_NOLOOKUP){
+    if(get_symbol_mode() == PLC_SYMBOL_NOLOOKUP){
         //We always instrument in NOLOOKUP
         return true;
     }
 
-    if(get_client_mode() == PLC_CLIENT_GENERATE || get_client_mode() == PLC_CLIENT_HELP){
+    if(get_symbol_mode() == PLC_SYMBOL_GENERATE || get_symbol_mode() == PLC_SYMBOL_HELP){
         //We never instrument in GENERATE or HELP (nor that this check is strictly necessary)
         return false;
     }
@@ -322,18 +331,18 @@ bool needs_to_instrument(instrlist_t *ilist){
     if(instr != nullptr){
         app_pc pc = instr_get_app_pc(instr);
         if(pc){
-            return (lookup_find(pc, PLC_LOOKUP_SYMBOL) != nullptr) ^ (get_client_mode() == PLC_CLIENT_BL_ONLY);
+            return (lookup_find(pc, PLC_LOOKUP_SYMBOL) != nullptr) ^ (get_symbol_mode() == PLC_SYMBOL_BL_ONLY);
         }
     }
 
     //Something went wrong, so we assume we didn't find the symbol
-    return get_client_mode() == PLC_CLIENT_NOLOOKUP || get_client_mode() == PLC_CLIENT_BL_ONLY;
+    return get_symbol_mode() == PLC_SYMBOL_NOLOOKUP || get_symbol_mode() == PLC_SYMBOL_BL_ONLY;
 }
 
 /* ### FILE PARSING ### */
 
 static void parse_line(string line, bool parsing_whitelist){
-    DR_ASSERT_MSG(parsing_whitelist || (get_client_mode() == PLC_CLIENT_BL_ONLY || whitelist_parsed),
+    DR_ASSERT_MSG(parsing_whitelist || (get_symbol_mode() == PLC_SYMBOL_BL_ONLY || whitelist_parsed),
                   "Wrong parsing order for blacklist/whitelist");
     //Remove comments
     size_t pos = line.find('#');
@@ -369,7 +378,7 @@ static void parse_line(string line, bool parsing_whitelist){
         }
         module_entry entry(module, whole);
         bool exists = ((pos = vec_idx_of<module_entry>(modules_vector, entry)) != modules_vector.size());
-        if(parsing_whitelist || get_client_mode() == PLC_CLIENT_BL_ONLY){
+        if(parsing_whitelist || get_symbol_mode() == PLC_SYMBOL_BL_ONLY){
             //If we're parsing the whitelist, or the blacklist in blacklist only mode, it's only about adding to the lookup
             if(exists){
                 //TODO : add module_vector[pos]
@@ -475,11 +484,11 @@ static lookup_entry_t *lookup_find(app_pc pc, plc_lookup_type_t lookup_type){
 
 static bool WL_argument_detected(int i, int argc, const char *argv[]){
     //If we have a blacklist
-    if(get_client_mode() == PLC_CLIENT_BL_ONLY ||
-       get_client_mode() == PLC_CLIENT_BL_WL){
-        set_client_mode(PLC_CLIENT_BL_WL);
+    if(get_symbol_mode() == PLC_SYMBOL_BL_ONLY ||
+       get_symbol_mode() == PLC_SYMBOL_BL_WL){
+        set_symbol_mode(PLC_SYMBOL_BL_WL);
     }else{
-        set_client_mode(PLC_CLIENT_WL_ONLY);
+        set_symbol_mode(PLC_SYMBOL_WL_ONLY);
     }
 
     //If the filename is precised
@@ -490,17 +499,17 @@ static bool WL_argument_detected(int i, int argc, const char *argv[]){
     dr_fprintf(STDERR,
                "NOT ENOUGH ARGUMENTS : Lacking the file associated with \"%s\"\n",
                argv[i - 1]);
-    set_client_mode(PLC_CLIENT_HELP);
+    set_symbol_mode(PLC_SYMBOL_HELP);
     return true;
 }
 
 static bool BL_argument_detected(int i, int argc, const char *argv[]){
     //If we have a blacklist
-    if(get_client_mode() == PLC_CLIENT_WL_ONLY ||
-       get_client_mode() == PLC_CLIENT_BL_WL){
-        set_client_mode(PLC_CLIENT_BL_WL);
+    if(get_symbol_mode() == PLC_SYMBOL_WL_ONLY ||
+       get_symbol_mode() == PLC_SYMBOL_BL_WL){
+        set_symbol_mode(PLC_SYMBOL_BL_WL);
     }else{
-        set_client_mode(PLC_CLIENT_BL_ONLY);
+        set_symbol_mode(PLC_SYMBOL_BL_ONLY);
     }
 
     //If the filename is precised
@@ -511,7 +520,7 @@ static bool BL_argument_detected(int i, int argc, const char *argv[]){
     dr_fprintf(STDERR,
                "NOT ENOUGH ARGUMENTS : Lacking the file associated with \"%s\"\n",
                argv[i - 1]);
-    set_client_mode(PLC_CLIENT_HELP);
+    set_symbol_mode(PLC_SYMBOL_HELP);
     return true;
 }
 
@@ -529,13 +538,13 @@ static bool G_argument_detected(int i, int argc, const char *argv[]){
                    "NOT ENOUGH ARGUMENTS : Lacking the file associated with \"%s\"\n",
                    argv[i - 1]);
     }
-    set_client_mode(PLC_CLIENT_HELP);
+    set_symbol_mode(PLC_SYMBOL_HELP);
     return true;
 }
 
 static bool symbol_should_continue_parsing(){
-    return get_client_mode() != PLC_CLIENT_HELP &&
-           get_client_mode() != PLC_CLIENT_GENERATE;
+    return get_symbol_mode() != PLC_SYMBOL_HELP &&
+           get_symbol_mode() != PLC_SYMBOL_GENERATE;
 }
 
 bool symbol_argument_parser(std::string arg, int *i, int argc, const char *argv[]){
@@ -544,7 +553,7 @@ bool symbol_argument_parser(std::string arg, int *i, int argc, const char *argv[
     }
 
     if(arg == "--no-lookup" || arg == "-n"){
-        set_client_mode(PLC_CLIENT_NOLOOKUP);
+        set_symbol_mode(PLC_SYMBOL_NOLOOKUP);
     }else if(arg == "--whitelist" || arg == "-w"){ //Whitelist
         *i += 1;
         return WL_argument_detected(*i, argc, argv);
@@ -552,7 +561,7 @@ bool symbol_argument_parser(std::string arg, int *i, int argc, const char *argv[
         *i += 1;
         return BL_argument_detected(*i, argc, argv);
     }else if(arg == "--generate" || arg == "-g"){
-        set_client_mode(PLC_CLIENT_GENERATE);
+        set_symbol_mode(PLC_SYMBOL_GENERATE);
         *i += 1;
         return G_argument_detected(*i, argc, argv);
     }else{
@@ -562,22 +571,22 @@ bool symbol_argument_parser(std::string arg, int *i, int argc, const char *argv[
 }
 
 void symbol_client_mode_manager(){
-    switch(get_client_mode()){
-        case PLC_CLIENT_BL_ONLY:
+    switch(get_symbol_mode()){
+        case PLC_SYMBOL_BL_ONLY:
             blacklist.open(blacklist_filename);
             DR_ASSERT_MSG(!blacklist.fail(), "Can't open blacklist file");
 
             generate_blacklist_from_file(blacklist);
             load_lookup_from_modules_vector();
             break;
-        case PLC_CLIENT_WL_ONLY:
+        case PLC_SYMBOL_WL_ONLY:
             whitelist.open(whitelist_filename);
             DR_ASSERT_MSG(!whitelist.fail(), "Can't open whitelist file");
 
             generate_whitelist_from_file(whitelist);
             load_lookup_from_modules_vector();
             break;
-        case PLC_CLIENT_BL_WL:
+        case PLC_SYMBOL_BL_WL:
             whitelist.open(whitelist_filename);
             DR_ASSERT_MSG(!whitelist.fail(), "Can't open whitelist file");
             blacklist.open(blacklist_filename);

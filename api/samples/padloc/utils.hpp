@@ -1,70 +1,144 @@
 #ifndef UTILS_BARRIER_HEADER
 #define UTILS_BARRIER_HEADER
 
+/**
+ * MERGE AVEC LE CODE DE LAUTRE TROU DUC
+ */
+
+/** TODO :
+ * - Modify the parsing part by using the obverser pattern, in order to be
+ * more flexible on the parser possible, be able to remove the call to
+ * parsers and actually specifying the interface for the functions. Same for
+ * the plugin managers
+ * - Have different type of return possible for the parsers, in order to 
+ * remove the error counter (maybe 3 outputs possible, one for when a parser
+ * identified a command option, one for when a it didn't recognized the option,
+ * and one for when there was a problem).
+ */
+
 #include <fstream>
 
-/** Specifies the behavior of the client */
-typedef enum{
-    PLC_CLIENT_DEFAULT = 0, /** Default */
-    PLC_CLIENT_NOLOOKUP = 0, /** Don't look at symbols */
-    PLC_CLIENT_GENERATE = 1, /** Generate the symbols from an execution */
-    PLC_CLIENT_BL_ONLY = 2, /** Don't instrument the symbols in the blacklist */
-    PLC_CLIENT_WL_ONLY = 4, /** Instrument only the symbols in the whitelist */
-    PLC_CLIENT_BL_WL = 6, /** Instrument the symbols in the whitelist that aren't in the blacklist */
-    PLC_CLIENT_HELP = -1 /** Display arguments help */
-}padloc_symbols_mode_t;
+/**
+ * Macro giving the amount of parsers behind the main parser function.
+ * If the macro is equal to 5, that means there are 5 plugins, and if the
+ * error count is equal to 5 after checking all the parsers, that means the
+ * option is unknown.
+ */
+#define UNKNOWN_ARGUMENT 3
 
+/**
+ * Specifies the mode for the symbol plugin
+ */
+typedef enum{
+    PLC_SYMBOL_DEFAULT = 0, /** Default */
+    PLC_SYMBOL_NOLOOKUP = 0, /** Don't look at symbols */
+    PLC_SYMBOL_GENERATE = 1, /** Generate the symbols from an execution */
+    PLC_SYMBOL_BL_ONLY = 2, /** Don't instrument the symbols in the blacklist */
+    PLC_SYMBOL_WL_ONLY = 4, /** Instrument only the symbols in the whitelist */
+    PLC_SYMBOL_BL_WL = 6, /** Instrument the symbols in the whitelist that aren't in the blacklist */
+    PLC_SYMBOL_HELP = -1 /** Display arguments help */
+}padloc_symbol_mode_t;
+
+/**
+ * Specifies the mode for the backend analysis plugin
+ */
 typedef enum{
     PLC_ANALYSE_NOT_NEEDED = 0, /* Backend analysis not needed */
     PLC_ANALYSE_NEEDED = 1 /* Backend analysis needed */
 }padloc_analyse_mode_t;
 
-#define UNKNOWN_ARGUMENT 3
-
+/**
+ * \brief Setter for the log level
+ * 
+ * \param level The new log level
+ */
 void set_log_level(int);
 
+/**
+ * \brief Getter for the log level
+ * \return The current log level
+ */
 int get_log_level();
 
 /**
- * \brief Prints the help of the client
+ * \brief Setter for the client mode
  * 
+ * \param mode The new client mode
  */
-void print_help();
-
-void write_to_file_symbol_file_header(std::ofstream &);
+void set_symbol_mode(padloc_symbol_mode_t);
 
 /**
- * \brief Get the current client mode
- * 
- * \return padloc_symbols_mode_t Client mode
+ * \brief Getter for the client mode
+ * \return The current client mode
  */
-padloc_symbols_mode_t get_client_mode();
+padloc_symbol_mode_t get_symbol_mode();
 
 /**
- * \brief Sets the client mode
+ * \brief Setter for the backend analysis mode
  * 
- * \param mode 
+ * \param mode The new backend analysis mode
  */
-void set_client_mode(padloc_symbols_mode_t);
+void set_analyse_mode(padloc_analyse_mode_t);
 
 /**
- * \brief Get the current analyse mode
- * 
- * \return padloc_analyse_mode_t Analyse mode
+ * \brief Getter for the backend analysis mode
+ * \return THe current backend analysis mode
  */
 padloc_analyse_mode_t get_analyse_mode();
 
 /**
- * \brief Sets the analyse mode
- * 
- * \param mode 
+ * \brief Helper function for printing the help string, when a command line
+ * related bug occurs, or the user uses "-h" or "--help".
  */
-void set_analyse_mode(padloc_analyse_mode_t);
+void print_help();
 
+/**
+ * \brief Writes to an output file the symbol file header, needed for
+ * the symbol analysis part of the program.
+ * 
+ * \param output The output file in which to write
+ */
+void write_to_file_symbol_file_header(std::ofstream&);
+
+/**
+ * \brief Incrementer for the error count.
+ * \details When a parser function doesn't recognize an option, it calls
+ * this function to increment the error count. That way, if when all the
+ * parser have been called and none recognizes the option, the error count
+ * is equal to the number of parsers, and an error is triggered.
+ */
 void inc_error();
 
-bool is_number(const std::string &);
+/**
+ * \brief Helper function to that check if a string is a number
+ * 
+ * \param s The string to check
+ * \return True if the string represents a number
+ */
+bool is_number(const std::string&);
 
-bool arguments_parser(int, const char **);
+/**
+ * \brief Main parsing function
+ * \details Get each argument of the command line, and calls all the parsers
+ * for the other parts of the program (currently utilitary, backend analysis
+ * and symbol analysis). The called functions are functions of the form :
+ * bool name(std::string arg, int *i, int argc, char* argv[]).
+ * The second parameter is given as pointer so that the parsing functions
+ * can modify it if they see fit, for instance when they detect an option
+ * that needs another argument.
+ * 
+ * The arguments that we detect are the ones given by DynamoRIO, meaning it
+ * is not the actual command line, but the options listed after the 
+ * "-c library" up until the "-- application".
+ * Generally, the command line for DynamoRIO with drrun will look like this :
+ * "drrun DynamoRIO_option -c client client_options -- app app_options"
+ * So what we check in this function is the client_options part.
+ * 
+ * \param argc The number of arguments
+ * \param argv The arguments of the command line
+ * 
+ * \return True if the execution of the program must stop, else false
+ */
+bool arguments_parser(int, const char**);
 
 #endif
