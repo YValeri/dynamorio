@@ -1,5 +1,6 @@
-/*
- * Library Manipulation API Sample, part of the Interflop project.
+/**
+ * \file
+ * \brief Library Manipulation API Sample, part of the Interflop project.
  * analyse.cpp
  *
  * This file analyses the current backend used in order to determine the
@@ -10,6 +11,11 @@
  * 
  * Also, this file is used to check whether or not the problem regarding
  * implicit operands and their order by DynamoRIO is solved or not.
+ * 
+ * 
+ * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
+ * \date 2019
+ * \copyright Interflop 
  */
 
 #include <string.h>

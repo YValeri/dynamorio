@@ -1,4 +1,6 @@
-/*
+/**
+ * \file
+ * \brief
  * Library Manipulation API Sample, part of the Padloc project.
  * utils.cpp
  *
@@ -8,6 +10,10 @@
  * This file contains the main command line parsing function, and
  * calls the parser of plugins (currently 2 : symbol analysis and backend 
  * analysis) and the utilitary one.
+ * 
+ * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
+ * \date 2019
+ * \copyright Interflop 
  */
 
 #include <iostream>

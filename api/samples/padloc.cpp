@@ -1,5 +1,10 @@
 /**
-	 * DynamoRIO client developped in the scope of INTERFLOP project 
+ * \file
+ * \brief DynamoRIO client developped in the scope of INTERFLOP project 
+ * 
+ * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
+ * \date 2019
+ * \copyright Interflop 
  */
 
 #include "dr_api.h"

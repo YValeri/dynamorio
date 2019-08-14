@@ -1,3 +1,12 @@
+/**
+ * \file
+ * \brief
+ * 
+ * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
+ * \date 2019
+ * \copyright Interflop 
+ */
+
 #include "dr_api.h"
 #include "dr_defines.h"
 #include "drsyms.h"
