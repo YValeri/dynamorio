@@ -2,7 +2,8 @@
 #define UTILS_BARRIER_HEADER
 
 /**
- * MERGE AVEC LE CODE DE LAUTRE TROU DUC
+ * \file
+ * 
  */
 
 /** TODO :
@@ -19,8 +20,9 @@
 #include <fstream>
 
 /**
- * Macro giving the amount of parsers behind the main parser function.
- * If the macro is equal to 5, that means there are 5 plugins, and if the
+ * \def UNKNOWN_ARGUMENT
+ * \brief Macro giving the amount of parsers behind the main parser function.
+ * \details If the macro is equal to 5, that means there are 5 plugins, and if the
  * error count is equal to 5 after checking all the parsers, that means the
  * option is unknown.
  */
