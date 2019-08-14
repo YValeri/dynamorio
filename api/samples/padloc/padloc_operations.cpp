@@ -21,7 +21,10 @@
 
 /**
  * \brief Get the flag corresponding to the size of the operands
+ * \details [long description]
+ * 
  * \param instr Instrumented instruction
+ * \return [description]
  */
 static unsigned int get_size_flag(instr_t *instr){
     int n = instr_num_srcs(instr);
@@ -57,21 +60,22 @@ static unsigned int get_size_flag(instr_t *instr){
 
 /**
  * \brief Returns the operation category of instr. The operation category specifies the features of the instruction
+ * 
  * \param instr Analysed instruction
+ * \return Operation category of instr
+ * 
  * \warning If AVX_512 instruction is detected, it marks it as unsupported.
+ * \todo Add support for AVX-512
+ * \todo Add more instructions
  */
 enum OPERATION_CATEGORY plc_get_operation_category(instr_t *instr){
 #ifdef X86
-    //TODO Support for AVX-512
     if(instr_get_prefix_flag(instr, PREFIX_EVEX))
     {
         return PLC_UNSUPPORTED;
     }
 #endif
-
-    //TODO Need to complete
     switch(instr_get_opcode(instr)){
-
 #ifdef X86
         // ####### SSE SCALAR #######
         case OP_addss: //SSE scalar float add

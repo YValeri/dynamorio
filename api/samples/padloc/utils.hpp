@@ -52,6 +52,8 @@ typedef enum{
  * are implemented : analysis needed and not needed. If the analysis was
  * already when parsing the command line arguments, analysis is not
  * needed anymore, thus the PLC_ANALYSE_NOT_NEEDED mode.
+ * \todo Add more modes for the backend analysis, to analyse the backend after
+ * parsing the command line, instead of at the same time.
  */
 typedef enum{
     /** Backend analysis not needed */
