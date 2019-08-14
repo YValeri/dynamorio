@@ -71,7 +71,7 @@ static void api_register(){
     drmgr_register_thread_init_event(thread_init);
     drmgr_register_thread_exit_event(thread_exit);
 
-    if(get_client_mode() == PLC_SYMBOL_GENERATE){
+    if(get_symbol_mode() == PLC_SYMBOL_GENERATE){
         drmgr_register_bb_instrumentation_event(symbol_lookup_event, NULL, NULL);
     }else{
         drmgr_register_module_load_event(module_load_handler);
@@ -121,7 +121,7 @@ static void event_exit(){
     drmgr_unregister_tls_field(get_index_tls_gpr());
     drmgr_unregister_tls_field(get_index_tls_float());
 
-	if(get_client_mode() == PLC_SYMBOL_GENERATE){
+	if(get_symbol_mode() == PLC_SYMBOL_GENERATE){
 		write_symbols_to_file();
 	}
 	drreg_exit();

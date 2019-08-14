@@ -117,7 +117,7 @@ int get_log_level(){
  * 
  * \param mode The new client mode
  */
-void set_client_mode(padloc_symbols_mode_t mode){
+void set_symbol_mode(padloc_symbol_mode_t mode){
     padloc_symbols_mode = mode;
 }
 
@@ -125,7 +125,7 @@ void set_client_mode(padloc_symbols_mode_t mode){
  * \brief Getter for the client mode
  * \return The current client mode
  */
-padloc_symbols_mode_t get_client_mode(){
+padloc_symbol_mode_t get_symbol_mode(){
     return padloc_symbols_mode;
 }
 
@@ -240,7 +240,7 @@ static bool utils_argument_parser(const std::string arg, int *i,
                 dr_fprintf(STDERR, 
                         "LOGLEVEL FAILURE : Couldn't change the loglevel to \"%s\"\n", 
                         argv[*i]);
-                set_client_mode(PLC_SYMBOL_HELP);
+                set_symbol_mode(PLC_SYMBOL_HELP);
                 return true;
             }
             int level = std::stoi(string_level);
@@ -250,7 +250,7 @@ static bool utils_argument_parser(const std::string arg, int *i,
         }else{
             dr_fprintf(STDERR, 
                 "NOT ENOUGH ARGUMENTS : Lacking the loglevel associated with -l\n");
-            set_client_mode(PLC_SYMBOL_HELP);
+            set_symbol_mode(PLC_SYMBOL_HELP);
             return true;
         }
     }else{

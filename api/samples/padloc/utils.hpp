@@ -37,7 +37,7 @@ typedef enum{
     PLC_SYMBOL_WL_ONLY = 4, /** Instrument only the symbols in the whitelist */
     PLC_SYMBOL_BL_WL = 6, /** Instrument the symbols in the whitelist that aren't in the blacklist */
     PLC_SYMBOL_HELP = -1 /** Display arguments help */
-}padloc_symbols_mode_t;
+}padloc_symbol_mode_t;
 
 /**
  * Specifies the mode for the backend analysis plugin
@@ -65,13 +65,13 @@ int get_log_level();
  * 
  * \param mode The new client mode
  */
-void set_client_mode(padloc_symbol_mode_t);
+void set_symbol_mode(padloc_symbol_mode_t);
 
 /**
  * \brief Getter for the client mode
  * \return The current client mode
  */
-padloc_symbol_mode_t get_client_mode();
+padloc_symbol_mode_t get_symbol_mode();
 
 /**
  * \brief Setter for the backend analysis mode
