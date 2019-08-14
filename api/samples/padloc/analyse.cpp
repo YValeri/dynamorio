@@ -84,15 +84,15 @@ std::vector<reg_id_t> get_all_registers(){
     std::vector<reg_id_t> ret;
 
     for(auto reg: gpr_reg){
-        if(std::find(ret.begin(), ret.end(), reg) 
-                == ret.end()){
+        if(std::find(ret.begin(), ret.end(), reg)
+           == ret.end()){
             ret.push_back(reg);
         }
     }
 
     for(auto reg: float_reg){
-        if(std::find(ret.begin(), ret.end(), reg) 
-                == ret.end()){
+        if(std::find(ret.begin(), ret.end(), reg)
+           == ret.end()){
             ret.push_back(reg);
         }
     }
@@ -107,8 +107,9 @@ std::vector<reg_id_t> get_all_registers(){
  * \param tabs The number of tabs
  */
 static void print_tabs(int tabs){
-    for(int i = 0; i < tabs; ++i)
+    for(int i = 0; i < tabs; ++i){
         dr_printf("\t");
+    }
 }
 
 /**
@@ -124,7 +125,7 @@ static void print_vect(std::vector<reg_id_t> vect){
          * by giving it the function it's number
          */
         dr_printf("%s", get_register_name(*i));
-        if(i+1 != vect.end()){
+        if(i + 1 != vect.end()){
             dr_printf(", ");
         }
     }
@@ -179,8 +180,8 @@ static void add_to_vect(reg_id_t reg){
          */
         if(to_remove != DR_REG_NULL){
             gpr_reg.erase(
-                std::remove(gpr_reg.begin(), gpr_reg.end(), to_remove), 
-                gpr_reg.end());
+                    std::remove(gpr_reg.begin(), gpr_reg.end(), to_remove),
+                    gpr_reg.end());
         }
 
         /* If the register isn't already in the vector or overlaps with one
@@ -190,9 +191,9 @@ static void add_to_vect(reg_id_t reg){
             gpr_reg.push_back(reg);
         }
 
-    /* If the register to add is a FP, we do the same as for GPR */
+        /* If the register to add is a FP, we do the same as for GPR */
     }else if(reg_is_strictly_xmm(reg) || reg_is_strictly_ymm(reg)
-            || reg_is_strictly_zmm(reg)){
+             || reg_is_strictly_zmm(reg)){
         for(auto temp: float_reg){
             if(reg == temp || reg_overlap(reg, temp)){
                 add_reg = false;
@@ -204,8 +205,8 @@ static void add_to_vect(reg_id_t reg){
         }
         if(to_remove != DR_REG_NULL){
             float_reg.erase(
-                std::remove(float_reg.begin(), float_reg.end(), to_remove), 
-                float_reg.end());
+                    std::remove(float_reg.begin(), float_reg.end(), to_remove),
+                    float_reg.end());
         }
         if(add_reg){
             float_reg.push_back(reg);
@@ -281,10 +282,10 @@ static void fill_reg_vect(instr_t *instr){
  * \param tabs The tabulations for the current function, used for display
  * purposes
  */
-static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data, 
-    size_t offset, int tabs){
+static void show_instr_of_symbols(void *drcontext, module_data_t *lib_data,
+                                  size_t offset, int tabs){
     /* Decodes the current symbol as a block of instructions */
-    instrlist_t* list_bb = decode_as_bb(drcontext, lib_data->start + offset);
+    instrlist_t *list_bb = decode_as_bb(drcontext, lib_data->start + offset);
     instr_t *instr = nullptr, *next = nullptr;
     app_pc apc = 0;
 
@@ -292,7 +293,7 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
         next = instr_get_next_app(instr);
         if(get_log_level() >= 3){
             print_tabs(tabs);
-            dr_print_instr(drcontext, STDOUT, instr , "ENUM_SYMBOLS : ");
+            dr_print_instr(drcontext, STDOUT, instr, "ENUM_SYMBOLS : ");
         }
 
         /* Fill the two vectors with the current instruction */
@@ -309,12 +310,12 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
          * the jump.
          */
         if(instr_is_ubr(instr) || instr_is_cbr(instr) ||
-            instr_get_opcode(instr) == OP_jmp_ind ||
-            instr_get_opcode(instr) == OP_jmp_far_ind){
-            show_instr_of_symbols(drcontext, lib_data, 
-                instr_get_app_pc(instr) 
-                    - lib_data->start 
-                    + instr_length(drcontext, instr), tabs);
+           instr_get_opcode(instr) == OP_jmp_ind ||
+           instr_get_opcode(instr) == OP_jmp_far_ind){
+            show_instr_of_symbols(drcontext, lib_data,
+                                  instr_get_app_pc(instr)
+                                  - lib_data->start
+                                  + instr_length(drcontext, instr), tabs);
         }
 
         /* If the instruction is a call, we have to follow it to it's
@@ -326,10 +327,10 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
          * twice throughout the analysis, we add the target app_pc to a vector
          * and check it when trying to follow a call.
          */
-        if(instr_is_call(instr)) {
+        if(instr_is_call(instr)){
             apc = opnd_get_pc(instr_get_src(instr, 0));
-            if(std::find(app_pc_vect.begin(), app_pc_vect.end(), apc) 
-                == app_pc_vect.end()){
+            if(std::find(app_pc_vect.begin(), app_pc_vect.end(), apc)
+               == app_pc_vect.end()){
                 /* If the target hasn't been checked already, 
                  * add it to the vector.
                  */
@@ -343,13 +344,13 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
                  * destination app_pc - app_pc of the start of the library
                  * This simply put us at the start of the call symbol.
                  */
-                show_instr_of_symbols(drcontext, lib_data, 
-                    apc - lib_data->start, tabs + 1);
+                show_instr_of_symbols(drcontext, lib_data,
+                                      apc - lib_data->start, tabs + 1);
             }else{
                 if(get_log_level() >= 3){
                     print_tabs(tabs);
                     dr_printf("The app_pc = %p has already been checked\n",
-                        apc);
+                              apc);
                 }
             }
 
@@ -358,10 +359,10 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
              * we also have to do it when a call is encountered, as it also
              * finish the instruction block
              */
-            show_instr_of_symbols(drcontext, lib_data, 
-                instr_get_app_pc(instr) 
-                    - lib_data->start 
-                    + instr_length(drcontext, instr), tabs);
+            show_instr_of_symbols(drcontext, lib_data,
+                                  instr_get_app_pc(instr)
+                                  - lib_data->start
+                                  + instr_length(drcontext, instr), tabs);
         }
     }
     /* When using decode_as_bb, we are to destroy the returned list */
@@ -388,38 +389,38 @@ static void show_instr_of_symbols(void *drcontext, module_data_t* lib_data,
  * \param lib_data The module data corresponding to the backend library
  * \param offset The offset of a symbol from the start of the library
  */
-static void analyse_symbol_test_sse_src(void *drcontext, module_data_t* lib_data, size_t offset) {
+static void analyse_symbol_test_sse_src(void *drcontext, module_data_t *lib_data, size_t offset){
     /* Decode the symbol as a list of instructions */
-    instrlist_t* list_bb = decode_as_bb(drcontext, lib_data->start + offset);
+    instrlist_t *list_bb = decode_as_bb(drcontext, lib_data->start + offset);
     instr_t *instr = nullptr, *next_instr = nullptr;
     reg_id_t reg_src0_instr0 = DR_REG_NULL, reg_src0_instr1 = DR_REG_NULL;
 
-    for(instr = instrlist_first_app(list_bb); instr != NULL; instr = next_instr) {
+    for(instr = instrlist_first_app(list_bb); instr != NULL; instr = next_instr){
         next_instr = instr_get_next_app(instr);
         /* If the instruction is a divpd or vdivpd, we get the first source */
-        if(instr_get_opcode(instr) == OP_divpd){ 
-            reg_src0_instr0 = opnd_get_reg(instr_get_src(instr,0)); 
+        if(instr_get_opcode(instr) == OP_divpd){
+            reg_src0_instr0 = opnd_get_reg(instr_get_src(instr, 0));
         }else if(instr_get_opcode(instr) == OP_vdivpd){
-            reg_src0_instr1 = opnd_get_reg(instr_get_src(instr,0));
+            reg_src0_instr1 = opnd_get_reg(instr_get_src(instr, 0));
         }
     }
 
-    if(reg_src0_instr0 != DR_REG_NULL && reg_src0_instr1 != DR_REG_NULL) {
+    if(reg_src0_instr0 != DR_REG_NULL && reg_src0_instr1 != DR_REG_NULL){
         /* If the two sources we got are different, that means the problem
          * still exists, meaning we'll have to change the order when
          * modifying the instructions.
          */
-        if(reg_src0_instr0 != reg_src0_instr1) {
-            if(get_log_level() > 2) {
+        if(reg_src0_instr0 != reg_src0_instr1){
+            if(get_log_level() > 2){
                 /* Over the top warning */
-                dr_fprintf(STDERR , "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-                dr_fprintf(STDERR , "!!!!!!!!!!!!! WARNING : SSE sources order is still incorrect in DynamoRIO, so we need to invert them !!!!!!!!!!!!!\n");
-                dr_fprintf(STDERR , "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+                dr_fprintf(STDERR,
+                           "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+                           "!!!!!!!!!!!!! WARNING : SSE sources order is still incorrect in DynamoRIO, so we need to invert them !!!!!!!!!!!!!\n"
+                           "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
             }
             /* We will have to modify the order, so set the bool at true */
             set_need_sse_inverse(true);
         }
-       
     }
 
     instrlist_clear_and_destroy(drcontext, list_bb);
@@ -435,8 +436,8 @@ static void analyse_symbol_test_sse_src(void *drcontext, module_data_t* lib_data
  * \param vect_type The type of vector we're trying to write (either 
  * "float_reg" or "gpr_reg")
  */
-static void write_vect(std::ofstream& analyse_file, std::vector<reg_id_t> vect,
-    const char* vect_type){
+static void write_vect(std::ofstream &analyse_file, std::vector<reg_id_t> vect,
+                       const char *vect_type){
     analyse_file << vect_type << '\n';
     for(auto i = vect.begin(); i != vect.end(); ++i){
         /* Write the registers as ushort because that's the type of the enum
@@ -456,12 +457,12 @@ static void write_vect(std::ofstream& analyse_file, std::vector<reg_id_t> vect,
  * \param path The path of the file we want to write to, can be absolute or
  * relative.
  */
-static void write_reg_to_file(const char* path){
+static void write_reg_to_file(const char *path){
     std::ofstream analyse_file;
     analyse_file.open(path);
     if(analyse_file.fail()){
-        dr_fprintf(STDERR, "FAILED TO OPEN THE GIVEN FILE FOR WRITING : \"%s\"\n", 
-            path);
+        dr_fprintf(STDERR, "FAILED TO OPEN THE GIVEN FILE FOR WRITING : \"%s\"\n",
+                   path);
     }else{
         /* Write the two vectors to the file, flush and close */
         write_vect(analyse_file, gpr_reg, "gpr_reg");
@@ -481,7 +482,7 @@ static void write_reg_to_file(const char* path){
  * \return True if we have to stop the execution of the program because of
  * a failure, or false if everything went smoothly.
  */
-static bool read_reg_from_file(const char* path){
+static bool read_reg_from_file(const char *path){
     std::ifstream analyse_file;
     std::string buffer;
     int line_number = 0;
@@ -489,8 +490,8 @@ static bool read_reg_from_file(const char* path){
 
     analyse_file.open(path);
     if(analyse_file.fail()){
-        dr_fprintf(STDERR, "FAILED TO OPEN THE GIVEN FILE FOR READING : \"%s\"\n", 
-            path);
+        dr_fprintf(STDERR, "FAILED TO OPEN THE GIVEN FILE FOR READING : \"%s\"\n",
+                   path);
         return true;
     }
     /* The file is supposed to be of the form :
@@ -519,8 +520,8 @@ static bool read_reg_from_file(const char* path){
         }else if(is_number(buffer)){
             (float_vect ? float_reg : gpr_reg).push_back((reg_id_t)std::stoi(buffer));
         }else{
-            dr_fprintf(STDERR, "FAILED TO CORRECTLY READ THE FILE : Problem on file line %d = \"%s\"\n", 
-                line_number, buffer);
+            dr_fprintf(STDERR, "FAILED TO CORRECTLY READ THE FILE : Problem on file line %d = \"%s\"\n",
+                       line_number, buffer);
             analyse_file.close();
             return true;
         }
@@ -547,7 +548,7 @@ static bool read_reg_from_file(const char* path){
  */
 bool enum_symbols_registers(const char *name, size_t modoffs, void *data){
     void *drcontext = nullptr;
-    module_data_t* lib_data = nullptr;
+    module_data_t *lib_data = nullptr;
 
     std::string str(name);
     /* We check whether the string contains "<>::apply" because that's the
@@ -555,7 +556,7 @@ bool enum_symbols_registers(const char *name, size_t modoffs, void *data){
      * we consider it as our entry point to the backend, because it is the 
      * first function that shouldn't be called in the application.
      */
-    if(str.find("<>::apply") != std::string::npos) {
+    if(str.find("<>::apply") != std::string::npos){
         drcontext = dr_get_current_drcontext();
         lib_data = dr_lookup_module_by_name("libpadloc.so");
         show_instr_of_symbols(drcontext, lib_data, modoffs, 0);
@@ -576,14 +577,14 @@ bool enum_symbols_registers(const char *name, size_t modoffs, void *data){
  */
 bool enum_symbols_sse(const char *name, size_t modoffs, void *data){
     void *drcontext = nullptr;
-    module_data_t* lib_data = nullptr;
+    module_data_t *lib_data = nullptr;
 
     std::string str(name);
 
-    if(str.find("test_sse_src_order") != std::string::npos) {
+    if(str.find("test_sse_src_order") != std::string::npos){
         drcontext = dr_get_current_drcontext();
         lib_data = dr_lookup_module_by_name("libpadloc.so");
-        analyse_symbol_test_sse_src(drcontext , lib_data , modoffs);
+        analyse_symbol_test_sse_src(drcontext, lib_data, modoffs);
         dr_free_module_data(lib_data);
         return false;
     }
@@ -598,7 +599,7 @@ bool enum_symbols_sse(const char *name, size_t modoffs, void *data){
  * \param path A placeholder char*
  * \param length The length of the char*
  */
-static void path_to_library(char* path, size_t length){
+static void path_to_library(char *path, size_t length){
     dr_get_current_directory(path, length);
     strcat(path, "/api/bin/libpadloc.so");
 }
@@ -612,15 +613,15 @@ static void path_to_library(char* path, size_t length){
  * 
  * \param file The path of the output file
  */
-static void AA_argument_detected(const char* file){
+static void AA_argument_detected(const char *file){
     char path[256];
     path_to_library(path, 256);
-    if(drsym_enumerate_symbols(path, enum_symbols_registers, 
-        NULL, DRSYM_DEFAULT_FLAGS) == DRSYM_SUCCESS){
+    if(drsym_enumerate_symbols(path, enum_symbols_registers,
+                               NULL, DRSYM_DEFAULT_FLAGS) == DRSYM_SUCCESS){
         write_reg_to_file(file);
     }else{
-        dr_fprintf(STDERR, 
-            "ANALYSE FAILURE : Couldn't finish analysing the symbols of the library\n");
+        dr_fprintf(STDERR,
+                   "ANALYSE FAILURE : Couldn't finish analysing the symbols of the library\n");
     }
 }
 
@@ -641,7 +642,7 @@ static void AA_argument_detected(const char* file){
  * \param argv The list of arguments in the command line
  * \return True if the execution of the program must be stopped, else false
  */
-bool analyse_argument_parser(std::string arg, int* i, int argc, const char* argv[]){
+bool analyse_argument_parser(std::string arg, int *i, int argc, const char *argv[]){
     if(arg == "--analyse_abort" || arg == "-aa"){
         *i += 1;
         if(*i < argc){
@@ -652,24 +653,24 @@ bool analyse_argument_parser(std::string arg, int* i, int argc, const char* argv
             AA_argument_detected(argv[*i]);
             return true;
         }else{
-            dr_fprintf(STDERR, 
-                "ANALYSE FAILURE : File not given for \"-aa\"\n");
+            dr_fprintf(STDERR,
+                       "ANALYSE FAILURE : File not given for \"-aa\"\n");
             return true;
         }
     }else if(arg == "--analyse_file" || arg == "-af"){
         *i += 1;
         if(*i < argc){
-        /* The analyse from file option was detected, so we call 
-         * read_reg_from_file with what may be a file, and return the
-         * result. Also update the analyse mode so that we don't
-         * analyse the backend on our side, overwriting what we got red
-         * from the file.
-         */
+            /* The analyse from file option was detected, so we call
+             * read_reg_from_file with what may be a file, and return the
+             * result. Also update the analyse mode so that we don't
+             * analyse the backend on our side, overwriting what we got red
+             * from the file.
+             */
             set_analyse_mode(PLC_ANALYSE_NOT_NEEDED);
             return read_reg_from_file(argv[*i]);
         }else{
-            dr_fprintf(STDERR, 
-                "ANALYSE FAILURE : File not given for \"-af\"\n");
+            dr_fprintf(STDERR,
+                       "ANALYSE FAILURE : File not given for \"-af\"\n");
             return true;
         }
     }else if(arg == "--analyse_run" || arg == "-ar"){
@@ -703,20 +704,20 @@ void analyse_mode_manager(){
     switch(get_analyse_mode()){
         case PLC_ANALYSE_NEEDED:
             /* Analyse the backend and update the vectors */
-            if(drsym_enumerate_symbols(path, enum_symbols_registers, 
-                NULL, DRSYM_DEFAULT_FLAGS) != DRSYM_SUCCESS){
-                DR_ASSERT_MSG(false, 
-                    "ANALYSE FAILURE : Couldn't finish analysing the backend\n");
+            if(drsym_enumerate_symbols(path, enum_symbols_registers,
+                                       NULL, DRSYM_DEFAULT_FLAGS) != DRSYM_SUCCESS){
+                DR_ASSERT_MSG(false,
+                              "ANALYSE FAILURE : Couldn't finish analysing the backend\n");
             }
             break;
         default:
             break;
     }
     /* Analyse the test_sse_src_order to update NEED_SSE_INVERSE accordingly */
-    if(drsym_enumerate_symbols(path, enum_symbols_sse, 
-        NULL, DRSYM_DEFAULT_FLAGS) != DRSYM_SUCCESS){
-        dr_fprintf(STDERR, 
-            "ANALYSE FAILURE : Couldn't finish analysing the symbols of the library\n");
+    if(drsym_enumerate_symbols(path, enum_symbols_sse,
+                               NULL, DRSYM_DEFAULT_FLAGS) != DRSYM_SUCCESS){
+        dr_fprintf(STDERR,
+                   "ANALYSE FAILURE : Couldn't finish analysing the symbols of the library\n");
     }
 #endif
 }
@@ -727,17 +728,17 @@ void analyse_mode_manager(){
  * We assume the syntax used is ATT, since DynamoRIO can't compile if the one
  * used by the compiler is intel's.
  */
-void test_sse_src_order() {
+void test_sse_src_order(){
 #if defined(WINDOWS)
-    /* Inline assembly isn't available on MSVC in 64 bits mode, and 
+    /* Inline assembly isn't available on MSVC in 64 bits mode, and
      * intrinsics can't help us in this.
      */
 #else
     __asm__ volatile(
-            "\t.intel_syntax;\n"    /* We assume the syntax to be ATT */
-            "\tdivpd %xmm0, %xmm1;\n"
-            "\tvdivpd %xmm0, %xmm0, %xmm1;\n"
-            "\t.att_syntax;\n"  /* Set the syntax back to ATT */
-            );
+    "\t.intel_syntax;\n"    /* We assume the syntax to be ATT */
+    "\tdivpd %xmm0, %xmm1;\n"
+    "\tvdivpd %xmm0, %xmm0, %xmm1;\n"
+    "\t.att_syntax;\n"  /* Set the syntax back to ATT */
+    );
 #endif
 }

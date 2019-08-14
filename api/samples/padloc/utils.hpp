@@ -37,7 +37,7 @@ typedef enum{
     PLC_SYMBOL_WL_ONLY = 4, /** Instrument only the symbols in the whitelist */
     PLC_SYMBOL_BL_WL = 6, /** Instrument the symbols in the whitelist that aren't in the blacklist */
     PLC_SYMBOL_HELP = -1 /** Display arguments help */
-} padloc_symbol_mode_t;
+}padloc_symbols_mode_t;
 
 /**
  * Specifies the mode for the backend analysis plugin
@@ -45,7 +45,7 @@ typedef enum{
 typedef enum{
     PLC_ANALYSE_NOT_NEEDED = 0, /* Backend analysis not needed */
     PLC_ANALYSE_NEEDED = 1 /* Backend analysis needed */
-} padloc_analyse_mode_t;
+}padloc_analyse_mode_t;
 
 /**
  * \brief Setter for the log level
