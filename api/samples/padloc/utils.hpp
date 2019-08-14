@@ -2,19 +2,13 @@
 #define UTILS_BARRIER_HEADER
 
 /**
- * \file
+ * \file utils.hpp
+ * \brief Library Manipulation API Sample, part of the Padloc project.
+ * Utilitary header, containing various functions for modes and log levels.
  * 
- */
-
-/** TODO :
- * - Modify the parsing part by using the obverser pattern, in order to be
- * more flexible on the parser possible, be able to remove the call to
- * parsers and actually specifying the interface for the functions. Same for
- * the plugin managers
- * - Have different type of return possible for the parsers, in order to 
- * remove the error counter (maybe 3 outputs possible, one for when a parser
- * identified a command option, one for when a it didn't recognized the option,
- * and one for when there was a problem).
+ * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
+ * \date 2019
+ * \copyright Interflop 
  */
 
 #include <fstream>
@@ -22,39 +16,56 @@
 /**
  * \def UNKNOWN_ARGUMENT
  * \brief Macro giving the amount of parsers behind the main parser function.
- * \details If the macro is equal to 5, that means there are 5 plugins, and if the
- * error count is equal to 5 after checking all the parsers, that means the
+ * \details If the macro is equal to 5, that means there are 5 plugins, and if 
+ * the error count is equal to 5 after checking all the parsers, that means the
  * option is unknown.
  */
 #define UNKNOWN_ARGUMENT 3
 
 /**
- * Specifies the mode for the symbol plugin
+ * \enum padloc_symbol_mode_t
+ * \brief Specifies the mode for the symbol plugin
+ * \details Specifies all the mode available for the symbol plugin,
+ * regarding the use of Blacklists, Whitelists and Generation.
  */
 typedef enum{
-    PLC_SYMBOL_DEFAULT = 0, /** Default */
-    PLC_SYMBOL_NOLOOKUP = 0, /** Don't look at symbols */
-    PLC_SYMBOL_GENERATE = 1, /** Generate the symbols from an execution */
-    PLC_SYMBOL_BL_ONLY = 2, /** Don't instrument the symbols in the blacklist */
-    PLC_SYMBOL_WL_ONLY = 4, /** Instrument only the symbols in the whitelist */
-    PLC_SYMBOL_BL_WL = 6, /** Instrument the symbols in the whitelist that aren't in the blacklist */
-    PLC_SYMBOL_HELP = -1 /** Display arguments help */
-}padloc_symbol_mode_t;
+    /** Default */
+	PLC_SYMBOL_DEFAULT,
+    /** Don't look at symbols */
+    PLC_SYMBOL_NOLOOKUP,
+    /** Generate the symbols from an execution */
+    PLC_SYMBOL_GENERATE,
+    /** Don't instrument the symbols in the blacklist */
+    PLC_SYMBOL_BL_ONLY,
+    /** Instrument only the symbols in the whitelist */
+    PLC_SYMBOL_WL_ONLY,
+    /** Instrument the symbols in the whitelist that aren't in the blacklist */
+    PLC_SYMBOL_BL_WL, 
+    /** Display arguments help */
+    PLC_SYMBOL_HELP
+} padloc_symbol_mode_t;
 
 /**
- * Specifies the mode for the backend analysis plugin
+ * \enum padloc_analyse_mode_t
+ * \brief Specifies the mode for the backend analysis plugin
+ * \details Specifies all the mode for backend analysis. Currently, only 2
+ * are implemented : analysis needed and not needed. If the analysis was
+ * already when parsing the command line arguments, analysis is not
+ * needed anymore, thus the PLC_ANALYSE_NOT_NEEDED mode.
  */
 typedef enum{
-    PLC_ANALYSE_NOT_NEEDED = 0, /* Backend analysis not needed */
-    PLC_ANALYSE_NEEDED = 1 /* Backend analysis needed */
-}padloc_analyse_mode_t;
+    /** Backend analysis not needed */
+    PLC_ANALYSE_NOT_NEEDED,
+    /** Backend analysis needed */
+    PLC_ANALYSE_NEEDED
+} padloc_analyse_mode_t;
 
 /**
  * \brief Setter for the log level
  * 
  * \param level The new log level
  */
-void set_log_level(int);
+void set_log_level(int level);
 
 /**
  * \brief Getter for the log level
@@ -67,7 +78,7 @@ int get_log_level();
  * 
  * \param mode The new client mode
  */
-void set_symbol_mode(padloc_symbol_mode_t);
+void set_symbol_mode(padloc_symbol_mode_t mode);
 
 /**
  * \brief Getter for the client mode
@@ -80,11 +91,11 @@ padloc_symbol_mode_t get_symbol_mode();
  * 
  * \param mode The new backend analysis mode
  */
-void set_analyse_mode(padloc_analyse_mode_t);
+void set_analyse_mode(padloc_analyse_mode_t mode);
 
 /**
  * \brief Getter for the backend analysis mode
- * \return THe current backend analysis mode
+ * \return The current backend analysis mode
  */
 padloc_analyse_mode_t get_analyse_mode();
 
@@ -100,7 +111,7 @@ void print_help();
  * 
  * \param output The output file in which to write
  */
-void write_to_file_symbol_file_header(std::ofstream&);
+void write_to_file_symbol_file_header(std::ofstream& output);
 
 /**
  * \brief Incrementer for the error count.
@@ -114,10 +125,10 @@ void inc_error();
 /**
  * \brief Helper function to that check if a string is a number
  * 
- * \param s The string to check
+ * \param str The string to check
  * \return True if the string represents a number
  */
-bool is_number(const std::string&);
+bool is_number(const std::string& str);
 
 /**
  * \brief Main parsing function
@@ -140,7 +151,17 @@ bool is_number(const std::string&);
  * \param argv The arguments of the command line
  * 
  * \return True if the execution of the program must stop, else false
+ * 
+ * \todo Get the global parser to use the obverser pattern, in order to be
+ * more flexible on the parser possible, be able to remove the call to
+ * parsers and actually specifying the interface for the functions. Same for
+ * the plugin managers.
+ * 
+ * \todo Have different type of return possible for the parsers, in order to 
+ * remove the error counter (maybe 3 outputs possible, one for when a parser
+ * identified a command option, one for when a it didn't recognized the option,
+ * and one for when there was a problem).
  */
-bool arguments_parser(int, const char**);
+bool arguments_parser(int argc, const char* argv[]);
 
 #endif

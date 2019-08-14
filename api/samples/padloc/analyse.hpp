@@ -1,6 +1,15 @@
 #ifndef ANALYSE_BARRIER_HEADER
 #define ANALYSE_BARRIER_HEADER
 
+/**
+ * \file analyse.hpp
+ * \brief Library Manipulation API Sample, part of the Padloc project.
+ * 
+ * \author Teaudors Mickaël, Valeri Yoann                                   and maybe the part-time Brasseur Dylan
+ * \date 2019
+ * \copyright Interflop 
+ */
+
 /** TODO :
  * - Actually use the vectors when we save the registers, instead
  * of saving everything.
@@ -9,6 +18,8 @@
  * - Add sanity checks to verify if the result of functions is good,
  * instead of assuming they are (e.g, control that "dr_lookup_module_by_name"
  * returns no error).
+ * - Add more modes for the backend analysis, to analyse the backend after
+ * parsing the command line, instead of at the same time.
  */
 
 #include "dr_api.h"

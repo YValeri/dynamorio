@@ -1,8 +1,7 @@
 /**
- * \file
- * \brief
- * Library Manipulation API Sample, part of the Padloc project.
- * utils.cpp
+ * \file utils.cpp
+ * \brief Library Manipulation API Sample, part of the Padloc project.
+ * Utilitary source file, containing various functions for modes and log levels. 
  *
  * This file gathers utilitary functions used throughout the program, the
  * main parsing function and the log level parts.
@@ -101,82 +100,38 @@ static padloc_symbol_mode_t padloc_symbols_mode = PLC_SYMBOL_DEFAULT;
  */
 static padloc_analyse_mode_t padloc_analyse_mode = PLC_ANALYSE_NEEDED;
 
-/**
- * \brief Setter for the log level
- * 
- * \param level The new log level
- */
 void set_log_level(int level){
     log_level = level;
 }
 
-/**
- * \brief Getter for the log level
- * \return The current log level
- */
 int get_log_level(){
     return log_level;
 }
 
-/**
- * \brief Setter for the client mode
- * 
- * \param mode The new client mode
- */
 void set_symbol_mode(padloc_symbol_mode_t mode){
     padloc_symbols_mode = mode;
 }
 
-/**
- * \brief Getter for the client mode
- * \return The current client mode
- */
 padloc_symbol_mode_t get_symbol_mode(){
     return padloc_symbols_mode;
 }
 
-/**
- * \brief Setter for the backend analysis mode
- * 
- * \param mode The new backend analysis mode
- */
 void set_analyse_mode(padloc_analyse_mode_t mode){
     padloc_analyse_mode = mode;
 }
 
-/**
- * \brief Getter for the backend analysis mode
- * \return THe current backend analysis mode
- */
 padloc_analyse_mode_t get_analyse_mode(){
     return padloc_analyse_mode;
 }
 
-/**
- * \brief Helper function for printing the help string, when a command line
- * related bug occurs, or the user uses "-h" or "--help".
- */
 void print_help(){
     dr_printf(PLC_HELP_STRING);
 }
 
-/**
- * \brief Writes to an output file the symbol file header, needed for
- * the symbol analysis part of the program.
- * 
- * \param output The output file in which to write
- */
 void write_to_file_symbol_file_header(std::ofstream &output){
     output << PLC_SYMBOL_FILE_HEADER;
 }
 
-/**
- * \brief Incrementer for the error count.
- * \details When a parser function doesn't recognize an option, it calls
- * this function to increment the error count. That way, when all the
- * parser have been called and none recognizes the option, the error count
- * is equal to the number of parsers, and an error is triggered.
- */
 void inc_error(){
     error_count += 1;
 }
@@ -188,13 +143,7 @@ static void reset_error_count(){
     error_count = 0;
 }
 
-/**
- * \brief Helper function to that check if a string is a number
- * 
- * \param s The string to check
- * \return True if the string represents a number
- */
-bool is_number(const std::string &s){
+bool is_number(const std::string &str){
     return !s.empty() && std::find_if(s.begin(),
                                       s.end(), [](char c){ return !std::isdigit(c); }) == s.end();
 }
@@ -220,14 +169,14 @@ bool is_number(const std::string &s){
 static bool utils_argument_parser(const std::string arg, int *i, 
     int argc, const char* argv[]){
     if(arg == "--debug" || arg == "-d"){
-        /**
+        /*
          * The debug option was detected, so if the loglevel is 0, set it to 1.
          */
         if(get_log_level() < 1){
             set_log_level(1);
         }
     }else if(arg == "--help" || arg == "-h"){
-        /**
+        /*
          * The help option was detected, so print the help string and
          * return true.
          */
@@ -236,7 +185,7 @@ static bool utils_argument_parser(const std::string arg, int *i,
     }else if(arg == "--loglevel" || arg == "-l"){
         *i += 1;
         if(*i < argc){
-            /**
+            /*
              * The loglevel option was detected, so we get the next command
              * line string, verify it is a number, and if so, set the log level
              * to that number, if possible and relevant.
@@ -266,34 +215,12 @@ static bool utils_argument_parser(const std::string arg, int *i,
     return false;
 }
 
-/**
- * \brief Main parsing function
- * \details Get each argument of the command line, and calls all the parsers
- * of the other plugins (currently backend analysis and symbol analysis) and 
- * utilitary. The called functions are functions of the form :
- * bool name(std::string arg, int *i, int argc, char* argv[]).
- * The second parameter is given as pointer so that the parsing functions
- * can modify it if they see fit, for instance when they detect an option
- * that needs another argument.
- * 
- * The arguments that we detect are the ones given by DynamoRIO, meaning it
- * is not the actual command line, but the options listed after the 
- * "-c library" up until the "-- application".
- * Generally, the command line for DynamoRIO with drrun will look like this :
- * "drrun DynamoRIO_option -c client client_options -- app app_options"
- * So what we check in this function is the client_options part.
- * 
- * \param argc The number of arguments
- * \param argv The arguments of the command line
- * 
- * \return True if the execution of the program must stop, else false
- */
 bool arguments_parser(int argc, const char *argv[]){
     for(int i = 1; i < argc; ++i){
         /* Reset the error count */
         reset_error_count();
         std::string arg(argv[i]);
-        /**
+        /*
          * We first call the utilitary parser, then the symbol parser
          * and finally, the backend analysis parser.
          * If all the parser return false, and error_count is
@@ -311,7 +238,7 @@ bool arguments_parser(int argc, const char *argv[]){
             return true;
         }
     }
-    /**
+    /*
      * When all the command line options have been checked, we call the manager
      * of each other part of the code, and they will do what's necessary
      * according to the state of the program.

@@ -1,6 +1,6 @@
 /**
- * \file
- * \brief
+ * \file symbol_config.cpp
+ * \brief Library Manipulation API Sample, part of the Padloc project.
  * 
  * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
  * \date 2019
