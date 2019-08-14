@@ -1,3 +1,6 @@
+#ifndef SYMBOL_CONFIG_HEADER
+#define SYMBOL_CONFIG_HEADER
+
 /**
  * \file symbol_config.hpp
  * \brief Library Manipulation API Sample, part of the Padloc project.
@@ -7,19 +10,25 @@
  * \copyright Interflop 
  */
 
-#ifndef SYMBOL_CONFIG_HEADER
-#define SYMBOL_CONFIG_HEADER
-
 #include <string>
 #include <vector>
 
-/** Specifies the type of lookup we are requesting */
+/**
+ * \enum plc_lookup_type_t
+ * \brief Specifies the type of lookup we are requesting
+ */
 typedef enum{
-    PLC_LOOKUP_MODULE = true, /** Lookup the module */
-    PLC_LOOKUP_SYMBOL = false /** Lookup the symbol */
-}plc_lookup_type_t;
+    /** Lookup the module */
+    PLC_LOOKUP_MODULE = true,
+    /** Lookup the symbol */
+    PLC_LOOKUP_SYMBOL = false
+} plc_lookup_type_t;
 
-/** Structure holding informations on a module, used for the whitelist and blacklist before further processing*/
+/**
+ * \struct module_entry
+ * \brief Structure holding informations on a module, 
+ * used for the whitelist and blacklist before further processing
+ */
 typedef struct _module_entry{
     inline _module_entry(const std::string &mod_name, const bool all) : module_name(mod_name), all_symbols(all){
     }
@@ -28,12 +37,18 @@ typedef struct _module_entry{
         return o.module_name == module_name;
     };
 
-    std::string module_name; /** Prefered name of the module */
-    bool all_symbols;       /** True if we are considering the whole module */
-    std::vector<std::string> symbols; /** List of the symbols of interest in this module */
-}module_entry;
+    /** Prefered name of the module */
+    std::string module_name;
+    /** True if we are considering the whole module */
+    bool all_symbols;
+    /** List of the symbols of interest in this module */
+    std::vector<std::string> symbols;
+} module_entry;
 
-/** Structure of a range of app_pc*/
+/**
+ * \struct addr_range_t
+ * \brief Structure of a range of app_pc
+ */
 typedef struct _addr_range_t{
     inline _addr_range_t() : start(0), end(0){
     }
@@ -41,24 +56,42 @@ typedef struct _addr_range_t{
     inline _addr_range_t(app_pc _start, app_pc _end) : start(_start), end(_end){
     }
 
+    /**
+     * @brief [brief description]
+     * @details [long description]
+     * 
+     * @param pc [description]
+     * @return Returns true if the given app_pc is in the range
+     */
     inline bool contains(app_pc pc) const{
         return pc >= start && pc < end;
-    } /** Returns true if the given app_pc is in the range*/
-    app_pc start; /** Start of the range */
-    app_pc end; /**End of the range */
-}addr_range_t;
+    }
 
-/** Structure holding a symbol */
+    /** Start of the range */
+    app_pc start;
+    /**End of the range */
+    app_pc end;
+} addr_range_t;
+
+/**
+ * \struct symbol_entry_t
+ * \brief Structure holding a symbol
+ */
 typedef struct _symbol_entry_t{
     inline bool contains(app_pc pc) const{
         return range.contains(pc);
     }
 
-    std::string name; /** Name of the symbol */
-    addr_range_t range; /** Range of app_pc of this symbol*/
-}symbol_entry_t;
+    /** Name of the symbol */
+    std::string name;
+    /** Range of app_pc of this symbol*/
+    addr_range_t range;
+} symbol_entry_t;
 
-/** Structure holding a module and its symbols for lookup purposes */
+/**
+ * \struct lookup_entry_t
+ * \brief Structure holding a module and its symbols for lookup purposes
+ */
 typedef struct _lookup_entry_t{
     /**
      * \brief Returns true if the module contains the given address
@@ -106,20 +139,23 @@ typedef struct _lookup_entry_t{
         }
     }
 
-    std::string name; /** Name of the module */
-    addr_range_t range; /** Full range of the module \note If the module isn't contiguous, an app_pc in this range may not be in the module*/
-    bool total; /** True if the module should be considered in its entirety*/
-    std::vector<symbol_entry_t> symbols; /** Symbols of interest of the module */
+    /** Name of the module */
+    std::string name;
+    /** Full range of the module 
+     * \note If the module isn't contiguous, an app_pc in this range may not be in the module
+     */
+    addr_range_t range;
+    /** True if the module should be considered in its entirety */
+    bool total;
+    /** Symbols of interest of the module */
+    std::vector<symbol_entry_t> symbols;
 #ifndef WINDOWS
-    bool contiguous; /** True if the module is contiguous (always true on Windows, most of the time on Linux, sometimes in MacOS)*/
-    std::vector<addr_range_t> segments; /** Ranges of app_pc for each segment of the module*/
+    /** True if the module is contiguous (always true on Windows, most of the time on Linux, sometimes in MacOS) */
+    bool contiguous;
+    /** Ranges of app_pc for each segment of the module */
+    std::vector<addr_range_t> segments; 
 #endif //WINDOWS
-}lookup_entry_t;
-
-/**
- * \brief Sets the client mode and initialises the symbol lookups
- */
-void symbol_lookup_config_from_args(int argc, const char *argv[]);
+} lookup_entry_t;
 
 /**
  * \brief Returns true if \p ilist has to be instrumented
@@ -148,12 +184,32 @@ bool should_instrument_module(const module_data_t *module);
 void print_lookup();
 
 /**
- * \brief Parses \param arg as a argument for symbol handling
+ * \brief Symbol analyser plugin's parser
+ * \details Parser for the symbol analyser functionnalities. The possible 
+ * options are currently :
+ *      - no lookup, with "--no-lookup" or "-n", which make it so that
+ *      no symbol are instrumented;
+ *      - blacklist, with "--blacklist" or "-b", which make it so that
+ *      the symbols specified by the following file are not instrumented;
+ *      - whitelist, with "--whitelist" or "-w", which make it so that
+ *      the symbols specified by the following file are instrumented;
+ *      - generate, with "--generate" or "-g", which instruments all symbols
+ *      and put all the names and modules in the given file.
+ * 
+ * \param arg The current argument as string
+ * \param i The index of the current argument, given as pointer to be modified
+ * if necessary when checking for an option with special parameters
+ * \param argc The length of the command line
+ * \param argv The list of arguments in the command line
+ * \return True if the execution of the program must be stopped, else false
  */
 bool symbol_argument_parser(std::string arg, int *i, int argc, const char *argv[]);
 
 /**
- * \brief Handles the symbols loading from files if they were set
+ * \brief The manager for the symbol plugin
+ * \details After parsing each argument, the program is in a particular
+ * symbol mode, thus different actions must be done for each mode (i.e, 
+ * open the files if necessary, ...).
  */
 void symbol_client_mode_manager();
 

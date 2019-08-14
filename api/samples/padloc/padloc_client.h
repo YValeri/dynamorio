@@ -134,36 +134,56 @@ typedef byte SLOT;
 
 /**
  * \brief Returns the index of the floating point registers tls
+ * \details [long description]
+ * \return [description]
  */
 int get_index_tls_float();
 
 /**
  * \brief Returns the index of the gpr tls
+ * \details [long description]
+ * \return [description]
  */
 int get_index_tls_gpr();
 
 /**
  * \brief Returns the index of the result tls
+ * \details [long description]
+ * \return [description]
  */
 int get_index_tls_result();
 
 /**
  * \brief Sets the index of the gpr tls
+ * \details [long description]
+ * 
+ * \param new_tls_value [description]
  */
 void set_index_tls_gpr(int new_tls_value);
 
 /**
  * \brief Sets the index of the floating point registers tls
+ * \details [long description]
+ * 
+ * \param new_tls_value [description]
  */
 void set_index_tls_float(int new_tls_value);
 
 /**
  * \brief Sets the index of the result tls
+ * \details [long description]
+ * 
+ * \param new_tls_value [description]
  */
 void set_index_tls_result(int new_tls_value);
 
 /**
- * \brief Inserts \param newinstr in \param ilist prior to \param instr and set it as an application instruction
+ * \brief Inserts newinstr in ilist prior to instr and set it as an application instruction
+ * \details [long description]
+ * 
+ * \param newinstr [description]
+ * \param ilist [description]
+ * \param instr [description]
  */
 void translate_insert(instr_t *newinstr, instrlist_t *ilist, instr_t *instr);
 
@@ -180,8 +200,8 @@ void translate_insert(instr_t *newinstr, instrlist_t *ilist, instr_t *instr);
 void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double);
 
 /**
- * \brief Inserts prior to \p where meta-instructions to set the calling convention registers to the right adresses
- * Assumes the GPR have been saved !
+ * \brief Inserts prior to where meta-instructions to set the calling convention registers to the right adresses
+ * \warning Assumes the GPR have been saved !
  * \param drcontext DynamoRIO's context
  * \param bb Current Basic Block
  * \param where instruction prior to whom we insert the meta-instructions 
@@ -192,7 +212,7 @@ void insert_set_operands(void *drcontext, instrlist_t *bb, instr_t *where, instr
 
 /**
  * \brief Inserts prior to \p where meta-instructions to restore the floating point registers (xmm-ymm-zmm)
- * Assumes the gpr have been saved beforehand !
+ * \warning Assumes the gpr have been saved beforehand !
  * \param drcontext DynamoRIO context
  * \param bb Current basic bloc
  * \param where instruction prior to whom we insert the meta-instructions 
@@ -201,7 +221,7 @@ void insert_restore_simd_registers(void *drcontext, instrlist_t *bb, instr_t *wh
 
 /**
  * \brief Inserts prior to \p where meta-instructions to save the floating point registers (xmm-ymm-zmm)
- * Assumes the gpr have been saved beforehand !
+ * \warning Assumes the gpr have been saved beforehand !
  * \param drcontext DynamoRIO context
  * \param bb Current basic bloc
  * \param where instruction prior to whom we insert the meta-instructions 
@@ -210,7 +230,7 @@ void insert_save_simd_registers(void *drcontext, instrlist_t *bb, instr_t *where
 
 /**
  * \brief Prepares the address in the buffer of the tls register to point to the destination register in memory
- * Assumes the gpr have been saved beforehand !
+ * \warning Assumes the gpr have been saved beforehand !
  * \param drcontext DynamoRIO's context
  * \param bb Current basic block
  * \param where instruction prior to whom we insert the meta-instructions 

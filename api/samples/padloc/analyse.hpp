@@ -4,22 +4,11 @@
 /**
  * \file analyse.hpp
  * \brief Library Manipulation API Sample, part of the Padloc project.
+ * Backend analysis plugin header.
  * 
- * \author Teaudors Mickaël, Valeri Yoann                                   and maybe the part-time Brasseur Dylan
+ * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
  * \date 2019
- * \copyright Interflop 
- */
-
-/** TODO :
- * - Actually use the vectors when we save the registers, instead
- * of saving everything.
- * - In the "read_reg_from_file" function, when we detect an number,
- * check if it is in the possible values for GPR and FP registers.
- * - Add sanity checks to verify if the result of functions is good,
- * instead of assuming they are (e.g, control that "dr_lookup_module_by_name"
- * returns no error).
- * - Add more modes for the backend analysis, to analyse the backend after
- * parsing the command line, instead of at the same time.
+ * \copyright Interflop
  */
 
 #include "dr_api.h"
@@ -57,6 +46,8 @@ std::vector<reg_id_t> get_float_reg();
  * \brief Gather the gpr_reg and float_reg vectors into a single one,
  * containing all registers used by the backend
  * \return The combination of both vectors
+ * \todo Actually use the vectors when we save the registers, instead
+ * of saving everything.
  */
 std::vector<reg_id_t> get_all_registers();
 
@@ -92,6 +83,9 @@ bool analyse_argument_parser(std::string arg, int *i, int argc,
  * \details Call drsym_enumerate_symbols to analyse the backend if needed,
  * updating the vectors of registers. Also call drsym_enumerate_symbols
  * with the SSE analyser, in order to update NEED_SSE_INVERSE.
+ * \todo Add sanity checks to verify if the result of functions is good,
+ * instead of assuming they are (e.g, control that "dr_lookup_module_by_name"
+ * returns no error).
  */
 void analyse_mode_manager();
 

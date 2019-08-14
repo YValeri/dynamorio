@@ -144,8 +144,8 @@ static void reset_error_count(){
 }
 
 bool is_number(const std::string &str){
-    return !s.empty() && std::find_if(s.begin(),
-                                      s.end(), [](char c){ return !std::isdigit(c); }) == s.end();
+    return !str.empty() && std::find_if(str.begin(),
+                                      str.end(), [](char c){ return !std::isdigit(c); }) == str.end();
 }
 
 /**
