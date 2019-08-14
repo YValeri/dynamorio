@@ -1,6 +1,6 @@
 #! /bin/bash 
 
-DYNAMORIO_DIR="$(pwd)/../../../.."
+DYNAMORIO_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )/../../../.."
 DYNAMORIO_BUILD_DIR="${DYNAMORIO_DIR}/build"
 
 cd ${DYNAMORIO_DIR}/api/samples/padloc/padloc_prog_test
