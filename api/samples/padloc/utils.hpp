@@ -58,14 +58,14 @@ typedef enum{
     PLC_ANALYSE_NOT_NEEDED,
     /** Backend analysis needed */
     PLC_ANALYSE_NEEDED
-}padloc_analyse_mode_t;
+} padloc_analyse_mode_t;
 
 /**
  * \brief Setter for the log level
  * 
  * \param level The new log level
  */
-void set_log_level(int);
+void set_log_level(int level);
 
 /**
  * \brief Getter for the log level
@@ -78,7 +78,7 @@ int get_log_level();
  * 
  * \param mode The new client mode
  */
-void set_symbol_mode(padloc_symbol_mode_t);
+void set_symbol_mode(padloc_symbol_mode_t mode);
 
 /**
  * \brief Getter for the client mode
@@ -91,7 +91,7 @@ padloc_symbol_mode_t get_symbol_mode();
  * 
  * \param mode The new backend analysis mode
  */
-void set_analyse_mode(padloc_analyse_mode_t);
+void set_analyse_mode(padloc_analyse_mode_t mode);
 
 /**
  * \brief Getter for the backend analysis mode
@@ -111,7 +111,7 @@ void print_help();
  * 
  * \param output The output file in which to write
  */
-void write_to_file_symbol_file_header(std::ofstream&);
+void write_to_file_symbol_file_header(std::ofstream& output);
 
 /**
  * \brief Incrementer for the error count.
@@ -125,10 +125,10 @@ void inc_error();
 /**
  * \brief Helper function to that check if a string is a number
  * 
- * \param s The string to check
+ * \param str The string to check
  * \return True if the string represents a number
  */
-bool is_number(const std::string&);
+bool is_number(const std::string& str);
 
 /**
  * \brief Main parsing function
