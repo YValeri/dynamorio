@@ -9,6 +9,8 @@
  * - Add sanity checks to verify if the result of functions is good,
  * instead of assuming they are (e.g, control that "dr_lookup_module_by_name"
  * returns no error).
+ * - Add more modes for the backend analysis, to analyse the backend after
+ * parsing the command line, instead of at the same time.
  */
 
 #include "dr_api.h"

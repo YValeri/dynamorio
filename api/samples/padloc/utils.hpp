@@ -2,19 +2,8 @@
 #define UTILS_BARRIER_HEADER
 
 /**
- * \file
- * 
- */
-
-/** TODO :
- * - Modify the parsing part by using the obverser pattern, in order to be
- * more flexible on the parser possible, be able to remove the call to
- * parsers and actually specifying the interface for the functions. Same for
- * the plugin managers
- * - Have different type of return possible for the parsers, in order to 
- * remove the error counter (maybe 3 outputs possible, one for when a parser
- * identified a command option, one for when a it didn't recognized the option,
- * and one for when there was a problem).
+ * \file utils.hpp
+ * \brief Utilitary header, containing various for modes and log levels. 
  */
 
 #include <fstream>
@@ -22,31 +11,48 @@
 /**
  * \def UNKNOWN_ARGUMENT
  * \brief Macro giving the amount of parsers behind the main parser function.
- * \details If the macro is equal to 5, that means there are 5 plugins, and if the
- * error count is equal to 5 after checking all the parsers, that means the
+ * \details If the macro is equal to 5, that means there are 5 plugins, and if 
+ * the error count is equal to 5 after checking all the parsers, that means the
  * option is unknown.
  */
 #define UNKNOWN_ARGUMENT 3
 
 /**
- * Specifies the mode for the symbol plugin
+ * \enum padloc_symbol_mode_t
+ * \brief Specifies the mode for the symbol plugin
+ * \details Specifies all the mode available for the symbol plugin,
+ * regarding the use of Blacklists, Whitelists and Generation.
  */
 typedef enum{
-    PLC_SYMBOL_DEFAULT = 0, /** Default */
-    PLC_SYMBOL_NOLOOKUP = 0, /** Don't look at symbols */
-    PLC_SYMBOL_GENERATE = 1, /** Generate the symbols from an execution */
-    PLC_SYMBOL_BL_ONLY = 2, /** Don't instrument the symbols in the blacklist */
-    PLC_SYMBOL_WL_ONLY = 4, /** Instrument only the symbols in the whitelist */
-    PLC_SYMBOL_BL_WL = 6, /** Instrument the symbols in the whitelist that aren't in the blacklist */
-    PLC_SYMBOL_HELP = -1 /** Display arguments help */
-}padloc_symbol_mode_t;
+    /** Default */
+	PLC_SYMBOL_DEFAULT,
+    /** Don't look at symbols */
+    PLC_SYMBOL_NOLOOKUP,
+    /** Generate the symbols from an execution */
+    PLC_SYMBOL_GENERATE,
+    /** Don't instrument the symbols in the blacklist */
+    PLC_SYMBOL_BL_ONLY,
+    /** Instrument only the symbols in the whitelist */
+    PLC_SYMBOL_WL_ONLY,
+    /** Instrument the symbols in the whitelist that aren't in the blacklist */
+    PLC_SYMBOL_BL_WL, 
+    /** Display arguments help */
+    PLC_SYMBOL_HELP
+} padloc_symbol_mode_t;
 
 /**
- * Specifies the mode for the backend analysis plugin
+ * \enum padloc_analyse_mode_t
+ * \brief Specifies the mode for the backend analysis plugin
+ * \details Specifies all the mode for backend analysis. Currently, only 2
+ * are implemented : analysis needed and not needed. If the analysis was
+ * already when parsing the command line arguments, analysis is not
+ * needed anymore, thus the PLC_ANALYSE_NOT_NEEDED mode.
  */
 typedef enum{
-    PLC_ANALYSE_NOT_NEEDED = 0, /* Backend analysis not needed */
-    PLC_ANALYSE_NEEDED = 1 /* Backend analysis needed */
+    /** Backend analysis not needed */
+    PLC_ANALYSE_NOT_NEEDED,
+    /** Backend analysis needed */
+    PLC_ANALYSE_NEEDED
 }padloc_analyse_mode_t;
 
 /**
@@ -140,7 +146,17 @@ bool is_number(const std::string&);
  * \param argv The arguments of the command line
  * 
  * \return True if the execution of the program must stop, else false
+ * 
+ * \todo Get the global parser to use the obverser pattern, in order to be
+ * more flexible on the parser possible, be able to remove the call to
+ * parsers and actually specifying the interface for the functions. Same for
+ * the plugin managers.
+ * 
+ * \todo Have different type of return possible for the parsers, in order to 
+ * remove the error counter (maybe 3 outputs possible, one for when a parser
+ * identified a command option, one for when a it didn't recognized the option,
+ * and one for when there was a problem).
  */
-bool arguments_parser(int, const char**);
+bool arguments_parser(int argc, const char* argv[]);
 
 #endif

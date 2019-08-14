@@ -1,8 +1,7 @@
 /**
- * \file
- * \brief
- * Library Manipulation API Sample, part of the Padloc project.
- * utils.cpp
+ * \file utils.cpp
+ * \headerfile utils.hpp "utils.hpp"
+ * \brief Library Manipulation API Sample, part of the Padloc project.
  *
  * This file gathers utilitary functions used throughout the program, the
  * main parsing function and the log level parts.
