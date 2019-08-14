@@ -5,6 +5,9 @@
  * \file padloc_operations.hpp
  * \brief Library Manipulation API Sample, part of the Padloc project.
  * 
+ * \details This file is dedicated to the extraction of instructions features. \n
+ *  We represent instructions features with a flag system defined in this file \n
+ * 
  * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
  * \date 2019
  * \copyright Interflop 
@@ -20,7 +23,7 @@
  * The other flags are masks to easily detect the operation, the type and the SIMD size.
 */
 
-#define PLC_OP_OTHER        0        // 0b00000000000000000		  Other operations, those that don't concern us
+#define PLC_OP_OTHER        0           // 0b00000000000000000		  Other operations, those that don't concern us
 #define PLC_OP_DOUBLE        1        // 0b00000000000000001		  Operation between doubles
 #define PLC_OP_FLOAT        2        // 0b00000000000000010		  Operation between floats
 #define PLC_OP_PACKED        4        // 0b00000000000000100		  Operation between vectors

@@ -2,6 +2,10 @@
  * \file padloc_operations.cpp
  * \brief Library Manipulation API Sample, part of the Padloc project.
  * 
+ * \details This file is dedicated to the extraction of instructions features. \n
+ *  We represent instructions features with a flag system defined in the associated header file. \n
+ *  In the rest of the program the flags are used in order to retrieve information about instructions.
+ * 
  * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
  * \date 2019
  * \copyright Interflop 
@@ -9,11 +13,14 @@
 
 #include "padloc_operations.hpp"
 
+/**
+ * \def PREFIX_EVEX
+ * \brief Mask to detect AVX 512 instructions
+ */
 #define PREFIX_EVEX 0x000100000
 
 /**
  * \brief Get the flag corresponding to the size of the operands
- * 
  * \param instr Instrumented instruction
  */
 static unsigned int get_size_flag(instr_t *instr){
@@ -49,7 +56,9 @@ static unsigned int get_size_flag(instr_t *instr){
 }
 
 /**
- * \brief Returns the operation category of \param instr
+ * \brief Returns the operation category of instr. The operation category specifies the features of the instruction
+ * \param instr Analysed instruction
+ * \warning If AVX_512 instruction is detected, it marks it as unsupported.
  */
 enum OPERATION_CATEGORY plc_get_operation_category(instr_t *instr){
 #ifdef X86
