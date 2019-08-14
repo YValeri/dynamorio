@@ -2,8 +2,8 @@
 * Created on 2019-07-23
 */
 
-#ifndef PADLOC_CLIENT_H
-#define PADLOC_CLIENT_H
+#ifndef PADLOC_SYMBOL_H
+#define PADLOC_SYMBOL_H
 
 #include "dr_api.h"
 #include "drmgr.h"
