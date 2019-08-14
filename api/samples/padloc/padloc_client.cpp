@@ -41,56 +41,48 @@ static reg_id_t Q_REG_REVERSE[] = {
 static const reg_id_t GPR_ORDER[] = {R(NULL), R(XAX), R(XCX), R(XDX), R(XBX), R(XSP), R(XBP), R(XSI), R(XDI), R(R8), R(R9), R(R10), R(R11), R(R12), R(R13), R(R14), R(R15)};
 #define NUM_GPR_SLOTS 17
 #elif defined(AArch64)
-//TODO Add GPR for Aarch64
+/**
+ * \todo Complete the GPR for AArch64
+ */
+static const reg_id_t GPR_ORDER[] = {DR_REG_X0}
 #endif
 #undef R
 
+/**
+ * tls_gpr is ...
+ */
 static int tls_gpr, tls_float, tls_result;
 
-/**
- * \brief Returns the index of the gpr tls
- */
 int get_index_tls_gpr(){
     return tls_gpr;
 }
 
-/**
- * \brief Returns the index of the floating point registers tls
- */
 int get_index_tls_float(){
     return tls_float;
 }
 
-/**
- * \brief Returns the index of the result tls
- */
 int get_index_tls_result(){
     return tls_result;
 }
 
-/**
- * \brief Sets the index of the gpr tls
- */
 void set_index_tls_gpr(int new_tls_value){
     tls_gpr = new_tls_value;
 }
 
-/**
- * \brief Sets the index of the floating point registers tls
- */
 void set_index_tls_float(int new_tls_value){
     tls_float = new_tls_value;
 }
 
-/**
- * \brief Sets the index of the result tls
- */
 void set_index_tls_result(int new_tls_value){
     tls_result = new_tls_value;
 }
 
 /**
  * \brief Returns the offset, in bytes, of the \param gpr stored in the tls
+ * \details [long description]
+ * 
+ * \param gpr [description]
+ * \return [description]
  */
 inline int offset_of_gpr(reg_id_t gpr){
     //Assuming the gpr parameter is a valid gpr
@@ -99,9 +91,10 @@ inline int offset_of_gpr(reg_id_t gpr){
 
 /**
  * \brief Returns the offset, in bytes, of the simd register in the tls
+ * \details [long description]
  * 
- * \param simd 
- * \return int 
+ * \param simd [description]
+ * \return [description]
  */
 inline int offset_of_simd(reg_id_t simd){
     //Assuming the simd parameter is a valid simd register
@@ -156,7 +149,15 @@ struct padloc_backend{
 };
 
 /**
- * \brief Identical to padloc_backend for three sources instructions 
+ * \brief Identical to padloc_backend for three sources instructions
+ * \details [long description]
+ * 
+ * \tparam FTYPE [description]
+ * \tparam FTYPE (*Backend_function)(FTYPE [description]
+ * \tparam FTYPE [description]
+ * \tparam FTYPE) [description]
+ * \tparam INSTR_CATEGORY [description]
+ * \tparam SIMD_TYPE = PLC_OP_SCALAR [description]
  */
 template<typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE), int INSTR_CATEGORY, int SIMD_TYPE = PLC_OP_SCALAR>
 struct padloc_backend_fused{
@@ -193,9 +194,6 @@ struct padloc_backend_fused{
     }
 };
 
-/**
- * \brief Inserts \param newinstr in \param ilist prior to \param instr and set it as an application instruction
- */
 void translate_insert(instr_t *newinstr, instrlist_t *ilist, instr_t *instr){
     instr_set_translation(newinstr, instr_get_app_pc(instr));
     instr_set_app(newinstr);
@@ -204,6 +202,15 @@ void translate_insert(instr_t *newinstr, instrlist_t *ilist, instr_t *instr){
 
 /**
  * \brief Subset of insert_call for two sources instructions
+ * \details [long description]
+ * 
+ * \param drcontext [description]
+ * \param bb [description]
+ * \param instr [description]
+ * \param oc [description]
+ * \tparam FTYPE [description]
+ * \tparam FTYPE (*Backend_function)(FTYPE [description]
+ * \tparam FTYPE) [description]
  */
 template<typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE)>
 void insert_corresponding_vect_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc){
@@ -236,6 +243,16 @@ void insert_corresponding_vect_call(void *drcontext, instrlist_t *bb, instr_t *i
 
 /**
  * \brief Subset of insert_call for three sources instructions
+ * \details [long description]
+ * 
+ * \param drcontext [description]
+ * \param bb [description]
+ * \param instr [description]
+ * \param oc [description]
+ * \tparam FTYPE [description]
+ * \tparam FTYPE (*Backend_function)(FTYPE [description]
+ * \tparam FTYPE [description]
+ * \tparam FTYPE) [description]
  */
 template<typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE)>
 void insert_corresponding_vect_call_fused(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc){
@@ -269,16 +286,6 @@ void insert_corresponding_vect_call_fused(void *drcontext, instrlist_t *bb, inst
     }
 }
 
-
-/**
- * \brief Insert the corresponding call into the application depending on the properties of the instruction overloaded.  
- * 
- * \param drcontext DynamoRIO's context
- * \param bb Current basic block
- * \param instr Instrumented instruction
- * \param oc Operation category of the instruction
- * \param is_double True if the baseline precision is double
- */
 void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double){
     if(oc & PLC_OP_FUSED){
         if(oc & PLC_OP_FMA){
@@ -350,12 +357,6 @@ void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CAT
 #define MINSERT(bb, where, instr) instrlist_meta_preinsert(bb, where, instr)
 #define AINSERT(bb, where, instr) translate_insert(instr, bb, where)
 
-/**
- * \brief Inserts prior to \param where meta-instructions to save the arithmetic flags and the gpr registers
- * \param drcontext DynamoRIO context
- * \param bb Current basic bloc
- * \param where instruction prior to whom we insert the meta-instructions 
- */
 void insert_save_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *where){
 #if defined(X86) && defined(X64)
     //save rcx to spill slot
@@ -383,12 +384,6 @@ void insert_save_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *where)
 #endif
 }
 
-/**
- * \brief Inserts prior to \param where meta-instructions to restore the arithmetic flags and the gpr registers
- * \param drcontext DynamoRIO context
- * \param bb Current basic bloc
- * \param where instruction prior to whom we insert the meta-instructions 
- */
 void insert_restore_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *where){
 #if defined(X86) && defined(X64)
     //read tls into rcx
@@ -410,14 +405,6 @@ void insert_restore_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *whe
 #endif
 }
 
-/**
- * \brief Prepares the address in the buffer of the tls register to point to the destination register in memory
- * \details Assumes the gpr have been saved beforehand !
- * \param drcontext DynamoRIO's context
- * \param bb Current basic block
- * \param where instruction prior to whom we insert the meta-instructions 
- * \param destination SIMD registers that should have received the result
- */
 void insert_set_destination_tls(void *drcontext, instrlist_t *bb, instr_t *where, reg_id_t destination){
 #if defined(X86) && defined(X64)
     //Result tls adress in OP_A register
@@ -433,13 +420,6 @@ void insert_set_destination_tls(void *drcontext, instrlist_t *bb, instr_t *where
 #endif
 }
 
-/**
- * \brief Inserts prior to \p where meta-instructions to save the floating point registers (xmm-ymm-zmm)
- * \details Assumes the gpr have been saved beforehand !
- * \param drcontext DynamoRIO context
- * \param bb Current basic bloc
- * \param where instruction prior to whom we insert the meta-instructions 
- */
 void insert_save_simd_registers(void *drcontext, instrlist_t *bb, instr_t *where){
 #if defined(X86) && defined(X64)
     //Loads the adress of the simd registers TLS
@@ -471,13 +451,6 @@ void insert_save_simd_registers(void *drcontext, instrlist_t *bb, instr_t *where
 #endif
 }
 
-/**
- * \brief Inserts prior to \p where meta-instructions to restore the floating point registers (xmm-ymm-zmm)
- * \details Assumes the gpr have been saved beforehand !
- * \param drcontext DynamoRIO context
- * \param bb Current basic bloc
- * \param where instruction prior to whom we insert the meta-instructions 
- */
 void insert_restore_simd_registers(void *drcontext, instrlist_t *bb, instr_t *where){
 #if defined(X86) && defined(X64)
     //Loads the adress of the simd registers TLS
@@ -622,15 +595,6 @@ static void insert_set_operands_mem_reference(void *drcontext, instrlist_t *bb, 
     }
 }
 
-/**
- * \brief Inserts prior to \p where meta-instructions to set the calling convention registers to the right adresses
- * \details Assumes the GPR have been saved !
- * \param drcontext DynamoRIO's context
- * \param bb Current Basic Block
- * \param where instruction prior to whom we insert the meta-instructions 
- * \param instr Instrumented instruction
- * \param oc Operation category of the instrumented instruction
- */
 void insert_set_operands(void *drcontext, instrlist_t *bb, instr_t *where, instr_t *instr, OPERATION_CATEGORY oc){
     reg_id_t reg_op_addr[3];
     const bool fused = plc_is_fused(oc);
@@ -682,13 +646,6 @@ void insert_set_operands(void *drcontext, instrlist_t *bb, instr_t *where, instr
     }
 }
 
-/**
- * \brief Inserts prior to \p where meta-instructions to restore RSP from its saved value
- * 
- * \param drcontext DynamoRIO's context
- * \param bb Current Basic Block
- * \param where instruction prior to whom we insert the meta-instructions 
- */
 void insert_restore_rsp(void *drcontext, instrlist_t *bb, instr_t *where){
     INSERT_READ_TLS(drcontext, get_index_tls_gpr(), bb, where, DR_REG_RSP);
     MINSERT(bb, where,

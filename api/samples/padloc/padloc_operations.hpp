@@ -52,9 +52,10 @@
 // For operations that are unsupported for the moment
 #define PLC_OP_UNSUPPORTED PLC_OP_OTHER
 
-/*
- * This enum gives the length of operation we are modifying.
-*/
+/**
+ * \enum SIMD_CATEGORY
+ * \brief This enum gives the length of operation we are modifying.
+ */
 enum SIMD_CATEGORY{
     PLC_SCALAR,
     PLC_128,
@@ -62,15 +63,19 @@ enum SIMD_CATEGORY{
     PLC_512
 };
 
+/**
+ * \enum INSTR_CATEGORY
+ * \brief This enum gives the length of operation we are modifying.
+ */
 enum INSTR_CATEGORY{
     PLC_SSE,
     PLC_AVX,
 };
 
-/*
- * This enum gathers all the possible operations we want to detect, as a combination of flags.
-*/
-
+/**
+ * \enum INSTR_CATEGORY
+ * \brief This enum gathers all the possible operations we want to detect, as a combination of flags.
+ */
 enum OPERATION_CATEGORY{
     PLC_OTHER = PLC_OP_OTHER,
     PLC_UNSUPPORTED = PLC_OP_UNSUPPORTED,

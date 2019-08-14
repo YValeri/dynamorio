@@ -53,7 +53,12 @@ static void module_load_handler(void *drcontext, const module_data_t *module,
 }
 
 /**
- * \brief Initializes the API 
+ * \brief Gather all the DynamoRIO packages and structure initializations
+ * \details Contains the initialization of the following packages :
+ *  - drsym
+ *  - drmgr
+ *  - drreg
+ *  - Verrou
  */
 static void api_initialisation(){
     drsym_init(0);
@@ -74,8 +79,13 @@ static void api_initialisation(){
 }
 
 /**
- * \brief Registers the callbacks
- * 
+ * \brief Gather all the DynamoRIO events registration
+ * \details Register the :
+ *  - exit event
+ *  - thread init/exit event
+ *  - instrumentation phase's function event
+ *  - module load event
+ *  - app2app phase's function event
  */
 static void api_register(){
     // Define the functions to be called before exiting this client program
@@ -93,8 +103,9 @@ static void api_register(){
 }
 
 /**
- * \brief Registers the need tls fields
- * 
+ * \brief Gather all the TLS registers registration
+ * \details Currently register 3 TLS fields, used for result,
+ * GPR and FP registers.
  */
 static void tls_register(){
     set_index_tls_result(drmgr_register_tls_field());
@@ -114,6 +125,11 @@ DR_EXPORT void dr_client_main(client_id_t id, // client ID
                               const char *argv[]){
     api_initialisation();
 
+    /*
+     * If the parsing returns true, that means the execution of the program
+     * must stop. Either something went wrong, or one of the plugins detected
+     * a command line option that should stop the program.
+     */
     if(arguments_parser(argc, argv)){
         dr_abort_with_code(0);
         return;
@@ -141,7 +157,6 @@ DR_EXPORT void dr_client_main(client_id_t id, // client ID
 
 /**
  * \brief Callback called when the program exits
- * 
  */
 static void event_exit(){
     //Unregistering the tls fields

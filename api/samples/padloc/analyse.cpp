@@ -1,9 +1,9 @@
 /**
- * \file
+ * \file analyse.cpp
  * \brief Library Manipulation API Sample, part of the Interflop project.
- * analyse.cpp
+ * Backend analysis plugin source file.
  *
- * This file analyses the current backend used in order to determine the
+ * \details This file analyses the current backend used in order to determine the
  * different registers used by it. The goal is to know what needs to be saved
  * by the frontend, so that the backend functions don't modify any register
  * used by the application in an unpredictable way. The registers checked for
@@ -41,51 +41,32 @@ static bool NEED_SSE_INVERSE = false;
 static std::vector<app_pc> app_pc_vect;
 
 /**
- * These vectors contain the different registers used by the backend.
- * gpr_reg contains all the GPR used, while float_reg contains all the
- * XMM/YMM/ZMM used on X86, or the Q/D/S/B/H on AArch64.
+ * This vector contains the different GPR used by the backend.
  */
 static std::vector<reg_id_t> gpr_reg;
-static std::vector<reg_id_t> float_reg;
 
 /**
- * \brief Getter for the NEED_SSE_INVERSE boolean
- * \return NEED_SSE_INVERSE
+ * This vector contains all the XMM/YMM/ZMM used on X86, 
+ * or the Q/D/S/B/H on AArch64, used by the backend.
  */
+static std::vector<reg_id_t> float_reg;
+
 bool get_need_sse_inverse(){
     return NEED_SSE_INVERSE;
 }
 
-/**
- * \brief Setter for the NEED_SSE_INVERSE boolean
- * 
- * \param new_value The new value for NEED_SSE_INVERSE
- */
 void set_need_sse_inverse(bool new_value){
     NEED_SSE_INVERSE = new_value;
 }
 
-/**
- * \brief Getter for the gpr_reg vector
- * \return gpr_reg
- */
 std::vector<reg_id_t> get_gpr_reg(){
     return gpr_reg;
 }
 
-/**
- * \brief Getter for the float_reg vector
- * \return float_reg
- */
 std::vector<reg_id_t> get_float_reg(){
     return float_reg;
 }
 
-/**
- * \brief Gather the gpr_reg and float_reg vectors into a single one,
- * containing all registers used by the backend
- * \return The combination of both vectors
- */
 std::vector<reg_id_t> get_all_registers(){
     std::vector<reg_id_t> ret;
 
@@ -137,10 +118,6 @@ static void print_vect(std::vector<reg_id_t> vect){
     }
 }
 
-/**
- * \brief Prints the content of the gpr_reg and float_reg
- * register, using print_vect for each.
- */
 void print_register_vectors(){
     dr_printf("List of gpr registers : \n\t");
     print_vect(gpr_reg);
@@ -487,6 +464,8 @@ static void write_reg_to_file(const char *path){
  * \param path The path to the input file we read from.
  * \return True if we have to stop the execution of the program because of
  * a failure, or false if everything went smoothly.
+ * \todo In the "read_reg_from_file" function, when we detect an number,
+ * check if it is in the possible values for GPR and FP registers.
  */
 static bool read_reg_from_file(const char *path){
     std::ifstream analyse_file;
@@ -631,23 +610,6 @@ static void AA_argument_detected(const char *file){
     }
 }
 
-/**
- * \brief Parser for the command line
- * \details The options are : 
- *      - "analyse and abort", to analyse the backend, write the registers
- *      to a given file and abort
- *      - "analyse from file", to read an input file and parse it to populate
- *      the vectors
- *      - "analyse and run", to analyse the backend and run the program normaly.
- *      Default option.
- * 
- * \param arg The current argument as string
- * \param i The index of the current argument, given as pointer to be modified
- * if necessary when checking for an option with special parameters
- * \param argc The length of the command line
- * \param argv The list of arguments in the command line
- * \return True if the execution of the program must be stopped, else false
- */
 bool analyse_argument_parser(std::string arg, int *i, int argc, const char *argv[]){
     if(arg == "--analyse_abort" || arg == "-aa"){
         *i += 1;
@@ -689,13 +651,6 @@ bool analyse_argument_parser(std::string arg, int *i, int argc, const char *argv
     return false;
 }
 
-/**
- * \brief Analyse the backend if needed, and update the NEED_SSE_INVERSE
- * boolean accordingly
- * \details Call drsym_enumerate_symbols to analyse the backend if needed,
- * updating the vectors of registers. Also call drsym_enumerate_symbols
- * with the SSE analyser, in order to update NEED_SSE_INVERSE.
- */
 void analyse_mode_manager(){
     char path[256];
     path_to_library(path, 256);
