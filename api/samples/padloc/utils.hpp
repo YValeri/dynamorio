@@ -3,7 +3,12 @@
 
 /**
  * \file utils.hpp
- * \brief Utilitary header, containing various for modes and log levels. 
+ * \brief Library Manipulation API Sample, part of the Padloc project.
+ * Utilitary header, containing various functions for modes and log levels.
+ * 
+ * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
+ * \date 2019
+ * \copyright Interflop 
  */
 
 #include <fstream>
@@ -90,7 +95,7 @@ void set_analyse_mode(padloc_analyse_mode_t);
 
 /**
  * \brief Getter for the backend analysis mode
- * \return THe current backend analysis mode
+ * \return The current backend analysis mode
  */
 padloc_analyse_mode_t get_analyse_mode();
 

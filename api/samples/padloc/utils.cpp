@@ -1,7 +1,7 @@
 /**
  * \file utils.cpp
- * \headerfile utils.hpp "utils.hpp"
  * \brief Library Manipulation API Sample, part of the Padloc project.
+ * Utilitary source file, containing various functions for modes and log levels. 
  *
  * This file gathers utilitary functions used throughout the program, the
  * main parsing function and the log level parts.
@@ -145,7 +145,7 @@ void set_analyse_mode(padloc_analyse_mode_t mode){
 
 /**
  * \brief Getter for the backend analysis mode
- * \return THe current backend analysis mode
+ * \return The current backend analysis mode
  */
 padloc_analyse_mode_t get_analyse_mode(){
     return padloc_analyse_mode;

@@ -1,6 +1,15 @@
 #ifndef ANALYSE_BARRIER_HEADER
 #define ANALYSE_BARRIER_HEADER
 
+/**
+ * \file analyse.hpp
+ * \brief Library Manipulation API Sample, part of the Padloc project.
+ * 
+ * \author Teaudors Mickaël, Valeri Yoann                                   and maybe the part-time Brasseur Dylan
+ * \date 2019
+ * \copyright Interflop 
+ */
+
 /** TODO :
  * - Actually use the vectors when we save the registers, instead
  * of saving everything.

@@ -1,6 +1,11 @@
-/*
-* Created on 2019-07-23
-*/
+/**
+ * \file padloc_client.h
+ * \brief Library Manipulation API Sample, part of the Padloc project.
+ * 
+ * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
+ * \date 2019
+ * \copyright Interflop 
+ */
 
 #ifndef PADLOC_SYMBOL_H
 #define PADLOC_SYMBOL_H
