@@ -103,8 +103,7 @@ inline int offset_of_simd(reg_id_t simd){
 }
 
 /**
- * \brief Definition of intermediary functions between front-end and back-end
- * \brief It is suited for two sources instructions
+ * \brief Definition of intermediary functions between front-end and back-end for 2 operands instructions
  * \tparam  float or double depending on the precision of the instruction 
  * \tparam  Function corresponding to the overloaded operation (add, sub, fmadd ...) : implementation in Backend.hxx
  * \tparam  Marks the difference SSE and AVX instructions. Possible values are PLC_OP_SSE and PLC_OP_AVX
@@ -148,7 +147,7 @@ struct padloc_backend{
 };
 
 /**
- * \bried Identical to padloc_backend for three sources instructions 
+ * \brief Identical to padloc_backend for three sources instructions 
  */
 template<typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE), int INSTR_CATEGORY, int SIMD_TYPE = PLC_OP_SCALAR>
 struct padloc_backend_fused{
@@ -404,7 +403,7 @@ void insert_restore_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *whe
 
 /**
  * \brief Prepares the address in the buffer of the tls register to point to the destination register in memory
- * Assumes the gpr have been saved beforehand !
+ * \details Assumes the gpr have been saved beforehand !
  * \param drcontext DynamoRIO's context
  * \param bb Current basic block
  * \param where instruction prior to whom we insert the meta-instructions 
@@ -427,7 +426,7 @@ void insert_set_destination_tls(void *drcontext, instrlist_t *bb, instr_t *where
 
 /**
  * \brief Inserts prior to \p where meta-instructions to save the floating point registers (xmm-ymm-zmm)
- * Assumes the gpr have been saved beforehand !
+ * \details Assumes the gpr have been saved beforehand !
  * \param drcontext DynamoRIO context
  * \param bb Current basic bloc
  * \param where instruction prior to whom we insert the meta-instructions 
@@ -465,7 +464,7 @@ void insert_save_simd_registers(void *drcontext, instrlist_t *bb, instr_t *where
 
 /**
  * \brief Inserts prior to \p where meta-instructions to restore the floating point registers (xmm-ymm-zmm)
- * Assumes the gpr have been saved beforehand !
+ * \details Assumes the gpr have been saved beforehand !
  * \param drcontext DynamoRIO context
  * \param bb Current basic bloc
  * \param where instruction prior to whom we insert the meta-instructions 
@@ -503,7 +502,7 @@ void insert_restore_simd_registers(void *drcontext, instrlist_t *bb, instr_t *wh
 
 /**
  * \brief Inserts prior to \p where meta-instructions to set the calling convention registers to the right adress when all the operands are registers
- * Assumes the GPR have been saved !
+ * \details Assumes the GPR have been saved !
  * \param drcontext DynamoRIO's context
  * \param bb Current Basic block
  * \param where instruction prior to whom we insert the meta-instructions 
@@ -535,7 +534,7 @@ static void insert_set_operands_all_registers(void *drcontext, instrlist_t *bb, 
 
 /**
  * \brief Inserts prior to \p where meta-instructions to set the calling convention register to the right adress when it's an adress defined as a base-disp
- * Assumes the GPR have been saved !
+ * \details Assumes the GPR have been saved !
  * \param drcontext DynamoRIO's context
  * \param bb Current Basic Block
  * \param where instruction prior to whom we insert the meta-instructions 
@@ -564,7 +563,7 @@ static void insert_set_operands_base_disp(void *drcontext, instrlist_t *bb, inst
 
 /**
  * \brief Inserts prior to \p where meta-instructions to set the calling convention register to the right adress when it's an relative of absolute adresse
- * Assumes the GPR have been saved !
+ * \details Assumes the GPR have been saved !
  * \param drcontext DynamoRIO's context
  * \param bb Current Basic Block
  * \param where instruction prior to whom we insert the meta-instructions 
@@ -577,7 +576,7 @@ static void insert_set_operands_addr(void *drcontext, instrlist_t *bb, instr_t *
 
 /**
  * \brief Inserts prior to \p where meta-instructions to set the calling convention registers to the right adresses when one of the operands is a memory reference
- * Assumes the GPR have been saved !
+ * \details Assumes the GPR have been saved !
  * \param drcontext DynamoRIO's context
  * \param bb Current Basic Block
  * \param where instruction prior to whom we insert the meta-instructions 
@@ -616,7 +615,7 @@ static void insert_set_operands_mem_reference(void *drcontext, instrlist_t *bb, 
 
 /**
  * \brief Inserts prior to \p where meta-instructions to set the calling convention registers to the right adresses
- * Assumes the GPR have been saved !
+ * \details Assumes the GPR have been saved !
  * \param drcontext DynamoRIO's context
  * \param bb Current Basic Block
  * \param where instruction prior to whom we insert the meta-instructions 

@@ -17,35 +17,77 @@
 #include "padloc/analyse.hpp"
 #include "padloc/utils.hpp"
 
+/**
+ * \brief Callback called when the program exits
+ * 
+ */
 static void event_exit(void);
 
+/**
+ * \brief Callback called when a thread is created
+ * 
+ * \param drcontext Context of the created thread
+ */
 static void thread_init(void *drcontext);
 
+/**
+ * \brief Callback called when a thread exits
+ * 
+ * \param drcontext Context of the exiting thread
+ */
 static void thread_exit(void *drcontext);
 
-//Function to treat each block of instructions to instrument
-static dr_emit_flags_t app2app_bb_event(void *drcontext,        //Context
-                                        void *tag,              // Unique identifier of the block
-                                        instrlist_t *bb,        // Linked list of the instructions
-                                        bool for_trace,         //TODO
-                                        bool translating);      //TODO
+/**
+ * \brief Callback called when a basic block is sent to the code cache
+ * \details Used in the first phase of instrumentation
+ * \param drcontext DynamoRIO's context
+ * \param tag Unique tag of the basic block
+ * \param bb Linked list of instructions of the basic block
+ * \param for_trace True if this callback is called for trace creation
+ * \param translating True if this callback is called for address translation
+ * \return dr_emit_flags_t DR_EMIT_DEFAULT
+ */
+static dr_emit_flags_t app2app_bb_event(void *drcontext, 
+                                        void *tag, 
+                                        instrlist_t *bb, 
+                                        bool for_trace, 
+                                        bool translating);
 
-//Function to treat each block of instructions to get the symbols
-static dr_emit_flags_t symbol_lookup_event(void *drcontext,        //Context
-                                           void *tag,              // Unique identifier of the block
-                                           instrlist_t *bb,        // Linked list of the instructions
-                                           bool for_trace,         //TODO
-                                           bool translating,       //TODO
+/**
+ * \brief Callback called when a basic block is sent to the code cache
+ * \details Used when generating the symbols list
+ * \param drcontext DynamoRIO's context
+ * \param tag Unique tag of the basic block
+ * \param bb Linked list of the instructions
+ * \param for_trace True if this callback is called for trace creation
+ * \param translating True if this callback is called for address translation
+ * \param user_data Memory location in which to store data for the next instrumentation phase
+ * \return dr_emit_flags_t 
+ */
+static dr_emit_flags_t symbol_lookup_event(void *drcontext,
+                                           void *tag,
+                                           instrlist_t *bb,
+                                           bool for_trace,
+                                           bool translating,
                                            OUT void **user_data);
 
-#define INSERT_MSG(dc, bb, where, x) dr_insert_clean_call(dc,bb, where, (void*)printMessage,true, 1, opnd_create_immed_int(x, OPSZ_4))
-
+/**
+ * \brief Callback called when a module is loaded
+ * 
+ * \param drcontext DynamoRIO's context
+ * \param module Module that has been loaded
+ * \param loaded (Kept for backward compatibility, only set to true) tells if the module is fully loaded 
+ */
 static void module_load_handler(void *drcontext, const module_data_t *module,
                                 bool loaded){
+    //Sets if we need to instrument the module, based on the whitelist-blacklist
     dr_module_set_should_instrument(module->handle,
                                     should_instrument_module(module));
 }
 
+/**
+ * \brief Initializes the API 
+ */
 static void api_initialisation(){
     drsym_init(0);
 
@@ -64,6 +106,10 @@ static void api_initialisation(){
     drreg_init(&drreg_options);
 }
 
+/**
+ * \brief Registers the callbacks
+ * 
+ */
 static void api_register(){
     // Define the functions to be called before exiting this client program
     dr_register_exit_event(event_exit);
@@ -80,13 +126,23 @@ static void api_register(){
     }
 }
 
+/**
+ * \brief Registers the need tls fields
+ * 
+ */
 static void tls_register(){
     set_index_tls_result(drmgr_register_tls_field());
     set_index_tls_float(drmgr_register_tls_field());
     set_index_tls_gpr(drmgr_register_tls_field());
 }
 
-// Main function to setup the dynamoRIO client
+/**
+ * \brief Main of the client
+ * 
+ * \param id ID of the client
+ * \param argc Number of client arguments
+ * \param argv Array of client arguments
+ */
 DR_EXPORT void dr_client_main(client_id_t id, // client ID
                               int argc,
                               const char *argv[]){
@@ -117,20 +173,33 @@ DR_EXPORT void dr_client_main(client_id_t id, // client ID
     }
 }
 
+/**
+ * \brief Callback called when the program exits
+ * 
+ */
 static void event_exit(){
+    //Unregistering the tls fields
     drmgr_unregister_tls_field(get_index_tls_result());
     drmgr_unregister_tls_field(get_index_tls_gpr());
     drmgr_unregister_tls_field(get_index_tls_float());
 
+    //If we were generating the symbols, write the results to file
     if(get_client_mode() == PLC_CLIENT_GENERATE){
         write_symbols_to_file();
     }
+
+    //Exiting the api
     drreg_exit();
     drmgr_exit();
     drsym_exit();
     Interflop::verrou_end();
 }
 
+/**
+ * \brief Callback called when a thread is created
+ * 
+ * \param drcontext Context of the created thread
+ */
 static void thread_init(void *dr_context){
     SET_TLS(dr_context, get_index_tls_result(), dr_thread_alloc(dr_context, 8));
     SET_TLS(dr_context, get_index_tls_float(),
@@ -142,6 +211,12 @@ static void thread_init(void *dr_context){
             dr_thread_alloc(dr_context, 17 * 8));
 }
 
+
+/**
+ * \brief Callback called when a thread exits
+ * 
+ * \param drcontext Context of the exiting thread
+ */
 static void thread_exit(void *dr_context){
     dr_thread_free(dr_context, GET_TLS(dr_context, get_index_tls_result()), 8);
     dr_thread_free(dr_context, GET_TLS(dr_context, get_index_tls_float()),
@@ -152,6 +227,9 @@ static void thread_exit(void *dr_context){
 }
 
 #if defined(X86)
+/**
+ * \brief Function to insert to print the context of the processor
+ */
 static void print() {
     static int print_bool=2;
     if(!print_bool)
@@ -187,11 +265,22 @@ static void print() {
 }
 #endif
 
+/**
+ * \brief Callback called when a basic block is sent to the code cache
+ * \details Used in the first phase of instrumentation
+ * \param drcontext DynamoRIO's context
+ * \param tag Unique tag of the basic block
+ * \param bb Linked list of instructions of the basic block
+ * \param for_trace True if this callback is called for trace creation
+ * \param translating True if this callback is called for address translation
+ * \return dr_emit_flags_t DR_EMIT_DEFAULT
+ */
 static dr_emit_flags_t app2app_bb_event(void *drcontext, void *tag,
                                         instrlist_t *bb, bool for_trace,
                                         bool translating){
     instr_t *instr, *next_instr;
     OPERATION_CATEGORY oc;
+    //Checks if we need to instrument this basic bloc based on the whitelist-blacklist
     if(!needs_to_instrument(bb)){
         return DR_EMIT_DEFAULT;
     }
@@ -205,7 +294,7 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void *tag,
             next_instr = instr_get_next_app(instr);
 
             if(plc_is_instrumented(oc)){
-
+                //We need to instrument this instruction
                 if(get_log_level() >= 1){
                     dr_printf("%d ", nb);
                     dr_print_instr(drcontext, STDOUT, instr, ": ");
@@ -214,22 +303,28 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void *tag,
 
                 bool is_double = plc_is_double(oc);
 
+                //If the registers haven't been saved yet
                 if(!registers_saved){
                     insert_save_gpr_and_flags(drcontext, bb, instr);
                     insert_save_simd_registers(drcontext, bb, instr);
                 }
 
+                //Make the result tls point to the correct location
                 insert_set_destination_tls(drcontext, bb, instr,
                                            GET_REG(DST(instr, 0)));
 
+                //Setup the calling convention
                 insert_set_operands(drcontext, bb, instr, instr, oc);
+
                 if(!registers_saved){
+                    //If it's the first instrumented instruction of the instrumented block, we need to setup rsp
                     insert_restore_rsp(drcontext, bb, instr);
                     translate_insert(
                             XINST_CREATE_sub(drcontext, OP_REG(DR_REG_XSP),
                                              OP_INT(32)), bb, instr);
                 }
                 registers_saved = true;
+                //Insert the call to the function which corresponds to the instruction
                 insert_call(drcontext, bb, instr, oc, is_double);
                 oc = plc_get_operation_category(next_instr);
                 should_continue = next_instr != nullptr &&
@@ -250,6 +345,17 @@ static dr_emit_flags_t app2app_bb_event(void *drcontext, void *tag,
     return DR_EMIT_DEFAULT;
 }
 
+/**
+ * \brief Callback called when a basic block is sent to the code cache
+ * \details Used when generating the symbols list
+ * \param drcontext DynamoRIO's context
+ * \param tag Unique tag of the basic block
+ * \param bb Linked list of the instructions
+ * \param for_trace True if this callback is called for trace creation
+ * \param translating True if this callback is called for address translation
+ * \param user_data Memory location in which to store data for the next instrumentation phase
+ * \return dr_emit_flags_t DR_EMIT_DEFAULT
+ */
 static dr_emit_flags_t symbol_lookup_event(void *drcontext, void *tag,
                                            instrlist_t *bb, bool for_trace,
                                            bool translating,
@@ -259,11 +365,13 @@ static dr_emit_flags_t symbol_lookup_event(void *drcontext, void *tag,
     for(instr_t *instr = instrlist_first_app(bb);
         instr != NULL; instr = instr_get_next_app(instr)){
         OPERATION_CATEGORY oc = plc_get_operation_category(instr);
-        if(oc != PLC_UNSUPPORTED && oc != PLC_OTHER){
+        if(plc_is_instrumented(oc)){
             if(!already_found_fp_op){
                 already_found_fp_op = true;
+                //Register the symbol as seen
                 log_symbol(bb);
             }
+            //We break the loop if we don't need to print all the found instructions
             if(get_log_level() >= 1){
                 dr_print_instr(drcontext, STDERR, instr, "Found : ");
             }else{
