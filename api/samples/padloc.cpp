@@ -22,53 +22,15 @@
 #include "padloc/analyse.hpp"
 #include "padloc/utils.hpp"
 
-/**
- * \brief Callback called when the program exits
- * 
- */
 static void event_exit(void);
-
-/**
- * \brief Callback called when a thread is created
- * 
- * \param drcontext Context of the created thread
- */
 static void thread_init(void *drcontext);
-
-/**
- * \brief Callback called when a thread exits
- * 
- * \param drcontext Context of the exiting thread
- */
 static void thread_exit(void *drcontext);
-
-/**
- * \brief Callback called when a basic block is sent to the code cache
- * \details Used in the first phase of instrumentation
- * \param drcontext DynamoRIO's context
- * \param tag Unique tag of the basic block
- * \param bb Linked list of instructions of the basic block
- * \param for_trace True if this callback is called for trace creation
- * \param translating True if this callback is called for address translation
- * \return dr_emit_flags_t DR_EMIT_DEFAULT
- */
 static dr_emit_flags_t app2app_bb_event(void *drcontext, 
                                         void *tag, 
                                         instrlist_t *bb, 
                                         bool for_trace, 
                                         bool translating);
 
-/**
- * \brief Callback called when a basic block is sent to the code cache
- * \details Used when generating the symbols list
- * \param drcontext DynamoRIO's context
- * \param tag Unique tag of the basic block
- * \param bb Linked list of the instructions
- * \param for_trace True if this callback is called for trace creation
- * \param translating True if this callback is called for address translation
- * \param user_data Memory location in which to store data for the next instrumentation phase
- * \return dr_emit_flags_t 
- */
 static dr_emit_flags_t symbol_lookup_event(void *drcontext,
                                            void *tag,
                                            instrlist_t *bb,
