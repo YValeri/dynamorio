@@ -10,7 +10,6 @@
  * \date 2019
  * \copyright Interflop 
  */
-
 #include <fstream>
 
 /**
