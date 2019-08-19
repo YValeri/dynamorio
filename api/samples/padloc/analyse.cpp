@@ -1,7 +1,6 @@
 /**
  * \file analyse.cpp
- * \brief Library Manipulation API Sample, part of the Interflop project.
- * Backend analysis plugin source file.
+ * \brief Backend analysis plugin source file. Part of the PADLOC project.
  *
  * \details This file analyses the current backend used in order to determine the
  * different registers used by it. The goal is to know what needs to be saved

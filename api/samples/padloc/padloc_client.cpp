@@ -1,50 +1,87 @@
 /**
  * \file padloc_client.cpp
- * \brief Library Manipulation API Sample, part of the Padloc project.
+ * \brief Instrumentation source file. Part of the PADLOC project.
+ * 
+ * \details This file contains the main functions that will modify the
+ * instructions and insert the calls to our functions.
  * 
  * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
  * \date 2019
- * \copyright Interflop 
+ * \copyright Interflop
  */
-
 #include <cstdint>
+
 #include "padloc_client.h"
 #include "analyse.hpp"
-
-#define MAX(x, y) ((x) > (y) ? (x) : (y))
+#include "utils.hpp"
 
 #if defined(X86)
-#define INSTR_IS_ANY_SSE(instr) (instr_is_sse(instr) || instr_is_sse2(instr) || instr_is_sse3(instr) || instr_is_sse41(instr) || instr_is_sse42(instr) || instr_is_sse4A(instr))
+    /**
+     * \def INSTR_IS_ANY_SSE
+     * \brief Checks whether an instruction is a SSE instruction or not.
+     * \details CHeck if an instruction is part of the SSE, SSE2, SSE3,
+     * SSE4.1, SSE4.2 or SSE4A sets. We do not check the SSSE sets or other
+     * because we don't care about any instruction in it.
+     */
+    #define INSTR_IS_ANY_SSE(instr) \
+        (instr_is_sse(instr) || instr_is_sse2(instr) || \
+            instr_is_sse3(instr) || instr_is_sse41(instr) || \
+            instr_is_sse42(instr) || instr_is_sse4A(instr))
 #elif defined(AARCH64)
-static reg_id_t Q_REG[] = {
-    DR_REG_Q0, DR_REG_Q1, DR_REG_Q2, DR_REG_Q3, DR_REG_Q4,
-    DR_REG_Q5, DR_REG_Q6, DR_REG_Q7, DR_REG_Q8, DR_REG_Q9,
-    DR_REG_Q10, DR_REG_Q11, DR_REG_Q12, DR_REG_Q13, DR_REG_Q14,
-    DR_REG_Q15, DR_REG_Q16, DR_REG_Q17, DR_REG_Q18, DR_REG_Q19,
-    DR_REG_Q20, DR_REG_Q21, DR_REG_Q22, DR_REG_Q23, DR_REG_Q24,
-    DR_REG_Q25, DR_REG_Q26, DR_REG_Q27, DR_REG_Q28, DR_REG_Q29,
-    DR_REG_Q30, DR_REG_Q31
-};
-static reg_id_t Q_REG_REVERSE[] = {
-    DR_REG_Q31, DR_REG_Q30, DR_REG_Q29, DR_REG_Q28, DR_REG_Q27,
-    DR_REG_Q26, DR_REG_Q25, DR_REG_Q24, DR_REG_Q23, DR_REG_Q22,
-    DR_REG_Q21, DR_REG_Q20, DR_REG_Q19, DR_REG_Q18, DR_REG_Q17,
-    DR_REG_Q16, DR_REG_Q15, DR_REG_Q14, DR_REG_Q13, DR_REG_Q12,
-    DR_REG_Q11, DR_REG_Q10, DR_REG_Q9, DR_REG_Q8, DR_REG_Q7,
-    DR_REG_Q6, DR_REG_Q5, DR_REG_Q4, DR_REG_Q3, DR_REG_Q2,
-    DR_REG_Q1, DR_REG_Q0
-};
+    /*
+     * The set of SIMD registers of AArch64, currently not used because
+     * of other issues that undermine the development of the AArch64 part.
+     */
+    static reg_id_t Q_REG[] = {
+        DR_REG_Q0, DR_REG_Q1, DR_REG_Q2, DR_REG_Q3, DR_REG_Q4,
+        DR_REG_Q5, DR_REG_Q6, DR_REG_Q7, DR_REG_Q8, DR_REG_Q9,
+        DR_REG_Q10, DR_REG_Q11, DR_REG_Q12, DR_REG_Q13, DR_REG_Q14,
+        DR_REG_Q15, DR_REG_Q16, DR_REG_Q17, DR_REG_Q18, DR_REG_Q19,
+        DR_REG_Q20, DR_REG_Q21, DR_REG_Q22, DR_REG_Q23, DR_REG_Q24,
+        DR_REG_Q25, DR_REG_Q26, DR_REG_Q27, DR_REG_Q28, DR_REG_Q29,
+        DR_REG_Q30, DR_REG_Q31
+    };
+    static reg_id_t Q_REG_REVERSE[] = {
+        DR_REG_Q31, DR_REG_Q30, DR_REG_Q29, DR_REG_Q28, DR_REG_Q27,
+        DR_REG_Q26, DR_REG_Q25, DR_REG_Q24, DR_REG_Q23, DR_REG_Q22,
+        DR_REG_Q21, DR_REG_Q20, DR_REG_Q19, DR_REG_Q18, DR_REG_Q17,
+        DR_REG_Q16, DR_REG_Q15, DR_REG_Q14, DR_REG_Q13, DR_REG_Q12,
+        DR_REG_Q11, DR_REG_Q10, DR_REG_Q9, DR_REG_Q8, DR_REG_Q7,
+        DR_REG_Q6, DR_REG_Q5, DR_REG_Q4, DR_REG_Q3, DR_REG_Q2,
+        DR_REG_Q1, DR_REG_Q0
+    };
 #endif
 
+/**
+ * \def R
+ * \brief Simple macro that takes a name n as parameter and transform it
+ * to DR_REG_n.
+ */
 #define R(name) DR_REG_##name
 #if defined(X86) && defined(X64)
-static const reg_id_t GPR_ORDER[] = {R(NULL), R(XAX), R(XCX), R(XDX), R(XBX), R(XSP), R(XBP), R(XSI), R(XDI), R(R8), R(R9), R(R10), R(R11), R(R12), R(R13), R(R14), R(R15)};
-#define NUM_GPR_SLOTS 17
+    static const reg_id_t GPR_ORDER[] = {R(NULL), R(XAX), R(XCX), R(XDX), R(XBX), R(XSP), R(XBP), R(XSI), R(XDI), R(R8), R(R9), R(R10), R(R11), R(R12), R(R13), R(R14), R(R15)};
+    /**
+     * \def NUM_GPR_SLOTS
+     * \brief Gives the number of GPR on a specific architecture.
+     * \details Currently, we save 17 registers for X86, and 31 for AArch64.
+     */
+    #define NUM_GPR_SLOTS 17
 #elif defined(AArch64)
-/**
- * \todo Complete the GPR for AArch64
- */
-static const reg_id_t GPR_ORDER[] = {DR_REG_X0}
+    static const reg_id_t GPR_ORDER[] = {
+        R(X0), R(X1), R(X2), R(X3), R(X4),
+        R(X5), R(X6), R(X7), R(X8), R(X9),
+        R(X10), R(X11), R(X12), R(X13), R(X14),
+        R(X15), R(X16), R(X17), R(X18), R(X19),
+        R(X20), R(X21), R(X22), R(X23), R(X24),
+        R(X25), R(X26), R(X27), R(X28), R(X29),
+        R(X30), R(X31)
+    }
+    /**
+     * \def NUM_GPR_SLOTS
+     * \brief Gives the number of GPR on a specific architecture.
+     * \details Currently, we save 17 registers for X86, and 31 for AArch64.
+     */
+    #define NUM_GPR_SLOTS 32
 #endif
 #undef R
 
@@ -53,39 +90,40 @@ static const reg_id_t GPR_ORDER[] = {DR_REG_X0}
  */
 static int tls_gpr, tls_float, tls_result;
 
-int get_index_tls_gpr(){
-    return tls_gpr;
-}
-
-int get_index_tls_float(){
-    return tls_float;
-}
-
-int get_index_tls_result(){
-    return tls_result;
-}
-
 void set_index_tls_gpr(int new_tls_value){
     tls_gpr = new_tls_value;
+}
+
+int get_index_tls_gpr(){
+    return tls_gpr;
 }
 
 void set_index_tls_float(int new_tls_value){
     tls_float = new_tls_value;
 }
 
+int get_index_tls_float(){
+    return tls_float;
+}
+
 void set_index_tls_result(int new_tls_value){
     tls_result = new_tls_value;
 }
 
+int get_index_tls_result(){
+    return tls_result;
+}
+
 /**
- * \brief Returns the offset, in bytes, of the \param gpr stored in the tls
- * \details [long description]
+ * \brief Returns the offset, in bytes, of the GPR stored in the tls
+ * \details TODO expliquer l'offset par rapport à quoi, comment c'est calculé
  * 
- * \param gpr [description]
- * \return [description]
+ * \param gpr The GPR to get the offset from
+ * \return The offset in bytes
+ * 
+ * \warning we assume the gpr parameter is a valid gpr
  */
 inline int offset_of_gpr(reg_id_t gpr){
-    //Assuming the gpr parameter is a valid gpr
     return (((int)gpr - DR_REG_START_GPR) + 1) << 3;
 }
 

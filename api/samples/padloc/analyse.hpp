@@ -3,8 +3,7 @@
 
 /**
  * \file analyse.hpp
- * \brief Library Manipulation API Sample, part of the Padloc project.
- * Backend analysis plugin header.
+ * \brief Backend analysis plugin header. Part of the PADLOC project.
  * 
  * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
  * \date 2019

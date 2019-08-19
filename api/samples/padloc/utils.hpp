@@ -22,6 +22,12 @@
 #define UNKNOWN_ARGUMENT 3
 
 /**
+ * \def MAX
+ * \brief Computes the maximum between two number x and y.
+ */
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
+
+/**
  * \enum padloc_symbol_mode_t
  * \brief Specifies the mode for the symbol plugin
  * \details Specifies all the mode available for the symbol plugin,
