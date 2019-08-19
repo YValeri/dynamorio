@@ -697,13 +697,17 @@ void analyse_mode_manager(){
 /**
  * \brief Function used to check if the implicit operands problem
  * was corrected or not.
- * We assume the syntax used is ATT, since DynamoRIO can't compile if the one
+ * \warning We assume the syntax used is ATT, since DynamoRIO can't compile if the one
  * used by the compiler is intel's.
  */
 void test_sse_src_order(){
 #if defined(WINDOWS)
     /* Inline assembly isn't available on MSVC in 64 bits mode, and
      * intrinsics can't help us in this.
+     */
+#elif defined(AARCH64)
+    /*
+     * TODO the assembly for AArch64
      */
 #else
     __asm__ volatile(
