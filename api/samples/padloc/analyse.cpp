@@ -1,7 +1,6 @@
 /**
  * \file analyse.cpp
- * \brief Library Manipulation API Sample, part of the Interflop project.
- * Backend analysis plugin source file.
+ * \brief Backend analysis plugin source file. Part of the PADLOC project.
  *
  * \details This file analyses the current backend used in order to determine the
  * different registers used by it. The goal is to know what needs to be saved
@@ -88,7 +87,7 @@ std::vector<reg_id_t> get_all_registers(){
 }
 
 /**
- * \brief Helper function to print a certain number of \t, used as way to
+ * \brief Helper function to print a certain number of tabs, used as way to
  * know when we follow a call through
  * 
  * \param tabs The number of tabs
@@ -122,6 +121,14 @@ void print_register_vectors(){
     dr_printf("List of gpr registers : \n\t");
     print_vect(gpr_reg);
     dr_printf("\nList of float registers : \n\t");
+    print_vect(float_reg);
+    dr_printf("\n");
+}
+
+void print_register_vectors_single(){
+    dr_printf("Registers used by backend :\n");
+    print_vect(gpr_reg);
+    dr_printf(", ");
     print_vect(float_reg);
     dr_printf("\n");
 }

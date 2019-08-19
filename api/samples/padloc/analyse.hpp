@@ -3,8 +3,7 @@
 
 /**
  * \file analyse.hpp
- * \brief Library Manipulation API Sample, part of the Padloc project.
- * Backend analysis plugin header.
+ * \brief Backend analysis plugin header. Part of the PADLOC project.
  * 
  * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
  * \date 2019
@@ -53,9 +52,15 @@ std::vector<reg_id_t> get_all_registers();
 
 /**
  * \brief Prints the content of the gpr_reg and float_reg
- * register, using print_vect for each.
+ * register vectors independently, using print_vect for each.
  */
 void print_register_vectors();
+
+/**
+ * \brief Prints the content of the gpr_reg and float_reg
+ * register vectors at the same time, using print_vect for each.
+ */
+void print_register_vectors_single();
 
 /**
  * \brief Parser for the command line
