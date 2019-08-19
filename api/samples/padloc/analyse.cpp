@@ -126,6 +126,14 @@ void print_register_vectors(){
     dr_printf("\n");
 }
 
+void print_register_vectors_single(){
+    dr_printf("Registers used by backend :\n");
+    print_vect(gpr_reg);
+    dr_printf(", ");
+    print_vect(float_reg);
+    dr_printf("\n");
+}
+
 /**
  * \brief Adds a reg_id_t to gpr_reg or float_reg according to it's status
  * \details Checks whether a given register is a GPR or a FP register.

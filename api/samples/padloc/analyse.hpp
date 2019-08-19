@@ -53,9 +53,15 @@ std::vector<reg_id_t> get_all_registers();
 
 /**
  * \brief Prints the content of the gpr_reg and float_reg
- * register, using print_vect for each.
+ * register vectors independently, using print_vect for each.
  */
 void print_register_vectors();
+
+/**
+ * \brief Prints the content of the gpr_reg and float_reg
+ * register vectors at the same time, using print_vect for each.
+ */
+void print_register_vectors_single();
 
 /**
  * \brief Parser for the command line
