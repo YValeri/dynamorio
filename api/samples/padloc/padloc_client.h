@@ -104,7 +104,7 @@
 /**
  * \def AVX_SUPPORTED 
  * \brief True if the machine supports AVX instructions 
- * \warn Supported only on X86
+ * \warning Supported only on X86
  */
 #define AVX_SUPPORTED (proc_has_feature(FEATURE_AVX))
 
@@ -385,56 +385,43 @@
 
 /**
  * \brief Returns the index of the floating point registers tls
- * \details [long description]
- * \return [description]
  */
 int get_index_tls_float();
 
 /**
  * \brief Returns the index of the gpr tls
- * \details [long description]
- * \return [description]
  */
 int get_index_tls_gpr();
 
 /**
  * \brief Returns the index of the result tls
- * \details [long description]
- * \return [description]
  */
 int get_index_tls_result();
 
 /**
- * \brief Sets the index of the gpr tls
- * \details [long description]
- * 
- * \param new_tls_value [description]
+ * \brief Sets the index of the gpr tls 
+ * \param new_tls_value New value to set
  */
 void set_index_tls_gpr(int new_tls_value);
 
 /**
  * \brief Sets the index of the floating point registers tls
- * \details [long description]
- * 
- * \param new_tls_value [description]
+ * \param new_tls_value New value to set
  */
 void set_index_tls_float(int new_tls_value);
 
 /**
  * \brief Sets the index of the result tls
- * \details [long description]
- * 
- * \param new_tls_value [description]
+ * \param new_tls_value New value to set
  */
 void set_index_tls_result(int new_tls_value);
 
 /**
  * \brief Inserts newinstr in ilist prior to instr and set it as an application instruction
- * \details [long description]
- * 
- * \param newinstr [description]
- * \param ilist [description]
- * \param instr [description]
+ 
+ * \param newinstr Instruction to insert
+ * \param ilist List of Basic block instructions in which newinstr is insert
+ * \param instr The instruction before which newinstr is inserted in the list
  */
 void translate_insert(instr_t *newinstr, instrlist_t *ilist, instr_t *instr);
 

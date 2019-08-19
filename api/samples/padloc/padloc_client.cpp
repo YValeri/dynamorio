@@ -86,7 +86,7 @@
 #undef R
 
 /**
- * tls_gpr is ...
+ * tls_gpr is 
  */
 static int tls_gpr, tls_float, tls_result;
 

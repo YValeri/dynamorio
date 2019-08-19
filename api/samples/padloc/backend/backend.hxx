@@ -15,6 +15,9 @@
 
 namespace Interflop {
 
+    /**
+     * \brief Information about verrou configuration
+     */
     static void *verrou_context;
 
     /**
