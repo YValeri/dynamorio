@@ -280,15 +280,13 @@ void translate_insert(instr_t *newinstr, instrlist_t *ilist, instr_t *instr){
 
 /**
  * \brief Subset of insert_call for two sources instructions
- * \details [long description]
- * 
- * \param drcontext [description]
- * \param bb [description]
- * \param instr [description]
- * \param oc [description]
- * \tparam FTYPE [description]
- * \tparam FTYPE (*Backend_function)(FTYPE [description]
- * \tparam FTYPE) [description]
+ 
+ * \param drcontext DynamoRIO context
+ * \param bb Basic Block instructions list
+ * \param instr The reference instruction in the list to insert the call
+ * \param oc The flags associated to the current overloaded instruction
+ * \tparam FTYPE Floating point precision : Double of Float
+ * \tparam FTYPE (*Backend_function)(FTYPE) Function pointer to the backend implementation
  */
 template<typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE)>
 void insert_corresponding_vect_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc){
@@ -321,16 +319,13 @@ void insert_corresponding_vect_call(void *drcontext, instrlist_t *bb, instr_t *i
 
 /**
  * \brief Subset of insert_call for three sources instructions
- * \details [long description]
- * 
- * \param drcontext [description]
- * \param bb [description]
- * \param instr [description]
- * \param oc [description]
- * \tparam FTYPE [description]
- * \tparam FTYPE (*Backend_function)(FTYPE [description]
- * \tparam FTYPE [description]
- * \tparam FTYPE) [description]
+ 
+ * \param drcontext DynamoRIO context
+ * \param bb Basic Block instructions list
+ * \param instr The reference instruction in the list to insert the call
+ * \param oc The flags associated to the current overloaded instruction
+ * \tparam FTYPE Floating point precision : Double of Float
+ * \tparam FTYPE (*Backend_function)(FTYPE) Function pointer to the backend implementation
  */
 template<typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE)>
 void insert_corresponding_vect_call_fused(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc){
@@ -364,6 +359,15 @@ void insert_corresponding_vect_call_fused(void *drcontext, instrlist_t *bb, inst
     }
 }
 
+/**
+ * \brief Insert the call depending on the current overloaded instruction features.
+ * 
+ * \param drcontext DynamoRIO context
+ * \param bb Basic Block instructions list
+ * \param instr The reference instruction in the list to insert the call
+ * \param oc The flags associated to the current overloaded instruction
+ * \param is_double True if the instruction is performed in double precision, False if it is in single precision
+ */
 void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double){
     if(oc & PLC_OP_FUSED){
         if(oc & PLC_OP_FMA){
