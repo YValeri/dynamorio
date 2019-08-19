@@ -23,37 +23,155 @@
  * The other flags are masks to easily detect the operation, the type and the SIMD size.
 */
 
+/**
+ * \def PLC_OP_OTHER
+ * \brief Flag for other operations, those that don't concern us
+ */
+#define PLC_OP_OTHER        0           // 0b00000000000000000		  
 
-#define PLC_OP_OTHER        0           // 0b00000000000000000		  Other operations, those that don't concern us
-#define PLC_OP_DOUBLE        1        // 0b00000000000000001		  Operation between doubles
-#define PLC_OP_FLOAT        2        // 0b00000000000000010		  Operation between floats
-#define PLC_OP_PACKED        4        // 0b00000000000000100		  Operation between vectors
-#define PLC_OP_SCALAR        8        // 0b00000000000001000		  Operation between scalars
-#define PLC_OP_ADD            16        // 0b00000000000010000		  Addition
-#define PLC_OP_SUB            32        // 0b00000000000100000		  Substraction
-#define PLC_OP_MUL            64        // 0b00000000001000000		  Multiplication
-#define PLC_OP_DIV            128        // 0b00000000010000000		  Division
+/**
+ * \def PLC_OP_DOUBLE
+ * \brief Flag for operations between doubles
+ */
+#define PLC_OP_DOUBLE       1           // 0b00000000000000001		  
 
-#define PLC_OP_FMA            256        // 0b00000000100000000		  Fused Multiply Add : a * b + c
-#define PLC_OP_FMS            512        // 0b00000001000000000		  Fused Multiply Sub : a * b - c
-#define PLC_OP_132            1024    // 0b00000010000000000		  Order of FMA/FMS : a * c + b
-#define PLC_OP_213            2048    // 0b00000100000000000		  Order of FMA/FMS : b * a + c
-#define PLC_OP_231            4096    // 0b00001000000000000		  Order of FMA/FMS : b * c + a
-#define PLC_OP_NEG            8192    // 0b00010000000000000		  Negated FMA/FMS
+/**
+ * \def PLC_OP_FLOAT
+ * \brief Flag for operations between floats
+ */
+#define PLC_OP_FLOAT        2           // 0b00000000000000010		  
 
-#define PLC_OP_128            16384   // 0b00100000000000000		  Operation between vectors of length 128
-#define PLC_OP_256            32768   // 0b01000000000000000		  Operation between vectors of length 256
-#define PLC_OP_512            65536   // 0b10000000000000000		  Operation between vectors of length 512
+/**
+ * \def PLC_OP_PACKED
+ * \brief Flag for operations between vectors
+ */
+#define PLC_OP_PACKED       4           // 0b00000000000000100
 
-#define PLC_OP_MASK            131056  // 0b11111111111110000		  Mask to get the Operation
-#define PLC_OP_TYPE_MASK    16368   // 0b00011111111110000		  Mask to get the type of the operation
-#define PLC_SIMD_TYPE_MASK  114688  // 0b11100000000000000		  Mask to get the type of SIMD
+/**
+ * \def PLC_OP_SCALAR
+ * \brief Flag for operations between scalars
+ */
+#define PLC_OP_SCALAR       8           // 0b00000000000001000		  
+
+/**
+ * \def PLC_OP_ADD
+ * \brief Flag for addition
+ */
+#define PLC_OP_ADD          16          // 0b00000000000010000		  
+
+/**
+ * \def PLC_OP_SUB
+ * \brief Flag for substraction
+ */
+#define PLC_OP_SUB          32          // 0b00000000000100000		
+
+/**
+ * \def PLC_OP_MUL
+ * \brief Flag for multiplication
+ */
+#define PLC_OP_MUL          64          // 0b00000000001000000		 
+
+/**
+ * \def PLC_OP_DIV
+ * \brief Flag for division
+ */
+#define PLC_OP_DIV          128         // 0b00000000010000000		  
+
+/**
+ * \def PLC_OP_FMA
+ * \brief Flag for fused Multiply Add : a * b + c
+ */
+
+#define PLC_OP_FMA          256        // 0b00000000100000000		  
+
+/**
+ * \def PLC_OP_FMS
+ * \brief Flag for fused Multiply Sub : a * b - c
+ */
+#define PLC_OP_FMS          512        // 0b00000001000000000		  
+
+/**
+ * \def PLC_OP_132
+ * \brief Flag for 132 order of FMA/FMS : a * c + b
+ */
+#define PLC_OP_132          1024       // 0b00000010000000000
+/**
+ * \def PLC_OP_213
+ * \brief Flag for 213 order of FMA/FMS : b * a + c
+ */
+#define PLC_OP_213          2048       // 0b00000100000000000		
+
+/**
+ * \def PLC_OP_231
+ * \brief Flag for 231 order of FMA/FMS : b * c + a
+ */
+#define PLC_OP_231          4096       // 0b00001000000000000		  
+
+/**
+ * \def PLC_OP_NEG
+ * \brief Flag for negated FMA/FMS
+ */
+#define PLC_OP_NEG          8192       // 0b00010000000000000		 
+
+/**
+ * \def PLC_OP_128
+ * \brief Flag for operations between vectors of length 128
+ */
+#define PLC_OP_128          16384      // 0b00100000000000000		  
+/**
+ * \def PLC_OP_256
+ * \brief Flag for operations between vectors of length 256
+ */
+#define PLC_OP_256          32768      // 0b01000000000000000	
+
+/**
+ * \def PLC_OP_512
+ * \brief Flag for operations between vectors of length 512
+ */
+#define PLC_OP_512          65536      // 0b10000000000000000		
+
+/**
+ * \def PLC_OP_MASK
+ * \brief Mask to get the operation
+ * \details Get information about the type of operation (add, sub ...) and the size of the operation (128 ...)
+ */
+#define PLC_OP_MASK         131056     // 0b11111111111110000		 
+
+/**
+ * \def PLC_OP_TYPE_MASK
+ * \details Get information about the type of operation (add, sub ...) and NOT the size of the operation (128 ...)
+ * \brief Mask to get the type of the operation. 
+ */
+#define PLC_OP_TYPE_MASK    16368      // 0b00011111111110000
+
+/**
+ * \def PLC_SIMD_TYPE_MASK
+ * \brief Get information about the size of the operation (128 ...) and NOT the type of operation (add, sub ...) 
+ */
+#define PLC_SIMD_TYPE_MASK  114688     // 0b11100000000000000		  
+
+/**
+ * \def PLC_OP_FUSED
+ * \brief Flag for fused operations, namely FMA and all the supported variations
+ */
 #define PLC_OP_FUSED        768        // 0b00000001100000000
 
-#define PLC_OP_SSE  131072     //0b0100000000000000000
-#define PLC_OP_AVX    262144     //0b1000000000000000000
+/**
+ * \def PLC_OP_SSE
+ * \brief Flag for SSE instructions
+ */
+#define PLC_OP_SSE          131072     // 0b0100000000000000000
 
-// For operations that are unsupported for the moment
+/**
+ * \def PLC_OP_AVX
+ * \brief Flag for instructions
+ */
+#define PLC_OP_AVX          262144     // 0b1000000000000000000
+
+/**
+ * \def PLC_OP_UNSUPPORTED
+ * \brief Flag for operations that are unsupported for the moment
+ */
 #define PLC_OP_UNSUPPORTED PLC_OP_OTHER
 
 /**
@@ -69,7 +187,7 @@ enum SIMD_CATEGORY{
 
 /**
  * \enum INSTR_CATEGORY
- * \brief This enum gives the length of operation we are modifying.
+ * \brief This enum gives the type of instruction we are modyfing.
  */
 enum INSTR_CATEGORY{
     PLC_SSE,
@@ -77,7 +195,7 @@ enum INSTR_CATEGORY{
 };
 
 /**
- * \enum INSTR_CATEGORY
+ * \enum OPERATION_CATEGORY
  * \brief This enum gathers all the possible operations we want to detect, as a combination of flags.
  */
 enum OPERATION_CATEGORY{

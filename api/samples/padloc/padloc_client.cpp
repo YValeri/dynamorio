@@ -9,6 +9,7 @@
  * \date 2019
  * \copyright Interflop
  */
+
 #include <cstdint>
 
 #include "padloc_client.h"
@@ -59,6 +60,9 @@
  */
 #define R(name) DR_REG_##name
 #if defined(X86) && defined(X64)
+    /**
+     * This array gathers all the GPR to save.
+     */
     static const reg_id_t GPR_ORDER[] = {R(NULL), R(XAX), R(XCX), R(XDX), R(XBX), R(XSP), R(XBP), R(XSI), R(XDI), R(R8), R(R9), R(R10), R(R11), R(R12), R(R13), R(R14), R(R15)};
     /**
      * \def NUM_GPR_SLOTS
@@ -67,14 +71,17 @@
      */
     #define NUM_GPR_SLOTS 17
 #elif defined(AArch64)
+    /**
+     * This array gathers all the GPR to save.
+     */
     static const reg_id_t GPR_ORDER[] = {
-        R(X0), R(X1), R(X2), R(X3), R(X4),
-        R(X5), R(X6), R(X7), R(X8), R(X9),
-        R(X10), R(X11), R(X12), R(X13), R(X14),
-        R(X15), R(X16), R(X17), R(X18), R(X19),
-        R(X20), R(X21), R(X22), R(X23), R(X24),
-        R(X25), R(X26), R(X27), R(X28), R(X29),
-        R(X30), R(X31)
+        R(NULL), R(X0), R(X1), R(X2), R(X3),
+        R(X4), R(X5), R(X6), R(X7), R(X8),
+        R(X9), R(X10), R(X11), R(X12), R(X13),
+        R(X14), R(X15), R(X16), R(X17), R(X18),
+        R(X19), R(X20), R(X21), R(X22), R(X23),
+        R(X24), R(X25), R(X26), R(X27), R(X28),
+        R(X29), R(X30), R(X31)
     }
     /**
      * \def NUM_GPR_SLOTS
@@ -86,9 +93,30 @@
 #undef R
 
 /**
- * tls_gpr is ...
+ * \def MINSERT
+ * \brief Code shortening macro, equivalent to instrlist_meta_preinsert
  */
-static int tls_gpr, tls_float, tls_result;
+#define MINSERT(bb, where, instr) instrlist_meta_preinsert(bb, where, instr)
+/**
+ * \def AINSERT
+ * \brief Code shortening macro, equivalent to translate_insert
+ */
+#define AINSERT(bb, where, instr) translate_insert(instr, bb, where)
+
+/**
+ * tls_gpr is TODO
+ */
+static int tls_gpr;
+
+/**
+ * This variable TODO
+ */
+static int tls_float;
+
+/**
+ * This variable TODO
+ */
+static int tls_result;
 
 void set_index_tls_gpr(int new_tls_value){
     tls_gpr = new_tls_value;
@@ -275,11 +303,11 @@ void insert_corresponding_vect_call(void *drcontext, instrlist_t *bb, instr_t *i
             }
             break;
         case PLC_OP_256:
-            dr_insert_call(drcontext, bb, instr, (void *)padloc_backend<FTYPE, Backend_function, PLC_AVX, PLC_OP_256>::apply,
+            dr_insert_call(drcontext, bb, instr, (void *)padloc_backend<FTYPE, Backend_function, PLC_OP_AVX, PLC_OP_256>::apply,
                            0);
             break;
         case PLC_OP_512:
-            dr_insert_call(drcontext, bb, instr, (void *)padloc_backend<FTYPE, Backend_function, PLC_AVX, PLC_OP_512>::apply,
+            dr_insert_call(drcontext, bb, instr, (void *)padloc_backend<FTYPE, Backend_function, PLC_OP_AVX, PLC_OP_512>::apply,
                            0);
             break;
         default: /*SCALAR */
@@ -402,17 +430,6 @@ void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CAT
         }
     }
 }
-
-/**
- * \def MINSERT
- * \brief Code shortening macro, equivalent to instrlist_meta_preinsert
- */
-#define MINSERT(bb, where, instr) instrlist_meta_preinsert(bb, where, instr)
-/**
- * \def AINSERT
- * \brief Code shortening macro, equivalent to translate_insert
- */
-#define AINSERT(bb, where, instr) translate_insert(instr, bb, where)
 
 /**
  * \brief Save the GPR and arithmetic flags

@@ -1,19 +1,49 @@
 /**
  * \file symbol_config.cpp
- * \brief Library Manipulation API Sample, part of the Padloc project.
+ * \brief Symbol instrumentation source file. Part of the PADLOC project.
+ * 
+ * \details This file contains the functions that allows the instrumentation
+ * of particular symbols and modules, represented by the management of
+ * whitelist and blacklist, as described below :
+ * \par
+ * - Whitelist only -> modules_vector contains the modules and symbols
+ * instrumented :
+ *   - all_symbols = true means whole module, 
+ *   - all_symbols = false means only the symbols in this module in the symbols
+ *   vector
+ * \par
+ * - Blacklist only -> modules_vector contains the modules and symbols
+ * we shouldn't instrument :
+ *   - all_symbols = true means whole module
+ *   - all_symbols = false means only the symbols in this module in the symbols
+ *   vector
+ * \par
+ * - Blacklist + Whitelist -> modules_vector contains the modules and
+ * symbols we should instrument :
+ *   - all_symbols = true means instrument the whole module EXCEPT the symbols
+ *   in the symbols vector
+ *   - all_symbols = false means instrument ONLY the symbols in the symbols
+ *   vector
  * 
  * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
  * \date 2019
- * \copyright Interflop 
+ * \copyright Interflop
+ * 
+ * \todo The modules_vector can contain symbols with a wildcard, so we
+ * have to manage that.
+ * \todo If multiple whitelist/blacklists are given, concatene the vectors
+ * instead of just taking the last one in the command line.
  */
+
+#include <fstream>
+#include <algorithm>
 
 #include "dr_api.h"
 #include "dr_defines.h"
 #include "drsyms.h"
+
 #include "symbol_config.hpp"
 #include "utils.hpp"
-#include <fstream>
-#include <algorithm>
 
 using namespace std;
 
@@ -27,25 +57,44 @@ static void parse_line(string line, bool parsing_whitelist);
 
 static void load_lookup_from_modules_vector();
 
+/**
+ * symbol_file est TODO
+ */
 static ofstream symbol_file;
-static ifstream blacklist, whitelist;
-static std::string blacklist_filename, whitelist_filename;
 
-/*Note:
-TODO : the modules_vector can contain symbols with a wildcard
-whitelist only : modules_vector contains the modules and symbols instrumented, 
-    all_symbols = true means whole module, 
-    all_symbols = false means only the symbols in this module in the symbols vector
-blacklist only : modules_vector contains the modules and symbols we shouldn't instrument, 
-    all_symbols = true means whole module
-    all_symbols = false means only the symbols in this module in the symbols vector
-blacklist + whitelist : modules_vector contains the modules and symbols we should instrument
-    all_symbols = true means instrument the whole module EXCEPT the symbols in the symbols vector
-    all_symbols = false means instrument ONLY the symbols in the symbols vector
-*/
+/**
+ * blacklist est TODO
+ */
+static ifstream blacklist;
+
+/**
+ * whitelist est TODO
+ */
+static ifstream whitelist;
+
+/**
+ * blacklist_filename est TODO
+ */
+static std::string blacklist_filename;
+
+/**
+ * whitelist_filename est TODO
+ */
+static std::string whitelist_filename;
+
+/**
+ * blacklist_filename est TODO
+ */
 static vector<module_entry> modules_vector;
+
+/**
+ * lookup_vector est TODO
+ */
 static vector<lookup_entry_t> lookup_vector;
 
+/**
+ * whitelist_parsed est TODO
+ */
 static bool whitelist_parsed = false;
 
 void print_lookup(){
@@ -57,13 +106,13 @@ void print_lookup(){
     }
 }
 
-
-
-/* ### UTILITIES ### */
-
-
 /**
- * \brief Returns the index of \elem, \p vec .size() if it's not found
+ * \brief Search through a vector if a particular element is present
+ * 
+ * \tparam T The type of the vector and element to search
+ * \param vec The vector to run through
+ * \param elem The element to search for
+ * \return The index of the element if present, else the size of the vector
  */
 template<typename T>
 static inline size_t vec_idx_of(vector<T, allocator<T>> vec, T elem){
@@ -78,8 +127,11 @@ static inline size_t vec_idx_of(vector<T, allocator<T>> vec, T elem){
 }
 
 /**
- * \brief Returns true if we need to clear the entry
- * Clears the symbols if it's only what we need to clear
+ * \brief TODO
+ * \details [long description]
+ * 
+ * \param entry [description]
+ * \return [description]
  */
 static bool need_cleanup_module(module_entry &entry){
     if(entry.all_symbols && get_symbol_mode() != PLC_SYMBOL_BL_WL){
@@ -121,7 +173,15 @@ void write_symbols_to_file(){
 }
 
 /**
- * \brief Return the name of the symbol in \p module associated with the address \p intr_pc
+ * \brief Return the name of the symbol in module associated with the address intr_pc
+ * \details TODO
+ * 
+ * \param module The module to run through
+ * \param intr_pc The app_pc of the symbol we want the name
+ * 
+ * \return The name of the symbol if found, else the empty string 
+ * 
+ * \warning expliquer le problème avec le true et drsym_module_has_symbols en dessous
  */
 static string get_symbol_name(module_data_t *module, app_pc intr_pc){
     string name;
@@ -223,6 +283,9 @@ void log_symbol(instrlist_t *ilist){
 
 /**
  * \brief Loads the module into the lookup if it doesn't exist in it
+ * \details TODO expliquer plus, parce que load the module into the lookup, pas compris
+ * 
+ * \param module TODO
  */
 static void lookup_or_load_module(const module_data_t *module){
     //If we find the module in the lookup, we don't need to load it
@@ -281,8 +344,12 @@ static void lookup_or_load_module(const module_data_t *module){
 }
 
 /**
- * This function takes the modules vector (assuming it's loaded already), and converts it into the lookup vector
- * If the module can't be found by name, it will be loaded in when DynamoRIO loads it in memory
+ * \brief Convert a module vector to a lookup vector
+ * \details This function takes the modules vector (assuming it's 
+ * loaded already), and converts it into the lookup vector.
+ * If the module can't be found by name, it will be loaded in when DynamoRIO loads it in memory.
+ * TODO peut-être expliquer un peu plus
+ * TODO : change to begin(...) -----> ça je sais pas ce que c'est
  */
 static void load_lookup_from_modules_vector(){
     //TODO : change to begin(...)
@@ -341,6 +408,15 @@ bool needs_to_instrument(instrlist_t *ilist){
 
 /* ### FILE PARSING ### */
 
+/**
+ * \brief Parse a string in order to check for symbol and module to
+ * instrument.d
+ * \details TODO
+ * 
+ * \param line The string to parse
+ * \param parsing_whitelist Boolean telling if we are parsing a whitelist
+ * or not.
+ */
 static void parse_line(string line, bool parsing_whitelist){
     DR_ASSERT_MSG(parsing_whitelist || (get_symbol_mode() == PLC_SYMBOL_BL_ONLY || whitelist_parsed),
                   "Wrong parsing order for blacklist/whitelist");
@@ -420,6 +496,13 @@ static void parse_line(string line, bool parsing_whitelist){
     }
 }
 
+/**
+ * \brief Generates from an input file conresponding to a blacklist
+ * the list of symbols and modules we don't want to instrument.
+ * \details TODO
+ * 
+ * \param blacklist The input file corresponding to the blacklist
+ */
 static void generate_blacklist_from_file(ifstream &blacklist){
     string buffer;
     if(blacklist.is_open()){
@@ -438,6 +521,14 @@ static void generate_blacklist_from_file(ifstream &blacklist){
     modules_vector.erase(end, modules_vector.end());
 }
 
+/**
+ * \brief Generates from an input file conresponding to a whitelist
+ * the list of symbols and modules we don't want to instrument.
+ * \details TODO
+ * 
+ * \param whitelist The input file corresponding to the whitelist
+ * \param blacklist The input file corresponding to the blacklist
+ */
 static void generate_whitelist_from_files(ifstream &whitelist, ifstream &blacklist){
     string buffer;
     if(whitelist.is_open() && !whitelist.bad() && (!blacklist.is_open() || !blacklist.bad())){
@@ -467,11 +558,27 @@ static void generate_whitelist_from_files(ifstream &whitelist, ifstream &blackli
     modules_vector.erase(end, modules_vector.end());
 }
 
+/**
+ * \brief Generates from an input file conresponding to a whitelist
+ * the list of symbols and modules we don't want to instrument.
+ * \details TODO
+ * 
+ * \param whitelist The input file corresponding to the whitelist
+ */
 static void generate_whitelist_from_file(ifstream &whitelist){
     ifstream bl;
     generate_whitelist_from_files(whitelist, bl);
 }
 
+/**
+ * \brief TODO
+ * \details [long description]
+ * 
+ * \param pc [description]
+ * \param lookup_type [description]
+ * 
+ * \return [description]
+ */
 static lookup_entry_t *lookup_find(app_pc pc, plc_lookup_type_t lookup_type){
     for(auto &i : lookup_vector){
         if(i.contains(pc, lookup_type)){
@@ -482,6 +589,17 @@ static lookup_entry_t *lookup_find(app_pc pc, plc_lookup_type_t lookup_type){
     return nullptr;
 }
 
+/**
+ * \brief Called when a whitelist argument is detected in the command line
+ * \details If a whitelist argument is detected, we check the next argument
+ * exists and set whitelist_filename to this argument, then jump to the
+ * following argument in the command line.
+ * 
+ * \param i The current index of the command line
+ * \param argc The number of arguments of the command line
+ * \param argv The command line arguments
+ * \return True if a problem occured and the parsing must stop, else false.
+ */
 static bool WL_argument_detected(int i, int argc, const char *argv[]){
     //If we have a blacklist
     if(get_symbol_mode() == PLC_SYMBOL_BL_ONLY ||
@@ -491,7 +609,7 @@ static bool WL_argument_detected(int i, int argc, const char *argv[]){
         set_symbol_mode(PLC_SYMBOL_WL_ONLY);
     }
 
-    //If the filename is precised
+    //If the filename is given
     if(i < argc){
         whitelist_filename = argv[i];
         return false;
@@ -503,6 +621,17 @@ static bool WL_argument_detected(int i, int argc, const char *argv[]){
     return true;
 }
 
+/**
+ * \brief Called when a blacklist argument is detected in the command line
+ * \details If a blacklist argument is detected, we check the next argument
+ * exists and set blacklist_filename to this argument, then jump to the
+ * following argument in the command line.
+ * 
+ * \param i The current index of the command line
+ * \param argc The number of arguments of the command line
+ * \param argv The command line arguments
+ * \return True if a problem occured and the parsing must stop, else false.
+ */
 static bool BL_argument_detected(int i, int argc, const char *argv[]){
     //If we have a blacklist
     if(get_symbol_mode() == PLC_SYMBOL_WL_ONLY ||
@@ -512,7 +641,7 @@ static bool BL_argument_detected(int i, int argc, const char *argv[]){
         set_symbol_mode(PLC_SYMBOL_BL_ONLY);
     }
 
-    //If the filename is precised
+    //If the filename is given
     if(i < argc){
         blacklist_filename = argv[i];
         return false;
@@ -524,6 +653,16 @@ static bool BL_argument_detected(int i, int argc, const char *argv[]){
     return true;
 }
 
+/**
+ * \brief Called when a generate argument is detected in the command line
+ * \details If a generate argument is detected, we check the next argument
+ * exists and open symbol_file with that string, assumed to be a file.
+ * 
+ * \param i The current index of the command line
+ * \param argc The number of arguments of the command line
+ * \param argv The command line arguments
+ * \return True if a problem occured and the parsing must stop, else false.
+ */
 static bool G_argument_detected(int i, int argc, const char *argv[]){
     if(i < argc){
         symbol_file.open(argv[i]);
@@ -542,9 +681,13 @@ static bool G_argument_detected(int i, int argc, const char *argv[]){
     return true;
 }
 
+/**
+ * \brief If the symbol mode isn't set to GENERATE, continue parsing
+ * 
+ * \return True if the symbol mode isn't PLC_SYMBOL_GENERATE
+ */
 static bool symbol_should_continue_parsing(){
-    return get_symbol_mode() != PLC_SYMBOL_HELP &&
-           get_symbol_mode() != PLC_SYMBOL_GENERATE;
+    return get_symbol_mode() != PLC_SYMBOL_GENERATE;
 }
 
 bool symbol_argument_parser(std::string arg, int *i, int argc, const char *argv[]){

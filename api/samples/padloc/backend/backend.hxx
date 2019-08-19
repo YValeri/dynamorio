@@ -1,4 +1,12 @@
-
+/**
+ * \file backend.hxx
+ * \brief Library Manipulation API Sample, part of the Padloc project  
+ * \details The files contains the implementation of overloaded operations, namely add, sub, mul, div, fmadd, fmsub.
+ * 
+ * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
+ * \date 2019
+ * \copyright Interflop 
+ */
 
 #ifndef BACKEND_INTERFLOP
 #define BACKEND_INTERFLOP
@@ -7,6 +15,9 @@
 
 namespace Interflop {
 
+    /**
+     * \brief Information about verrou configuration
+     */
     static void *verrou_context;
 
     /**
@@ -28,17 +39,25 @@ namespace Interflop {
     /**
      * \brief Class containing the implementations of the overloaded operations : add, sub, mul, div, fmadd, fmsub
      * The operations are defined for IEEE-754 single and double precision binary formats
+     * \tparam PREC Floating Point precision
      */
     template<typename PREC>
     class Op{
     };
 
+     /**
+     * \brief Class containing the implementations of the overloaded operations : add, sub, mul, div, fmadd, fmsub in DOUBLE precision
+     * \tparam PREC Floating Point precision
+     */
     template<>
     struct Op<double>{
         
         /**
-         * \brief add double precision
-         * Redirection to verrou implementation
+         * \brief add double precision : a+b
+         * \details Redirection to verrou implementation
+         * 
+         * \param a First operand
+         * \param b Second operand
          */
         static double add(double a, double b){
             double res;
@@ -47,8 +66,11 @@ namespace Interflop {
         }
 
         /**
-         * \brief sub double precision
-         * Redirection to verrou implementation
+         * \brief sub double precision : a-b
+         * \details Redirection to verrou implementation
+         * 
+         * \param a First operand
+         * \param b Second operand
          */
         static double sub(double a, double b){
             double res;
@@ -57,8 +79,11 @@ namespace Interflop {
         }
 
         /**
-         * \brief mul double precision
-         * Redirection to verrou implementation
+         * \brief mul double precision : a*b
+         * \details Redirection to verrou implementation
+         * 
+         * \param a First operand
+         * \param b Second operand
          */
         static double mul(double a, double b){
             double res;
@@ -67,8 +92,11 @@ namespace Interflop {
         }
 
         /**
-         * \brief div double precision
-         * Redirection to verrou implementation
+         * \brief div double precision : a/b
+         * \details Redirection to verrou implementation
+         * 
+         * \param a First operand
+         * \param b Second operand
          */
         static double div(double a, double b){
             double res;
@@ -77,8 +105,12 @@ namespace Interflop {
         }
 
         /**
-         * \brief fmadd double precision
-         * if USE_VERROU_FMA is defined then the verrou fmadd function is called. Otherwise, use a combination of verrou_add and verrou_mul
+         * \brief fmadd double precision : a*b+c
+         * \details if USE_VERROU_FMA is defined then the verrou fmadd function is called. Otherwise, use a combination of verrou_add and verrou_mul
+         * 
+         * \param a First operand
+         * \param b Second operand
+         * \param c Third operand
          */
         static double fmadd(double a, double b, double c){
             double res;
@@ -96,8 +128,12 @@ namespace Interflop {
         
 
         /**
-         * \brief fmsub double precision
-         * if USE_VERROU_FMA is defined then the verrou madd function is called. Otherwise, use a combination of verrou_sub and verrou_mul
+         * \brief fmsub double precision : a*b-c
+         * \details if USE_VERROU_FMA is defined then the verrou madd function is called. Otherwise, use a combination of verrou_sub and verrou_mul
+         * 
+         * \param a First operand
+         * \param b Second operand
+         * \param c Third operand
          */
         static double fmsub(double a, double b, double c){
             double res;
@@ -114,8 +150,12 @@ namespace Interflop {
         }
         
          /**
-         * \brief nfmadd double precision
-         * if USE_VERROU_FMA is defined then the verrou madd function is called. Otherwise, use a combination of verrou_add and verrou_mul
+         * \brief nfmadd double precision : -(a*b)+c
+         * \details if USE_VERROU_FMA is defined then the verrou madd function is called. Otherwise, use a combination of verrou_add and verrou_mul
+         * 
+         * \param a First operand
+         * \param b Second operand
+         * \param c Third operand
          */
         static double nfmadd(double a, double b, double c){
             double res;
@@ -132,8 +172,12 @@ namespace Interflop {
 
 
          /**
-         * \brief nfmsub double precision
-         * if USE_VERROU_FMA is defined then the verrou madd function is called. Otherwise, use a combination of verrou_sub and verrou_mul
+         * \brief nfmsub double precision : -(a*b)-c
+         * \details if USE_VERROU_FMA is defined then the verrou madd function is called. Otherwise, use a combination of verrou_sub and verrou_mul
+         * 
+         * \param a First operand
+         * \param b Second operand
+         * \param c Third operand
          */
         static double nfmsub(double a, double b, double c){
             double res;
@@ -150,13 +194,19 @@ namespace Interflop {
         }
     };
 
-
+    /**
+     * \brief Class containing the implementations of the overloaded operations : add, sub, mul, div, fmadd, fmsub in SINGLE precision
+     * \tparam PREC Floating Point precision
+     */
     template<>
     struct Op<float>{
 
         /**
-         * \brief add single precision
-         * Redirection to verrou implementation
+         * \brief add single precision : a+b
+         * \details Redirection to verrou implementation
+         * 
+         * \param a First operand
+         * \param b Second operand
          */
         static float add(float a, float b){
             float res;
@@ -165,8 +215,11 @@ namespace Interflop {
         }
 
          /**
-         * \brief sub single precision
-         * Redirection to verrou implementation
+         * \brief sub single precision : a-b
+         * \details Redirection to verrou implementation
+         * 
+         * \param a First operand
+         * \param b Second operand
          */
         static float sub(float a, float b){
             float res;
@@ -175,8 +228,11 @@ namespace Interflop {
         }
 
          /**
-         * \brief mul single precision
-         * Redirection to verrou implementation
+         * \brief mul single precision : a*b
+         * \details Redirection to verrou implementation
+         * 
+         * \param a First operand
+         * \param b Second operand
          */
         static float mul(float a, float b){
             float res;
@@ -185,8 +241,12 @@ namespace Interflop {
         }
 
          /**
-         * \brief div single precision
-         * Redirection to verrou implementation
+         * \brief div single precision : a/b
+         * \details Redirection to verrou implementation
+         * 
+         * \param a First operand
+         * \param b Second operand
+         * 
          */
         static float div(float a, float b){
             float res;
@@ -195,8 +255,12 @@ namespace Interflop {
         }
 
         /**
-         * \brief fmadd single precision
-         * if USE_VERROU_FMA is defined then the verrou fmadd function is called. Otherwise, use a combination of verrou_add and verrou_mul
+         * \brief fmadd single precision : a*b+c
+         * \details if USE_VERROU_FMA is defined then the verrou fmadd function is called. Otherwise, use a combination of verrou_add and verrou_mul
+         * 
+         * \param a First operand
+         * \param b Second operand
+         * \param c Third operand
          */
         static float fmadd(float a, float b, float c){
             float res;
@@ -213,8 +277,12 @@ namespace Interflop {
         }
 
         /**
-         * \brief fmsub single precision
-         * if USE_VERROU_FMA is defined then the verrou fmadd function is called. Otherwise, use a combination of verrou_sub and verrou_mul
+         * \brief fmsub single precision : a*b-c
+         * \details if USE_VERROU_FMA is defined then the verrou fmadd function is called. Otherwise, use a combination of verrou_sub and verrou_mul
+         * 
+         * \param a First operand
+         * \param b Second operand
+         * \param c Third operand
          */
         static float fmsub(float a, float b, float c){
             float res;
@@ -231,8 +299,12 @@ namespace Interflop {
         }
 
         /**
-         * \brief nfmadd single precision
-         * if USE_VERROU_FMA is defined then the verrou fmadd function is called. Otherwise, use a combination of verrou_add and verrou_mul
+         * \brief nfmadd single precision : -(a*b)+c
+         * \details if USE_VERROU_FMA is defined then the verrou fmadd function is called. Otherwise, use a combination of verrou_add and verrou_mul
+         * 
+         * \param a First operand
+         * \param b Second operand
+         * \param c Third operand
          */
         static float nfmadd(float a, float b, float c){
             float res;
@@ -248,8 +320,12 @@ namespace Interflop {
         }
         
         /**
-         * \brief nfmsub single precision
-         * if USE_VERROU_FMA is defined then the verrou fmadd function is called. Otherwise, use a combination of verrou_sub and verrou_mul
+         * \brief nfmsub single precision : -(a*b)-c
+         * \details if USE_VERROU_FMA is defined then the verrou fmadd function is called. Otherwise, use a combination of verrou_sub and verrou_mul
+         * 
+         * \param a First operand
+         * \param b Second operand
+         * \param c Third operand
          */
         static float nfmsub(float a, float b, float c){
             float res;
