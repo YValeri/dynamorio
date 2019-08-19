@@ -88,7 +88,7 @@ std::vector<reg_id_t> get_all_registers(){
 }
 
 /**
- * \brief Helper function to print a certain number of \t, used as way to
+ * \brief Helper function to print a certain number of tabs, used as way to
  * know when we follow a call through
  * 
  * \param tabs The number of tabs

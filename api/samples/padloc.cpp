@@ -1,10 +1,15 @@
 /**
- * \file
- * \brief DynamoRIO client developped in the scope of INTERFLOP project 
- * 
- * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
+ * \file padloc.cpp
+ * \brief DynamoRIO client developped in the scope of INTERFLOP project
+ * \details This file is the sample that DynamoRIO uses to access to our
+ * modifications. It is the entry point to the whole PADLOC project.
+ * As such, to use this sample on your binary, the simplest command line
+ * to use is :
+ * "drrun -c api/samples/libpadloc.so -- path/to/binary"
+ *
+ * \author Dylan Brasseur, Mickaël Teaudors, Yoann Valeri
  * \date 2019
- * \copyright Interflop 
+ * \copyright Interflop
  */
 
 #include "dr_api.h"
