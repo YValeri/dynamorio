@@ -91,7 +91,7 @@ typedef struct _symbol_entry_t{
  * \struct lookup_entry_t
  * \brief Structure holding a module and its symbols for lookup purposes
  */
-typedef class _lookup_entry_t{
+typedef struct _lookup_entry_t{
     /**
      * \brief Returns true if the module contains the given address
      *
