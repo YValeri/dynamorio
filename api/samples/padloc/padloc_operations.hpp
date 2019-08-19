@@ -23,6 +23,7 @@
  * The other flags are masks to easily detect the operation, the type and the SIMD size.
 */
 
+
 #define PLC_OP_OTHER        0           // 0b00000000000000000		  Other operations, those that don't concern us
 #define PLC_OP_DOUBLE        1        // 0b00000000000000001		  Operation between doubles
 #define PLC_OP_FLOAT        2        // 0b00000000000000010		  Operation between floats
