@@ -188,6 +188,7 @@ enum SIMD_CATEGORY{
 /**
  * \enum INSTR_CATEGORY
  * \brief This enum gives the type of instruction we are modyfing.
+ */
 enum INSTR_CATEGORY{
     PLC_SSE,
     PLC_AVX,

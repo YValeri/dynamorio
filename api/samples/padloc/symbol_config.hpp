@@ -3,7 +3,7 @@
 
 /**
  * \file symbol_config.hpp
- * \brief Library Manipulation API Sample, part of the Padloc project.
+ * \brief Symbol instrumentation header. Part of the PADLOC project.
  * 
  * \author Brasseur Dylan, Teaudors Mickaël, Valeri Yoann
  * \date 2019
@@ -27,6 +27,8 @@ typedef enum{
  * \struct module_entry
  * \brief Structure holding informations on a module, 
  * used for the whitelist and blacklist before further processing
+ * 
+ * TODO virer _module_entry
  */
 typedef struct _module_entry{
     inline _module_entry(const std::string &mod_name, const bool all) : module_name(mod_name), all_symbols(all){
@@ -47,6 +49,8 @@ typedef struct _module_entry{
 /**
  * \struct addr_range_t
  * \brief Structure of a range of app_pc
+ * 
+ * TODO virer _addr_range_t
  */
 typedef struct _addr_range_t{
     inline _addr_range_t() : start(0), end(0){
@@ -75,6 +79,8 @@ typedef struct _addr_range_t{
 /**
  * \struct symbol_entry_t
  * \brief Structure holding a symbol
+ * 
+ * TODO virer _symbol_entry_t
  */
 typedef struct _symbol_entry_t{
     inline bool contains(app_pc pc) const{
@@ -90,6 +96,8 @@ typedef struct _symbol_entry_t{
 /**
  * \struct lookup_entry_t
  * \brief Structure holding a module and its symbols for lookup purposes
+ * 
+ * TODO virer _lookup_entry_t
  */
 typedef struct _lookup_entry_t{
     /**
@@ -157,30 +165,48 @@ typedef struct _lookup_entry_t{
 } lookup_entry_t;
 
 /**
- * \brief Returns true if \p ilist has to be instrumented
+ * \brief TODO
+ * \details [long description]
  */
-bool needs_to_instrument(instrlist_t *ilist);
+void print_lookup();
 
 /**
- * \brief Logs the symbol associated with \p ilist to the modules vector
- */
-void log_symbol(instrlist_t *ilist);
-
-/**
- * \brief Writes the symbols held by the modules vector to the output file (defined by the command line argument)
- * 
+ * \brief Writes the symbols held by the modules vector to the output file
+ * (defined by the command line argument)
+ * \details TODO
  */
 void write_symbols_to_file();
 
 /**
+ * \brief Logs the symbol associated with ilist to the modules vector
+ * \details TODO
+ * 
+ * \param ilist TODO
+ */
+void log_symbol(instrlist_t *ilist);
+
+/**
  * \brief Returns true if the module passed by \p module should be instrumented
+ */
+/**
+ * \brief Verify that we want to instrument a particular module
+ * \details This function verifies, based on the current state of the client
+ * (changed by the command line option), if we want to instrument a module
+ * or not.
+ * 
+ * \param module The module we may want to instrument
+ * \return True if the module should be instrumented, else false
  */
 bool should_instrument_module(const module_data_t *module);
 
 /**
- * \brief DEBUG_ONLY
+ * \brief Verify if we want to instrument the list of instructions ilist
+ * \details TODO
+ * 
+ * \param ilist The list of instructions we may want to instrument
+ * \return True if ilist has to be instrumented, else false
  */
-void print_lookup();
+bool needs_to_instrument(instrlist_t *ilist);
 
 /**
  * \brief Symbol analyser plugin's parser
