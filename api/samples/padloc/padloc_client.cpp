@@ -191,6 +191,15 @@ inline int offset_of_simd(reg_id_t simd){
 template<typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE), int INSTR_CATEGORY, int SIMD_TYPE = PLC_OP_SCALAR>
 struct padloc_backend{
 
+    /**
+     * \brief Apply the backend function corresponding to the current overloaded instruction scalarly over the source operands
+     * 
+     * \details Determine the number of scalar element involved in the operation and apply the corresponding backend function over each of them. \n
+     * If the overloaded instruction is AVX, set the high part of YMM with 0.
+     * 
+     * \param vect_a Memory reference to the first operand
+     * \param vect_b Memory reference to the second operand 
+     */
     static void apply(FTYPE *vect_a, FTYPE *vect_b){
 
         static const int operation_size =   (SIMD_TYPE == PLC_OP_128) ? 16 : (SIMD_TYPE == PLC_OP_256) ? 32 :
@@ -240,6 +249,16 @@ struct padloc_backend{
 template<typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE), int INSTR_CATEGORY, int SIMD_TYPE = PLC_OP_SCALAR>
 struct padloc_backend_fused{
 
+     /**
+     * \brief Apply the backend function corresponding to the current overloaded instruction scalarly over the source operands
+     * 
+     * \details Determine the number of scalar element involved in the operation and apply the corresponding backend function over each of them. \n
+     * If the overloaded instruction is AVX, set the high part of YMM with 0.
+     * 
+     * \param vect_a Memory reference to the first operand
+     * \param vect_b Memory reference to the second operand 
+     * \param vect_c Memory reference to the third operand 
+     */
     static void apply(FTYPE *vect_a, FTYPE *vect_b, FTYPE *vect_c){
 
         static const int vect_size =  (SIMD_TYPE == PLC_OP_128) ? 16 : (SIMD_TYPE == PLC_OP_256) ? 32
