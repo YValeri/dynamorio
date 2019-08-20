@@ -21,7 +21,8 @@
 
 /**
  * \brief Get the flag corresponding to the size of the operands
- * \details [long description]
+ * \details This allows us to distinguish between instructions who have the same opcode
+ * but different operand sizes
  * 
  * \param instr Instrumented instruction
  * \return [description]

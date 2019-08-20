@@ -67,7 +67,7 @@
     /**
      * \def NUM_GPR_SLOTS
      * \brief Gives the number of GPR on a specific architecture.
-     * \details Currently, we save 17 registers for X86, and 31 for AArch64.
+     * \details Currently, we save 16 registers for X86 (1 slot to save the arithmetic flags), and 31 for AArch64.
      */
     #define NUM_GPR_SLOTS 17
 #elif defined(AArch64)
@@ -86,7 +86,7 @@
     /**
      * \def NUM_GPR_SLOTS
      * \brief Gives the number of GPR on a specific architecture.
-     * \details Currently, we save 17 registers for X86, and 31 for AArch64.
+     * \details Currently, we save 16 registers for X86 (1 slot to save the arithmetic flags), and 31 for AArch64.
      */
     #define NUM_GPR_SLOTS 32
 #endif
