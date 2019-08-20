@@ -12,12 +12,16 @@ divtest.out: divtest.cpp
 
 matmul_blas.out: matmul_blas.cpp
 	$(CC) -o matmul_blas.out matmul_blas.cpp -lopenblas -O3 -march=native
+	
+test_instructions_scalar.out: test_instructions.h test_instructions_scalar.cpp
+	$(CC) -o test_instructions_scalar_sse.out test_instructions_scalar.cpp -msse -O3
+	$(CC) -o test_instructions_scalar_avx.out test_instructions_scalar.cpp -mavx -O3	
 
-test_instructions_sse.out: test_instructions.h test_instructions_sse.cpp
-	$(CC) -o test_instructions_sse.out test_instructions_sse.cpp -msse -O3
+test_instructions_vect_sse.out: test_instructions.h test_instructions_vect_sse.cpp
+	$(CC) -o test_instructions_vect_sse.out test_instructions_vect_sse.cpp -msse -O3
 
-test_instructions_avx.out: test_instructions.h test_instructions_avx.cpp
-	$(CC) -o test_instructions_avx.out test_instructions_avx.cpp -mavx -O3
+test_instructions_vect_avx.out: test_instructions.h test_instructions_vect_avx.cpp
+	$(CC) -o test_instructions_vect_avx.out test_instructions_vect_avx.cpp -mavx -O3
 
 test_instructions_fma.out: test_instructions.h test_instructions_fma.cpp
 	$(CC) -o test_instructions_fma.out test_instructions_fma.cpp -mfma -O3
@@ -32,4 +36,4 @@ test_parallel.out: test_parallel.cpp
 .PHONY: clean
 
 clean:
-	rm $(OUT)
+	rm ./*.out

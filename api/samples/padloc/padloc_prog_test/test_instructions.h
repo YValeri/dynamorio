@@ -47,13 +47,17 @@ __m128d v_res_d_sse;
 __m256  v_res_f_avx;
 __m256d v_res_d_avx;
 
+const char * tabs = "\t\t\t\t";
+const char * tabd = "\t\t\t\t\t\t\t\t\t\t";
+
 
 template <typename FTYPE>
 void print(FTYPE *values , int nb_values, const char *name) {
     std::cout << name << " : ";
     for(int i = 0 ; i < nb_values ; i++) {
-        std::cout << values[i] << "\t\t";
+        std::cout << std::fixed << values[i] << "\t\t";
     }
+    std::cout << (sizeof(FTYPE) == 8 ? tabd : tabs);
 }
 
 
