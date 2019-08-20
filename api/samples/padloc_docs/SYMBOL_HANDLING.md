@@ -32,8 +32,8 @@ Mod4
 ~~~~
 and the blacklist contains :
 ~~~~
-Mod1!sym1
-Mod2!sym2
+Mod1!Sym1
+Mod2!Sym2
 Mod3
 Mod4
 Mod5

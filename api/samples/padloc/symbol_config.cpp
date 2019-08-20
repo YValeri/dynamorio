@@ -29,8 +29,7 @@
  * \date 2019
  * \copyright Interflop
  * 
- * \todo The modules_vector can contain symbols with a wildcard, so we
- * have to manage that.
+ * \todo Allow for wildcards in the whitelist and the blacklist
  * \todo If multiple whitelist/blacklists are given, concatene the vectors
  * instead of just taking the last one in the command line.
  */
