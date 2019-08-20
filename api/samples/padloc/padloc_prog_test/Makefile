@@ -7,8 +7,8 @@ all: $(OUT)
 commutativity.out: commutativity.cpp
 	$(CC) -o commutativity.out commutativity.cpp -O3
 
-divtest.out: divtest.cpp
-	$(CC) -o divtest.out divtest.cpp -O3 -masm=intel
+operand_order.out: operand_order.cpp
+	$(CC) -o operand_order.out operand_order.cpp -O3 -masm=intel
 
 matmul_blas.out: matmul_blas.cpp
 	$(CC) -o matmul_blas.out matmul_blas.cpp -lopenblas -O3 -march=native

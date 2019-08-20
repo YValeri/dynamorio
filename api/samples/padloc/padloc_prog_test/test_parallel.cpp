@@ -45,10 +45,7 @@ int main(int argc , char *argv[]) {
         a[2] >= 15.23-EPSILLON && a[2] <= 15.23+EPSILLON && 
         a[3] >= 99.44-EPSILLON && a[3] <= 99.44+EPSILLON) 
 
-        std::cout << "\t\t\033[1;32m[ OK ]\033[0m\n"; else std::cout  << "\t\t\033[1;31m[ KO ]\033[0m\n";
+    std::cout << "\t\t\033[1;32m[ OK ]\033[0m\n"; else std::cout  << "\t\t\033[1;31m[ KO ]\033[0m\n";
     
-
-
-
     return 123456;
 }
