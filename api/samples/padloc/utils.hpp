@@ -35,9 +35,9 @@
  */
 typedef enum{
     /** Default */
-	PLC_SYMBOL_DEFAULT,
+	PLC_SYMBOL_DEFAULT = 0,
     /** Don't look at symbols */
-    PLC_SYMBOL_NOLOOKUP,
+    PLC_SYMBOL_NOLOOKUP = 0,
     /** Generate the symbols from an execution */
     PLC_SYMBOL_GENERATE,
     /** Don't instrument the symbols in the blacklist */
