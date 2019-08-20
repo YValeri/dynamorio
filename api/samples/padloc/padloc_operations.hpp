@@ -92,18 +92,18 @@
 
 /**
  * \def PLC_OP_132
- * \brief Flag for 132 order of FMA/FMS : a * c + b
+ * \brief Flag for 132 order of FMA/FMS : a * c (+|-) b
  */
 #define PLC_OP_132          1024       // 0b00000010000000000
 /**
  * \def PLC_OP_213
- * \brief Flag for 213 order of FMA/FMS : b * a + c
+ * \brief Flag for 213 order of FMA/FMS : b * a (+|-) c
  */
 #define PLC_OP_213          2048       // 0b00000100000000000		
 
 /**
  * \def PLC_OP_231
- * \brief Flag for 231 order of FMA/FMS : b * c + a
+ * \brief Flag for 231 order of FMA/FMS : b * c (+|-) a
  */
 #define PLC_OP_231          4096       // 0b00001000000000000		  
 
@@ -139,14 +139,15 @@
 
 /**
  * \def PLC_OP_TYPE_MASK
+ * \brief Mask to get the type of the operation.
  * \details Get information about the type of operation (add, sub ...) and NOT the size of the operation (128 ...)
- * \brief Mask to get the type of the operation. 
  */
 #define PLC_OP_TYPE_MASK    16368      // 0b00011111111110000
 
 /**
  * \def PLC_SIMD_TYPE_MASK
- * \brief Get information about the size of the operation (128 ...) and NOT the type of operation (add, sub ...) 
+ * \brief Mask to get the size of the operation.
+ * \details Get information about the size of the operation (128 ...) and NOT the type of operation (add, sub ...) 
  */
 #define PLC_SIMD_TYPE_MASK  114688     // 0b11100000000000000		  
 
@@ -164,7 +165,7 @@
 
 /**
  * \def PLC_OP_AVX
- * \brief Flag for instructions
+ * \brief Flag for AVX instructions
  */
 #define PLC_OP_AVX          262144     // 0b1000000000000000000
 
@@ -391,138 +392,138 @@ enum OPERATION_CATEGORY{
 };
 
 /**
- * Returns the operation category of \param instr
+ * \brief Returns the operation category of \param instr
  */
 enum OPERATION_CATEGORY plc_get_operation_category(instr_t *instr);
 
 /**
- * Returns true if the operation category has the double flag set
+ * \brief Returns true if the operation category has the double flag set
  */
 inline bool plc_is_double(enum OPERATION_CATEGORY oc){
     return (oc & PLC_OP_DOUBLE) != 0;
 }
 
 /**
- * Returns true if the operation category has the float flag set
+ * \brief Returns true if the operation category has the float flag set
  */
 inline bool plc_is_float(enum OPERATION_CATEGORY oc){
     return (oc & PLC_OP_FLOAT) != 0;
 }
 
 /**
- * Returns true if the operation category has the packed flag set
+ * \brief Returns true if the operation category has the packed flag set
  */
 inline bool plc_is_packed(enum OPERATION_CATEGORY oc){
     return (oc & PLC_OP_PACKED) != 0;
 }
 
 /**
- * Returns true if the operation category has the scalar flag set
+ * \brief Returns true if the operation category has the scalar flag set
  */
 inline bool plc_is_scalar(enum OPERATION_CATEGORY oc){
     return (oc & PLC_OP_SCALAR) != 0;
 }
 
 /**
- * Returns true if the operation category has the add flag set
+ * \brief Returns true if the operation category has the add flag set
  */
 inline bool plc_is_add(enum OPERATION_CATEGORY oc){
     return (oc & PLC_OP_ADD) != 0;
 }
 
 /**
- * Returns true if the operation category has the sub flag set
+ * \brief Returns true if the operation category has the sub flag set
  */
 inline bool plc_is_sub(enum OPERATION_CATEGORY oc){
     return (oc & PLC_OP_SUB) != 0;
 }
 
 /**
- * Returns true if the operation category has the mul flag set
+ * \brief Returns true if the operation category has the mul flag set
  */
 inline bool plc_is_mul(enum OPERATION_CATEGORY oc){
     return (oc & PLC_OP_MUL) != 0;
 }
 
 /**
- * Returns true if the operation category has the div flag set
+ * \brief Returns true if the operation category has the div flag set
  */
 inline bool plc_is_div(enum OPERATION_CATEGORY oc){
     return (oc & PLC_OP_DIV) != 0;
 }
 
 /**
- * Returns true if the operation category has the fma flag set
+ * \brief Returns true if the operation category has the fma flag set
  */
 inline bool plc_is_fma(enum OPERATION_CATEGORY oc){
     return (oc & PLC_OP_FMA) != 0;
 }
 
 /**
- * Returns true if the operation category has the fms flag set
+ * \brief Returns true if the operation category has the fms flag set
  */
 inline bool plc_is_fms(enum OPERATION_CATEGORY oc){
     return (oc & PLC_OP_FMS) != 0;
 }
 
 /**
- * Returns true if the operation category has the order 132 flag set
+ * \brief Returns true if the operation category has the order 132 flag set
  */
 inline bool plc_is_fma132(enum OPERATION_CATEGORY oc){
     return (oc & PLC_OP_132) != 0;
 }
 
 /**
- * Returns true if the operation category has the order 213 flag set
+ * \brief Returns true if the operation category has the order 213 flag set
  */
 inline bool plc_is_fma213(enum OPERATION_CATEGORY oc){
     return (oc & PLC_OP_213) != 0;
 }
 
 /**
- * Returns true if the operation category has the order 231 flag set
+ * \brief Returns true if the operation category has the order 231 flag set
  */
 inline bool plc_is_fma231(enum OPERATION_CATEGORY oc){
     return (oc & PLC_OP_231) != 0;
 }
 
 /**
- * Returns true if the operation category has the negated flag set
+ * \brief Returns true if the operation category has the negated flag set
  */
 inline bool plc_is_negated(enum OPERATION_CATEGORY oc){
     return (oc & PLC_OP_NEG) != 0;
 }
 
 /**
- * Returns true if the operation category has the 128bits flag set
+ * \brief Returns true if the operation category has the 128bits flag set
  */
 inline bool plc_is_128(enum OPERATION_CATEGORY oc){
     return (oc & PLC_OP_128) != 0;
 }
 
 /**
- * Returns true if the operation category has the 256bits flag set
+ * \brief Returns true if the operation category has the 256bits flag set
  */
 inline bool plc_is_256(enum OPERATION_CATEGORY oc){
     return (oc & PLC_OP_256) != 0;
 }
 
 /**
- * Returns true if the operation category has the 512bits flag set
+ * \brief Returns true if the operation category has the 512bits flag set
  */
 inline bool plc_is_512(enum OPERATION_CATEGORY oc){
     return (oc & PLC_OP_512) != 0;
 }
 
 /**
- * Returns true if the operation category has the fused flag set
+ * \brief Returns true if the operation category has the fused flag set
  */
 inline bool plc_is_fused(enum OPERATION_CATEGORY oc){
     return (oc & PLC_OP_FUSED) != 0;
 }
 
 /**
- * Returns true if the operation category is instrumentable
+ * \brief Returns true if the operation category is instrumentable
  */
 inline bool plc_is_instrumented(enum OPERATION_CATEGORY oc){
     return (oc != PLC_OP_OTHER && oc != PLC_OP_UNSUPPORTED);

@@ -287,6 +287,7 @@ DR_EXPORT void dr_client_main(client_id_t id, // client ID
      * a command line option that should stop the program.
      */
     if(arguments_parser(argc, argv)){
+        dr_printf("truc\n");
         dr_abort_with_code(0);
         return;
     }

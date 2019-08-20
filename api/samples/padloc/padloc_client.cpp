@@ -191,6 +191,15 @@ inline int offset_of_simd(reg_id_t simd){
 template<typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE), int INSTR_CATEGORY, int SIMD_TYPE = PLC_OP_SCALAR>
 struct padloc_backend{
 
+    /**
+     * \brief Apply the backend function corresponding to the current overloaded instruction scalarly over the source operands
+     * 
+     * \details Determine the number of scalar element involved in the operation and apply the corresponding backend function over each of them. \n
+     * If the overloaded instruction is AVX, set the high part of YMM with 0.
+     * 
+     * \param vect_a Memory reference to the first operand
+     * \param vect_b Memory reference to the second operand 
+     */
     static void apply(FTYPE *vect_a, FTYPE *vect_b){
 
         static const int operation_size =   (SIMD_TYPE == PLC_OP_128) ? 16 : (SIMD_TYPE == PLC_OP_256) ? 32 :
@@ -240,6 +249,16 @@ struct padloc_backend{
 template<typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE), int INSTR_CATEGORY, int SIMD_TYPE = PLC_OP_SCALAR>
 struct padloc_backend_fused{
 
+     /**
+     * \brief Apply the backend function corresponding to the current overloaded instruction scalarly over the source operands
+     * 
+     * \details Determine the number of scalar element involved in the operation and apply the corresponding backend function over each of them. \n
+     * If the overloaded instruction is AVX, set the high part of YMM with 0.
+     * 
+     * \param vect_a Memory reference to the first operand
+     * \param vect_b Memory reference to the second operand 
+     * \param vect_c Memory reference to the third operand 
+     */
     static void apply(FTYPE *vect_a, FTYPE *vect_b, FTYPE *vect_c){
 
         static const int vect_size =  (SIMD_TYPE == PLC_OP_128) ? 16 : (SIMD_TYPE == PLC_OP_256) ? 32
@@ -280,15 +299,13 @@ void translate_insert(instr_t *newinstr, instrlist_t *ilist, instr_t *instr){
 
 /**
  * \brief Subset of insert_call for two sources instructions
- * \details [long description]
- * 
- * \param drcontext [description]
- * \param bb [description]
- * \param instr [description]
- * \param oc [description]
- * \tparam FTYPE [description]
- * \tparam FTYPE (*Backend_function)(FTYPE [description]
- * \tparam FTYPE) [description]
+ 
+ * \param drcontext DynamoRIO context
+ * \param bb Basic Block instructions list
+ * \param instr The reference instruction in the list to insert the call
+ * \param oc The flags associated to the current overloaded instruction
+ * \tparam FTYPE Floating point precision : Double of Float
+ * \tparam FTYPE (*Backend_function)(FTYPE) Function pointer to the backend implementation
  */
 template<typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE)>
 void insert_corresponding_vect_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc){
@@ -321,16 +338,13 @@ void insert_corresponding_vect_call(void *drcontext, instrlist_t *bb, instr_t *i
 
 /**
  * \brief Subset of insert_call for three sources instructions
- * \details [long description]
- * 
- * \param drcontext [description]
- * \param bb [description]
- * \param instr [description]
- * \param oc [description]
- * \tparam FTYPE [description]
- * \tparam FTYPE (*Backend_function)(FTYPE [description]
- * \tparam FTYPE [description]
- * \tparam FTYPE) [description]
+ 
+ * \param drcontext DynamoRIO context
+ * \param bb Basic Block instructions list
+ * \param instr The reference instruction in the list to insert the call
+ * \param oc The flags associated to the current overloaded instruction
+ * \tparam FTYPE Floating point precision : Double of Float
+ * \tparam FTYPE (*Backend_function)(FTYPE) Function pointer to the backend implementation
  */
 template<typename FTYPE, FTYPE (*Backend_function)(FTYPE, FTYPE, FTYPE)>
 void insert_corresponding_vect_call_fused(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc){
@@ -364,6 +378,15 @@ void insert_corresponding_vect_call_fused(void *drcontext, instrlist_t *bb, inst
     }
 }
 
+/**
+ * \brief Insert the call depending on the current overloaded instruction features.
+ * 
+ * \param drcontext DynamoRIO context
+ * \param bb Basic Block instructions list
+ * \param instr The reference instruction in the list to insert the call
+ * \param oc The flags associated to the current overloaded instruction
+ * \param is_double True if the instruction is performed in double precision, False if it is in single precision
+ */
 void insert_call(void *drcontext, instrlist_t *bb, instr_t *instr, OPERATION_CATEGORY oc, bool is_double){
     if(oc & PLC_OP_FUSED){
         if(oc & PLC_OP_FMA){
