@@ -27,14 +27,24 @@ typedef enum{
  * \struct module_entry
  * \brief Structure holding informations on a module, 
  * used for the whitelist and blacklist before further processing
- * 
- * TODO virer _module_entry
  */
-typedef struct _module_entry{
-    inline _module_entry(const std::string &mod_name, const bool all) : module_name(mod_name), all_symbols(all){
+struct module_entry{
+    /**
+     * \brief Constructor
+     * 
+     * \param mod_name Name of the module
+     * \param all True if we consider the whole module
+     */
+    inline module_entry(const std::string &mod_name, const bool all) : module_name(mod_name), all_symbols(all){
     }
 
-    inline bool operator==(struct _module_entry o){
+    /**
+     * \brief Equality operator
+     * 
+     * \param o Other module_entry
+     * \return bool True if this module_entry and the other module_entry have the same name
+     */
+    inline bool operator==(module_entry o){
         return o.module_name == module_name;
     };
 
@@ -44,27 +54,35 @@ typedef struct _module_entry{
     bool all_symbols;
     /** List of the symbols of interest in this module */
     std::vector<std::string> symbols;
-} module_entry;
+};
 
 /**
  * \struct addr_range_t
  * \brief Structure of a range of app_pc
- * 
- * TODO virer _addr_range_t
  */
-typedef struct _addr_range_t{
-    inline _addr_range_t() : start(0), end(0){
-    }
-
-    inline _addr_range_t(app_pc _start, app_pc _end) : start(_start), end(_end){
+struct addr_range_t{
+    /**
+     * \brief Default constructor
+     * \details Same as addr_range_t(0, 0)
+     */
+    inline addr_range_t() : start(0), end(0){
     }
 
     /**
-     * @brief [brief description]
-     * @details [long description]
+     * \brief Constructor
      * 
-     * @param pc [description]
-     * @return Returns true if the given app_pc is in the range
+     * \param _start Start of the range
+     * \param _end End of the range
+     */
+    inline addr_range_t(app_pc _start, app_pc _end) : start(_start), end(_end){
+    }
+
+    /**
+     * \brief Returns true if the given pc is in the range
+     * \details Returns pc >= start && pc < end
+     * 
+     * \param pc Instruction address
+     * \return bool True if pc is in [start, end[
      */
     inline bool contains(app_pc pc) const{
         return pc >= start && pc < end;
@@ -74,15 +92,19 @@ typedef struct _addr_range_t{
     app_pc start;
     /**End of the range */
     app_pc end;
-} addr_range_t;
+};
 
 /**
  * \struct symbol_entry_t
  * \brief Structure holding a symbol
- * 
- * TODO virer _symbol_entry_t
  */
-typedef struct _symbol_entry_t{
+struct symbol_entry_t{
+    /**
+     * \brief Returns true if the given pc is part of the symbol
+     * 
+     * \param pc Instruction address
+     * \return bool True if pc is in this symbol
+     */
     inline bool contains(app_pc pc) const{
         return range.contains(pc);
     }
@@ -91,15 +113,13 @@ typedef struct _symbol_entry_t{
     std::string name;
     /** Range of app_pc of this symbol*/
     addr_range_t range;
-} symbol_entry_t;
+};
 
 /**
  * \struct lookup_entry_t
  * \brief Structure holding a module and its symbols for lookup purposes
- * 
- * TODO virer _lookup_entry_t
  */
-typedef struct _lookup_entry_t{
+struct lookup_entry_t{
     /**
      * \brief Returns true if the module contains the given address
      *
@@ -162,32 +182,28 @@ typedef struct _lookup_entry_t{
     /** Ranges of app_pc for each segment of the module */
     std::vector<addr_range_t> segments; 
 #endif //WINDOWS
-} lookup_entry_t;
+};
 
 /**
- * \brief TODO
- * \details [long description]
+ * \brief Function to print the lookup vector
  */
 void print_lookup();
 
 /**
  * \brief Writes the symbols held by the modules vector to the output file
  * (defined by the command line argument)
- * \details TODO
+ * \details Only called when generating the symbols. Writes a header prior to the list of symbols and modules.
  */
 void write_symbols_to_file();
 
 /**
  * \brief Logs the symbol associated with ilist to the modules vector
- * \details TODO
+ * \details Looks for the name of the module and symbol associated with the address of the basic block
  * 
- * \param ilist TODO
+ * \param ilist Current basic block
  */
 void log_symbol(instrlist_t *ilist);
 
-/**
- * \brief Returns true if the module passed by \p module should be instrumented
- */
 /**
  * \brief Verify that we want to instrument a particular module
  * \details This function verifies, based on the current state of the client
@@ -200,8 +216,9 @@ void log_symbol(instrlist_t *ilist);
 bool should_instrument_module(const module_data_t *module);
 
 /**
- * \brief Verify if we want to instrument the list of instructions ilist
- * \details TODO
+ * \brief Verify if we want to instrument the list of instructions \p ilist
+ * \details Checks if the adress lies within an instrumented module.
+ * If it does, then checks if the symbol associated with this ilist should be instrumented.
  * 
  * \param ilist The list of instructions we may want to instrument
  * \return True if ilist has to be instrumented, else false

@@ -58,42 +58,42 @@ static void parse_line(string line, bool parsing_whitelist);
 static void load_lookup_from_modules_vector();
 
 /**
- * symbol_file est TODO
+ * File handle where we write the symbols found when generating (\ref symbol_gen)
  */
 static ofstream symbol_file;
 
 /**
- * blacklist est TODO
+ * File handle of the blacklist (\ref whitelist_blacklist)
  */
 static ifstream blacklist;
 
 /**
- * whitelist est TODO
+ * File handle of the whitelist (\ref whitelist_blacklist)
  */
 static ifstream whitelist;
 
 /**
- * blacklist_filename est TODO
+ * Name of the blacklist file
  */
 static std::string blacklist_filename;
 
 /**
- * whitelist_filename est TODO
+ * Name of the whitelist file
  */
 static std::string whitelist_filename;
 
 /**
- * blacklist_filename est TODO
+ * Vector containing the list of modules names and their symbols 
  */
 static vector<module_entry> modules_vector;
 
 /**
- * lookup_vector est TODO
+ * Vector containing a lookup for modules and their symbols
  */
 static vector<lookup_entry_t> lookup_vector;
 
 /**
- * whitelist_parsed est TODO
+ * Set to true when the whitelist has been parsed (for error checking)
  */
 static bool whitelist_parsed = false;
 
@@ -127,11 +127,10 @@ static inline size_t vec_idx_of(vector<T, allocator<T>> vec, T elem){
 }
 
 /**
- * \brief TODO
- * \details [long description]
- * 
- * \param entry [description]
- * \return [description]
+ * \brief Returns true if we need to remove the module entry from the list
+ * \details Clears the symbols of the module if need be
+ * \param entry Checked module_entry
+ * \return bool True if we need to remove it from the list
  */
 static bool need_cleanup_module(module_entry &entry){
     if(entry.all_symbols && get_symbol_mode() != PLC_SYMBOL_BL_WL){
@@ -174,14 +173,17 @@ void write_symbols_to_file(){
 
 /**
  * \brief Return the name of the symbol in module associated with the address intr_pc
- * \details TODO
+ * \details Uses drsym to get the name of the symbol.
  * 
  * \param module The module to run through
  * \param intr_pc The app_pc of the symbol we want the name
  * 
  * \return The name of the symbol if found, else the empty string 
  * 
- * \warning expliquer le problème avec le true et drsym_module_has_symbols en dessous
+ * \warning Currently, drsym_module_has_symbols returns false when seeing only dynamic symbols. 
+ * Thus a check is not done in this function to account for that. This can lead this function to retrieve
+ * garbage names from PDB files on Windows if there's one from an old debug compilation and the current program hasn't been built
+ * with debug.
  */
 static string get_symbol_name(module_data_t *module, app_pc intr_pc){
     string name;
@@ -283,9 +285,14 @@ void log_symbol(instrlist_t *ilist){
 
 /**
  * \brief Loads the module into the lookup if it doesn't exist in it
- * \details TODO expliquer plus, parce que load the module into the lookup, pas compris
+ * \details For speed and memory reasons, we try to not keep the debug symbols in memory.
+ * When the module is loaded, we look for its address boundaries.
+ * Then we look for the symbols in this module to register their boundaries.
  * 
- * \param module TODO
+ * Doing so allows us to only have to keep the adress ranges of the symbols and modules 
+ * instead of the whole debug table.
+ * 
+ * \param module Module do load in the lookup
  */
 static void lookup_or_load_module(const module_data_t *module){
     //If we find the module in the lookup, we don't need to load it
@@ -344,15 +351,13 @@ static void lookup_or_load_module(const module_data_t *module){
 }
 
 /**
- * \brief Convert a module vector to a lookup vector
+ * \brief Converts the module vector to the lookup vector
  * \details This function takes the modules vector (assuming it's 
  * loaded already), and converts it into the lookup vector.
  * If the module can't be found by name, it will be loaded in when DynamoRIO loads it in memory.
- * TODO peut-être expliquer un peu plus
- * TODO : change to begin(...) -----> ça je sais pas ce que c'est
+ * \todo Change the iterators to std::begin
  */
 static void load_lookup_from_modules_vector(){
-    //TODO : change to begin(...)
     auto end = remove_if(modules_vector.begin(), modules_vector.end(), [](module_entry const &mentry){
         string module_name = mentry.module_name;
         module_data_t *mod = dr_lookup_module_by_name(module_name.c_str());
@@ -409,13 +414,15 @@ bool needs_to_instrument(instrlist_t *ilist){
 /* ### FILE PARSING ### */
 
 /**
- * \brief Parse a string in order to check for symbol and module to
- * instrument.d
- * \details TODO
+ * \brief Parses a string in order to check for symbol and module to
+ * instrument.
+ * \details This function will add the findings in module_vector. It can parse a string with comments and trim it.
+ * The delimiter between a module and a symbol in a line is "!".
  * 
  * \param line The string to parse
  * \param parsing_whitelist Boolean telling if we are parsing a whitelist
  * or not.
+ * \todo Cleanup
  */
 static void parse_line(string line, bool parsing_whitelist){
     DR_ASSERT_MSG(parsing_whitelist || (get_symbol_mode() == PLC_SYMBOL_BL_ONLY || whitelist_parsed),
@@ -497,9 +504,9 @@ static void parse_line(string line, bool parsing_whitelist){
 }
 
 /**
- * \brief Generates from an input file conresponding to a blacklist
+ * \brief Generates from an input file corresponding to a blacklist
  * the list of symbols and modules we don't want to instrument.
- * \details TODO
+ * \details Parses all the lines of the given file to retrieve the module_vector
  * 
  * \param blacklist The input file corresponding to the blacklist
  */
@@ -522,9 +529,9 @@ static void generate_blacklist_from_file(ifstream &blacklist){
 }
 
 /**
- * \brief Generates from an input file conresponding to a whitelist
- * the list of symbols and modules we don't want to instrument.
- * \details TODO
+ * \brief Generates from an input file corresponding to a whitelist
+ * the list of symbols and modules we want to instrument.
+ * \details If a blacklist is open, handles it to finalize the module_vector.
  * 
  * \param whitelist The input file corresponding to the whitelist
  * \param blacklist The input file corresponding to the blacklist
@@ -559,9 +566,9 @@ static void generate_whitelist_from_files(ifstream &whitelist, ifstream &blackli
 }
 
 /**
- * \brief Generates from an input file conresponding to a whitelist
- * the list of symbols and modules we don't want to instrument.
- * \details TODO
+ * \brief Generates from an input file corresponding to a whitelist
+ * the list of symbols and modules we want to instrument.
+ * \details Parses all the lines of the given file to retrieve the module_vector
  * 
  * \param whitelist The input file corresponding to the whitelist
  */
@@ -571,13 +578,11 @@ static void generate_whitelist_from_file(ifstream &whitelist){
 }
 
 /**
- * \brief TODO
- * \details [long description]
+ * \brief Return the lookup entry corresponding to the given address
  * 
- * \param pc [description]
- * \param lookup_type [description]
- * 
- * \return [description]
+ * \param pc Instruction address
+ * \param lookup_type Defines the type of lookup we are looking for (symbol or module)
+ * \return lookup_entry_t* The corresponding lookup entry, nullptr if it hasn't been found
  */
 static lookup_entry_t *lookup_find(app_pc pc, plc_lookup_type_t lookup_type){
     for(auto &i : lookup_vector){

@@ -1,10 +1,10 @@
-How PADLOC works ?
+How does PADLOC work ?
 ============
 
 At its core, **PADLOC** replaces the floating point instructions of an executable by their MCA counterpart. For that, it uses the DynamoRIO's API to decode the executable, insert new instructions and reencode the instructions to be executed.
 
 ___
-# Instruction replacement
+# Instruction replacement {#instruction_replacement}
 
 DynamoRIO allows us to get the different basic blocks of the program before they are executed. Upon receiving such basic block, we iterate over its instructions in order to find instrumentable instructions. We instrument only the floating point operations and not the rest.
 
@@ -60,7 +60,7 @@ After the call is done, the GPR and SIMD may have been corrupted, thus we need t
 When multiple instrumented instructions are one after the other, we can skip the restoring and resaving phases between them. That way, we save some unnecessary moves.
 
 ___
-# Symbols handling
+# Symbols handling system {#symbol_functionning}
 
 PADLOC supports instrumenting limitation depending on the encountered symbol. For example, if you don't want to instrument the libm or a specific function, PADLOC allows you to do it (cf [Symbol handling](SYMBOL_HANDLING.md) for details)
 
@@ -72,7 +72,7 @@ Upon seeing a basic block, we need to know if we need to instrument it. For that
 
 
 ___
-# Limitations and improvements
+# Limitations and improvements {#limitations}
 
 ## Performance
 Currently, this technique is expensive because of its simplicity. A more complex analysis can help improve performance by limiting the number of added instructions to a minimum. Several attempts have been made but aren't yet successful and will require more time to complete : 
