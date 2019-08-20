@@ -30,11 +30,11 @@ typedef enum{
  * 
  * TODO virer _module_entry
  */
-typedef struct _module_entry{
-    inline _module_entry(const std::string &mod_name, const bool all) : module_name(mod_name), all_symbols(all){
+struct module_entry{
+    inline module_entry(const std::string &mod_name, const bool all) : module_name(mod_name), all_symbols(all){
     }
 
-    inline bool operator==(struct _module_entry o){
+    inline bool operator==(module_entry o){
         return o.module_name == module_name;
     };
 
@@ -44,7 +44,7 @@ typedef struct _module_entry{
     bool all_symbols;
     /** List of the symbols of interest in this module */
     std::vector<std::string> symbols;
-} module_entry;
+};
 
 /**
  * \struct addr_range_t
@@ -52,11 +52,11 @@ typedef struct _module_entry{
  * 
  * TODO virer _addr_range_t
  */
-typedef struct _addr_range_t{
-    inline _addr_range_t() : start(0), end(0){
+struct addr_range_t{
+    inline addr_range_t() : start(0), end(0){
     }
 
-    inline _addr_range_t(app_pc _start, app_pc _end) : start(_start), end(_end){
+    inline addr_range_t(app_pc _start, app_pc _end) : start(_start), end(_end){
     }
 
     /**
@@ -74,15 +74,13 @@ typedef struct _addr_range_t{
     app_pc start;
     /**End of the range */
     app_pc end;
-} addr_range_t;
+};
 
 /**
  * \struct symbol_entry_t
  * \brief Structure holding a symbol
- * 
- * TODO virer _symbol_entry_t
  */
-typedef struct _symbol_entry_t{
+struct symbol_entry_t{
     inline bool contains(app_pc pc) const{
         return range.contains(pc);
     }
@@ -91,15 +89,13 @@ typedef struct _symbol_entry_t{
     std::string name;
     /** Range of app_pc of this symbol*/
     addr_range_t range;
-} symbol_entry_t;
+};
 
 /**
  * \struct lookup_entry_t
  * \brief Structure holding a module and its symbols for lookup purposes
- * 
- * TODO virer _lookup_entry_t
  */
-typedef struct _lookup_entry_t{
+struct lookup_entry_t{
     /**
      * \brief Returns true if the module contains the given address
      *
@@ -162,7 +158,7 @@ typedef struct _lookup_entry_t{
     /** Ranges of app_pc for each segment of the module */
     std::vector<addr_range_t> segments; 
 #endif //WINDOWS
-} lookup_entry_t;
+};
 
 /**
  * \brief TODO
