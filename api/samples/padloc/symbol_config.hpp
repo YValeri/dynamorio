@@ -185,29 +185,25 @@ struct lookup_entry_t{
 };
 
 /**
- * \brief TODO
- * \details [long description]
+ * \brief Function to print the lookup vector
  */
 void print_lookup();
 
 /**
  * \brief Writes the symbols held by the modules vector to the output file
  * (defined by the command line argument)
- * \details TODO
+ * \details Only called when generating the symbols. Writes a header prior to the list of symbols and modules.
  */
 void write_symbols_to_file();
 
 /**
  * \brief Logs the symbol associated with ilist to the modules vector
- * \details TODO
+ * \details Looks for the name of the module and symbol associated with the address of the basic block
  * 
- * \param ilist TODO
+ * \param ilist Current basic block
  */
 void log_symbol(instrlist_t *ilist);
 
-/**
- * \brief Returns true if the module passed by \p module should be instrumented
- */
 /**
  * \brief Verify that we want to instrument a particular module
  * \details This function verifies, based on the current state of the client
@@ -220,8 +216,9 @@ void log_symbol(instrlist_t *ilist);
 bool should_instrument_module(const module_data_t *module);
 
 /**
- * \brief Verify if we want to instrument the list of instructions ilist
- * \details TODO
+ * \brief Verify if we want to instrument the list of instructions \p ilist
+ * \details Checks if the adress lies within an instrumented module.
+ * If it does, then checks if the symbol associated with this ilist should be instrumented.
  * 
  * \param ilist The list of instructions we may want to instrument
  * \return True if ilist has to be instrumented, else false

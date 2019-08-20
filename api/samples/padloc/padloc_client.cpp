@@ -104,17 +104,17 @@
 #define AINSERT(bb, where, instr) translate_insert(instr, bb, where)
 
 /**
- * tls_gpr is TODO
+ * Index of the gpr tls
  */
 static int tls_gpr;
 
 /**
- * This variable TODO
+ * Index of the float tls
  */
 static int tls_float;
 
 /**
- * This variable TODO
+ * Index of the result tls
  */
 static int tls_result;
 
@@ -144,12 +144,13 @@ int get_index_tls_result(){
 
 /**
  * \brief Returns the offset, in bytes, of the GPR stored in the tls
- * \details TODO expliquer l'offset par rapport à quoi, comment c'est calculé
- * 
+ * \details The offset is relative to the address stored in the gpr tls.
+ * We reserve the first 8 bytes to store the arithmetic flags. 
+ * Then the next 8 bytes are for the first gpr registers, then the second, and so on.
  * \param gpr The GPR to get the offset from
  * \return The offset in bytes
  * 
- * \warning we assume the given register is indeed a GPR
+ * \warning We assume the given register is indeed a GPR
  */
 inline int offset_of_gpr(reg_id_t gpr){
     return (((int)gpr - DR_REG_START_GPR) + 1) << 3;
@@ -157,12 +158,16 @@ inline int offset_of_gpr(reg_id_t gpr){
 
 /**
  * \brief Returns the offset, in bytes, of the simd register in the tls
- * \details TODO expliquer l'offset par rapport à quoi, comment c'est calculé
+ * \details The returned offset is relative to the adress stored in float tls.
+ * Since x86 is Little Endian, the offset of ZMM1, YMM1 and XMM1 for example is the same.
+ * Depending on the current architecture, we saved the biggest version of the SIMD register, thus
+ * the offset is calculated from the size of the biggest version of the SIMD register multiplied by
+ * the index of this register compared to the MM0.
  * 
  * \param simd The SIMD register to get the offset from
  * \return The offset in bytes
  * 
- * \warning we assume the given register is indeed a SIMD register
+ * \warning We assume the given register is a SIMD register
  */
 inline int offset_of_simd(reg_id_t simd){
     /* 128 bits = 16 bytes = 2^4 */
@@ -521,13 +526,12 @@ void insert_restore_gpr_and_flags(void *drcontext, instrlist_t *bb, instr_t *whe
 }
 
 /**
- * \brief TODO
- * \details [long description]
+ * \brief Inserts prior to \p where meta-instructions to set the destination TLS to the right address
  * 
  * \param drcontext DynamoRIO's context
  * \param bb The list of instructions
  * \param where Instruction prior to whom we insert the meta-instructions
- * \param destination [description]
+ * \param destination Destination register of the instrumented instruction
  */
 void insert_set_destination_tls(void *drcontext, instrlist_t *bb, instr_t *where, reg_id_t destination){
 #if defined(X86) && defined(X64)
@@ -632,7 +636,7 @@ void insert_restore_simd_registers(void *drcontext, instrlist_t *bb, instr_t *wh
  * \param src0 Source 0 of the instruction
  * \param src1 Source 1 of the instruction
  * \param src2 Source 2 of the instruction
- * \param out_reg TODO
+ * \param out_reg Register array defining where to put the adresses
  * 
  * \warning Assumes the GPR have been saved
  */
@@ -753,14 +757,14 @@ static void insert_set_operands_mem_reference(void *drcontext, instrlist_t *bb, 
 }
 
 /**
- * \brief TODO
- * \details [long description]
+ * Inserts prior to \p where meta-instructions to set the calling
+ * convention registers to the right adresses
  * 
  * \param drcontext DynamoRIO's context
  * \param bb Current Basic Block
  * \param where Instruction prior to whom we insert the meta-instructions 
  * \param instr Instrumented instruction
- * \param oc [description]
+ * \param oc Category of the instrumented instruction
  */
 void insert_set_operands(void *drcontext, instrlist_t *bb, instr_t *where, instr_t *instr, OPERATION_CATEGORY oc){
     reg_id_t reg_op_addr[3];
