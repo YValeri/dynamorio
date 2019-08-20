@@ -62,7 +62,7 @@ When multiple instrumented instructions are one after the other, we can skip the
 ___
 # Symbols handling system {#symbol_functionning}
 
-PADLOC supports instrumenting limitation depending on the encountered symbol. For example, if you don't want to instrument the libm or a specific function, PADLOC allows you to do it (cf [Symbol handling](SYMBOL_HANDLING.md) for details)
+PADLOC supports instrumenting limitation depending on the encountered symbol. For example, if you don't want to instrument the libm or a specific function, PADLOC allows you to do it (cf [Symbol handling](SYMBOL_HANDLING.md) for details on the usage)
 
 ## Module wide instrumentation
 DynamoRIO defines a module as an executable file, or a library which contains instructions. When DynamoRIO loads one of the modules used by the program, an event is fired and we check if that module should be instrumented. If it shouldn't be instrumented, we won't see its basic blocks go through the basic block callback.
@@ -70,6 +70,14 @@ DynamoRIO defines a module as an executable file, or a library which contains in
 ## Symbol wide instrumentation
 Upon seeing a basic block, we need to know if we need to instrument it. For that, we check where lies the address of its first instruction. If the instruction is part of a symbol we instrument, we instrument the basic block, otherwise we don't instrument it.
 
+## Symbol generation mechanism
+To ease the making of the whitelist and blacklist, the client can generate a file containing the list of modules and symbols used by the program. For that, we replace the instrumentation routine by a symbol logging routine. When a basic block contains a instrumentable instruction, we register its symbol. For that, we use the drsym DynamoRIO extension to get the module and symbols associated with the address of the current basic block. When we obtain the names of the module and the symbol, we add them to the modules_vector. At the end, the modules_vector is written to a file in text format.
+
+## Symbol lookup mechanism
+When using the whitelist or the blacklist, we need to find which symbol or module a particular basic block corresponds to. Firstly, we parse the files to get a module_vector. The next step is to translate the module_vector into a lookup_vector. The module_vector only has the names of the symbols and modules, while the lookup_vector also has the adress ranges of them. Using the lookup_vector is then more efficient than using the module_vector because we don't have to keep the symbols table in memory and we just have to compare integers to ranges.
+To translate the names into adresses, we again use drsym to find all the necessary informations.
+For modules, their adresses are handled differently between Windows and Unix. In Windows, the modules are contiguous, meaning that there's no gap of adresses in it, while Unix can have different segments of module at different locations in memory. We have to take that into account when checking if the basic block is in a instrumented basic block.
+For symbols, they are contiguous, so just checking if the address lies in the range of the symbol is sufficient.
 
 ___
 # Limitations and improvements {#limitations}
@@ -78,7 +86,7 @@ ___
 Currently, this technique is expensive because of its simplicity. A more complex analysis can help improve performance by limiting the number of added instructions to a minimum. Several attempts have been made but aren't yet successful and will require more time to complete : 
 
 - An analysis of the registers corrupted by the backend could help in removing some unnecessary save and restores. A simple version of it which looks at the registers used (not the corrupted ones only) is already in the code but currently unused
-- An intelligent save and restore mechanism to execute only the necessary moves could cut down the number of instructions further. An attempt is available on the "multiinstr" branch but it's slower than the simple version we have on the master branch while cutting down the number of instructions by half. Further investigation is required.
+- An intelligent save and restore mechanism to execute only the necessary moves could cut down the number of instructions further. An attempt is available on the "multiinstr" branch but it's slower than the simple version we have on the master branch while cutting down the number of instructions by half on the matmul test. Further investigation is required.
 - Limit the memory movements by utilizing unused registers and reorganise the register usage.
 
 ## Support
