@@ -27,13 +27,23 @@ typedef enum{
  * \struct module_entry
  * \brief Structure holding informations on a module, 
  * used for the whitelist and blacklist before further processing
- * 
- * TODO virer _module_entry
  */
 struct module_entry{
+    /**
+     * \brief Constructor
+     * 
+     * \param mod_name Name of the module
+     * \param all True if we consider the whole module
+     */
     inline module_entry(const std::string &mod_name, const bool all) : module_name(mod_name), all_symbols(all){
     }
 
+    /**
+     * \brief Equality operator
+     * 
+     * \param o Other module_entry
+     * \return bool True if this module_entry and the other module_entry have the same name
+     */
     inline bool operator==(module_entry o){
         return o.module_name == module_name;
     };
@@ -49,22 +59,30 @@ struct module_entry{
 /**
  * \struct addr_range_t
  * \brief Structure of a range of app_pc
- * 
- * TODO virer _addr_range_t
  */
 struct addr_range_t{
+    /**
+     * \brief Default constructor
+     * \details Same as addr_range_t(0, 0)
+     */
     inline addr_range_t() : start(0), end(0){
     }
 
+    /**
+     * \brief Constructor
+     * 
+     * \param _start Start of the range
+     * \param _end End of the range
+     */
     inline addr_range_t(app_pc _start, app_pc _end) : start(_start), end(_end){
     }
 
     /**
-     * @brief [brief description]
-     * @details [long description]
+     * \brief Returns true if the given pc is in the range
+     * \details Returns pc >= start && pc < end
      * 
-     * @param pc [description]
-     * @return Returns true if the given app_pc is in the range
+     * \param pc Instruction address
+     * \return bool True if pc is in [start, end[
      */
     inline bool contains(app_pc pc) const{
         return pc >= start && pc < end;
@@ -81,6 +99,12 @@ struct addr_range_t{
  * \brief Structure holding a symbol
  */
 struct symbol_entry_t{
+    /**
+     * \brief Returns true if the given pc is part of the symbol
+     * 
+     * \param pc Instruction address
+     * \return bool True if pc is in this symbol
+     */
     inline bool contains(app_pc pc) const{
         return range.contains(pc);
     }
