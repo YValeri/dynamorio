@@ -12,10 +12,14 @@ divtest.out: divtest.cpp
 
 matmul_blas.out: matmul_blas.cpp
 	$(CC) -o matmul_blas.out matmul_blas.cpp -lopenblas -O3 -march=native
+
+test_instructions_scalar.out: test_instructions_scalar_sse.out test_instructions_scalar_avx.out
 	
-test_instructions_scalar.out: test_instructions.h test_instructions_scalar.cpp
+test_instructions_scalar_sse.out: test_instructions.h test_instructions_scalar.cpp
 	$(CC) -o test_instructions_scalar_sse.out test_instructions_scalar.cpp -msse -O3
-	$(CC) -o test_instructions_scalar_avx.out test_instructions_scalar.cpp -mavx -O3	
+
+test_instructions_scalar_avx.out: test_instructions.h test_instructions_scalar.cpp
+	$(CC) -o test_instructions_scalar_avx.out test_instructions_scalar.cpp -mavx -O3
 
 test_instructions_vect_sse.out: test_instructions.h test_instructions_vect_sse.cpp
 	$(CC) -o test_instructions_vect_sse.out test_instructions_vect_sse.cpp -msse -O3

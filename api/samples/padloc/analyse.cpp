@@ -590,14 +590,11 @@ bool enum_symbols_sse(const char *name, size_t modoffs, void *data){
  * 
  * \param path A placeholder char*
  * \param length The length of the char*
- * 
- * \todo Find another way to get the path to libpadloc, as DynamoRIO's
- * dr_get_current_directory returns the directory from which drrun is called,
- * and it may not be the folder "build".
  */
 static void path_to_library(char *path, size_t length){
-    dr_get_current_directory(path, length);
-    strcat(path, "/api/bin/libpadloc.so");
+    module_data_t* mdata = dr_lookup_module_by_name("libpadloc.so");
+    strncpy(path, mdata->full_path, length);
+    dr_free_module_data(mdata);
 }
 
 /**
