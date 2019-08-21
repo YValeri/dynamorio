@@ -43,12 +43,12 @@ ___
 
 ~~~~sh
 cd path/to/build/
-bin64/drrun -c libpadloc.so -- path/to/executable/you/want
+bin64/drrun -c libpadloc.so -- path/to/executable
 ~~~~
 
 <h3> Windows</h3>
 
 ~~~~sh
 cd path\to\build\
-bin64\drrun.exe -c padloc.dll -- path/to/executable/you/want
+bin64\drrun.exe -c padloc.dll -- path/to/executable
 ~~~~

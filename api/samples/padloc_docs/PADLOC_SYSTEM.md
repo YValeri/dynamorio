@@ -22,9 +22,11 @@ We currently support the FMA3, SSE, AVX and AVX2 instruction sets.
 
 When we encounter the first instrumentable instruction, we prepare the processor state to call a backend function. This backend function signature is defined by the Interflop interface and needs to replace the instruction it instruments. For ease of use, we call a function that only works with pointers as a middleware in order to call the backend accordingly. This is useful for packed instructions.
 
+All the operations below are done by inserting instructions in place of the instrumented instruction.
+
 ## Identification of the instruction
 
-To identify if the encountered instruction is instrumentable or not, we look at the opcode of that instruction. We compare it to a list we defined to get the OPERATION_CATEGORY of this instruction. The OPERATION_CATEGORY contains the type of instruction as bit flags and is used to simplify further treatment of the instruction.
+To identify if the encountered instruction is instrumentable or not, we look at the opcode of that instruction. We compare it to a list we defined to get the OPERATION_CATEGORY of this instruction. The OPERATION_CATEGORY contains the type of instruction as bit flags and is used to simplify further treatment of the instruction. For opcodes that handle different operand sizes, we need to get the size of the operands. For this, we iterate over the operands of the instructions and find the biggest one.
 
 ## Registers Safekeeping
 
@@ -32,28 +34,46 @@ To not interfere with the behavior of the program outside of the MCA disturbance
 
 Note that saving the arithmetic flags is important as the backends have a tendency to alter them. The instructions we instrument don't normally affect the arithmetic flags and thus we need to make sure they stay untouched. It's not uncommon to see a comparison with a GPR followed by a floating point operations before the result of that comparison is used.
 
+On x86-64 for example, we do the following :
+- We save RCX to a spill slot ([dr_save_reg](http://dynamorio.org/docs/dr__ir__utils_8h.html#af294ac021c84f5ec47230ee7df0e6c02))
+- We load the address of the TLS buffer for gpr in RCX ([drmgr_insert_read_tls_field](http://dynamorio.org/docs/group__drmgr.html#ga7c72a35608998e6e359a3a652a7f97f7))
+- We move RAX to its saving location in the buffer (using RCX as a base address)
+- We restore the spill slot into RAX and then save RAX to the location of RCX in the buffer (in order to save RCX)
+- We execute the `lahf` instruction to load the arithmetic flags into RAX and save RAX to the save location of the arithmetic flags
+- We iterate over all the other GPR in order to save them in their respective location
+- We load the address of the TLS buffer for floating point registers in RCX
+- We iterate over the SIMD registers and we save them all to their respective location
+
 ## Setting up the result TLS
 
 In order for the middleware to have a place to put the result, we have a TLS that contains an adress. All the instructions we instrument have a SIMD register as destination. Thus the result TLS point towards the location in memory of the corresponding register.
 
-Note that the adress in the TLS isn't the actual adress. It points to a 64-bits location containing the adress of the result. This eliviates the need of a dr_insert_write_tls(), which is expensive.
+Note that the address in the TLS isn't the actual address. It points to a 64-bits location containing the address of the result. This eliviates the need of a dr_insert_write_tls(), which is expensive.
 Basically, the TLS contains `&(&result)` and we change `&result` according to the instruction.
 
 ## Preparation of the calling convention
 
 We use the LEA instruction to setup the calling convention registers as addresses to the corresponding parameters. DynamoRIO uses the cdecl calling convention for Linux, and the Microsoft X64 calling convention on Windows.
-When the instrumented instruction's operand is a SIMD register, we load the address of the saved register. As all X86_64 processors are Little Endian, the lower half of the SIMD registers are located at the start of the save for this register. For example, XMM1, the lower half of YMM1, is located at the same adress as YMM1, excepts that it's 128 bits long instead of 256 bits. 
-When the operand is a memory adress, either a base+displacement or an absolute or relative address, we load that adress directly.
+When the instrumented instruction's operand is a SIMD register, we load the address of the saved register. As all x86-64 processors are Little Endian, the lower half of the SIMD registers are located at the start of the save for this register. For example, XMM1, the lower half of YMM1, is located at the same adress as YMM1, excepts that it's 128 bits long instead of 256 bits. 
+When the operand is a memory adress, either a base+displacement or an absolute or relative address, we load that address directly.
 
 In order to comply with the Microsoft X64 calling convention, and prevent register spilling in bad locations, we need to execute a `sub %rsp 32` assembly instruction to set the stack pointer to the correct location.
 
 ## Call insertion
 
-We then insert the right call for the instrumentation. In order to limit branching to a maximum during execution, we use templates to insert the function corresponding to the exact specifications of the instrumented instruction based on the OPERATION_CATEGORY.
+We then insert the right call for the instrumentation. In order to limit branching to a maximum during execution, we use templates to insert the function corresponding to the exact specifications of the instrumented instruction based on the OPERATION_CATEGORY. 
 
 ## Register restoring
 
 After the call is done, the GPR and SIMD may have been corrupted, thus we need to restore the save we have in memory. We restore the arithmetic flags and then we restore the SIMD and GPR. Since the SIMD registers that were affected by the instrumented instruction have their values already modified in memory, this restoring also serves as a way to push the result in the right register.
+
+On x86-64 for example, we do :
+- We load the address of the TLS buffer for floating point registers in RCX
+- We iterate over the SIMD registers to restore them from the buffer
+- We load the address of the TLS buffer for gpr in RCX
+- We restore the arithmetic flags by moving them from memory into RAX then execute the `sahf` instruction
+- We then restore RAX from the buffer
+- We then iterate in reverse the gpr until RCX to restore their value from the buffer
 
 ## Contiguous instructions handling
 
