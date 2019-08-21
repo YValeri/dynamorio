@@ -19,7 +19,7 @@ int main(int argc , char *argv[]) {
                     "\tvmovaps %%ymm1, %2\n"
                     "\tvmovaps %%ymm2, %3\n"
                     "\tvfmadd231sd %%xmm0, %%xmm1, %%xmm2\n"
-                    "\tvmovaps %0, %%ymm0\n" 
+                    "\tvmovaps %0, %%ymm0\n"
                     : "=m"(c)
                     : "m"(a), "m"(b), "m"(c));
     

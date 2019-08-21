@@ -31,7 +31,7 @@ int main(int argc, char const *argv[])
     v_res_f_sse = _mm_fmadd_ss(v_src0_f_sse , v_src1_f_sse , v_src2_f_sse); _mm_store_ss(res_f_sse , v_res_f_sse);
     v_res_d_sse = _mm_fmadd_sd(v_src0_d_sse , v_src1_d_sse , v_src2_d_sse); _mm_store_sd(res_d_sse , v_res_d_sse);
 
-    print<float>(res_f_sse , 4 , "FMADDSS");
+    print<float>(res_f_sse , 4 , "FMADDSS");    
     if(     res_f_sse[0] >= -2.0106-EPSILLON && res_f_sse[0] <= -2.0106+EPSILLON &&
             res_f_sse[1] >= 0.0-EPSILLON && res_f_sse[1] <= 0.0+EPSILLON &&
             res_f_sse[2] >= 0.0-EPSILLON && res_f_sse[2] <= 0.0+EPSILLON &&
