@@ -228,14 +228,18 @@ void log_symbol(instrlist_t *ilist){
     if(instr){
         pc = instr_get_app_pc(instr);
         if(pc){
-            dr_printf("pc : %p\n", pc);
             mod = dr_lookup_module(pc);
             if(mod){
 
                 entry.module_name = string(dr_module_preferred_name(mod));
-                dr_printf("Module name : %s\n", entry.module_name.c_str());
+                if(get_log_level() >= 1){
+                    dr_printf("Found : Module name : %s\n", entry.module_name.c_str());
+                }
                 string symbolName = get_symbol_name(mod, pc);
                 if(!symbolName.empty()){
+                    if(get_log_level() >= 1){
+                        dr_printf("Found : Symbol name : %s\n", symbolName.c_str());
+                    }
                     if(modules_vector.size() > oldModule){
 
                         if(modules_vector[oldModule] == entry) // If the module is the last seen module
